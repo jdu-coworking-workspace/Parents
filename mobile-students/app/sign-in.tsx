@@ -7,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  ScrollView,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
@@ -21,13 +22,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function SignInScreen() {
-  const [step, setStep] = useState<"email" | "password">("email");
+  const [step, setStep] = useState<"email" | "password" | "setup">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, isSignedIn, isLoading: isAuthLoading } = useAuth();
+  const {
+    signIn,
+    completeFirstLogin,
+    isSignedIn,
+    isLoading: isAuthLoading,
+  } = useAuth();
   const router = useRouter();
   useEffect(() => {
     if (!isAuthLoading && isSignedIn) {
@@ -53,59 +61,81 @@ export default function SignInScreen() {
     }
 
     try {
-      console.log("[sign-in] Next pressed", {
-        step,
-        email: email.trim().toLowerCase(),
-      });
       setIsLoading(true);
       setError("");
       setInfo("");
 
       const response = await initiateStudentLogin(email.trim().toLowerCase());
-      console.log("[sign-in] login initiate success", response);
       setInfo(response.message || "Emailga temporary password yuborildi.");
       setStep("password");
+      setPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (e: any) {
-      console.error("[sign-in] login initiate failed", {
-        message: e?.message,
-        status: e?.status,
-        name: e?.name,
-        error: e,
-      });
       setError(e?.message || "Email tekshirishda xatolik yuz berdi");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEmailLogin = async () => {
+  const handlePasswordSubmit = async () => {
+    if (!password.trim()) {
+      setError("Password kiriting");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+      setInfo("");
+
+      await signIn(email.trim().toLowerCase(), password);
+
+      router.replace("/(tabs)/(home)");
+    } catch (e: any) {
+      if (e?.status === 403) {
+        setStep("setup");
+        setInfo(
+          "Temporary password tasdiqlandi. Endi shaxsiy password yarating.",
+        );
+        return;
+      }
+
+      setError(e?.message || "Login xatoligi");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordSetup = async () => {
     if (!password.trim()) {
       setError("Temporary password kiriting");
       return;
     }
 
+    if (!newPassword.trim()) {
+      setError("O'zingizning passwordingizni kiriting");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwordlar mos kelmadi");
+      return;
+    }
+
     try {
-      console.log("[sign-in] Sign in pressed", {
-        step,
-        email: email.trim().toLowerCase(),
-        hasPassword: !!password.trim(),
-      });
       setIsLoading(true);
       setError("");
 
-      await signIn(email.trim().toLowerCase(), password);
-
-      console.log("[sign-in] login success, navigating home");
+      await completeFirstLogin(
+        email.trim().toLowerCase(),
+        password,
+        newPassword,
+      );
 
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
-      console.error("[sign-in] login failed", {
-        message: e?.message,
-        status: e?.status,
-        name: e?.name,
-        error: e,
-      });
-      setError(e?.message || "Login xatoligi");
+      setError(e?.message || "Password saqlashda xatolik yuz berdi");
     } finally {
       setIsLoading(false);
     }
@@ -123,72 +153,58 @@ export default function SignInScreen() {
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.safeArea}
           >
-            <View style={styles.headerBlock}>
-              <ThemedText style={styles.title}>
-                Welcome,{"\n"}Student
-              </ThemedText>
-            </View>
-
-            <Pressable
-              style={[
-                styles.googleButton,
-                {
-                  backgroundColor: palette.inputBg,
-                  borderColor: palette.inputBorder,
-                },
-              ]}
-              // onPress={handleGoogleLogin}
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Ionicons name="logo-google" size={20} color="#4285F4" />
-              <ThemedText
-                style={[
-                  styles.googleButtonText,
-                  { color: Colors[colorScheme].text },
-                ]}
-              >
-                Sign in with Google
-              </ThemedText>
-            </Pressable>
+              <View style={styles.headerBlock}>
+                <ThemedText style={styles.title}>
+                  Welcome,{"\n"}Student
+                </ThemedText>
+              </View>
 
-            <View
-              style={[styles.divider, { borderTopColor: palette.inputBorder }]}
-            >
-              <View
+              <Pressable
                 style={[
-                  styles.dividerDot,
-                  { backgroundColor: palette.inputBorder },
-                ]}
-              />
-            </View>
-
-            <View style={styles.inputBlock}>
-              <ThemedText style={styles.label}>Gmail</ThemedText>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="student@gmail.com"
-                placeholderTextColor={palette.muted}
-                style={[
-                  styles.input,
+                  styles.googleButton,
                   {
                     backgroundColor: palette.inputBg,
                     borderColor: palette.inputBorder,
                   },
                 ]}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={step === "email" && !isLoading}
-              />
-            </View>
+                // onPress={handleGoogleLogin}
+              >
+                <Ionicons name="logo-google" size={20} color="#4285F4" />
+                <ThemedText
+                  style={[
+                    styles.googleButtonText,
+                    { color: Colors[colorScheme].text },
+                  ]}
+                >
+                  Sign in with Google
+                </ThemedText>
+              </Pressable>
 
-            {step === "password" ? (
+              <View
+                style={[
+                  styles.divider,
+                  { borderTopColor: palette.inputBorder },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.dividerDot,
+                    { backgroundColor: palette.inputBorder },
+                  ]}
+                />
+              </View>
+
               <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>Temporary password</ThemedText>
+                <ThemedText style={styles.label}>Gmail</ThemedText>
                 <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Emailga kelgan password"
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="student@gmail.com"
                   placeholderTextColor={palette.muted}
                   style={[
                     styles.input,
@@ -197,62 +213,143 @@ export default function SignInScreen() {
                       borderColor: palette.inputBorder,
                     },
                   ]}
-                  secureTextEntry
-                  editable={!isLoading}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={step === "email" && !isLoading}
                 />
               </View>
-            ) : null}
 
-            {info ? (
-              <ThemedText
-                style={[styles.feedbackText, { color: palette.info }]}
-              >
-                {info}
-              </ThemedText>
-            ) : null}
+              {step !== "email" ? (
+                <View style={styles.inputBlock}>
+                  <ThemedText style={styles.label}>
+                    {step === "setup" ? "Temporary password" : "Password"}
+                  </ThemedText>
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Emailga kelgan yoki shaxsiy password"
+                    placeholderTextColor={palette.muted}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.inputBg,
+                        borderColor: palette.inputBorder,
+                      },
+                    ]}
+                    secureTextEntry
+                    editable={step === "password" && !isLoading}
+                  />
+                </View>
+              ) : null}
 
-            {error ? (
-              <ThemedText
-                style={[styles.feedbackText, { color: palette.error }]}
-              >
-                {error}
-              </ThemedText>
-            ) : null}
+              {step === "setup" ? (
+                <>
+                  <View style={styles.inputBlock}>
+                    <ThemedText style={styles.label}>
+                      O'zingizning passwordingiz
+                    </ThemedText>
+                    <TextInput
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      placeholder="Yangi password kiriting"
+                      placeholderTextColor={palette.muted}
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: palette.inputBg,
+                          borderColor: palette.inputBorder,
+                        },
+                      ]}
+                      secureTextEntry
+                      editable={!isLoading}
+                    />
+                  </View>
 
-            <Pressable
-              style={[
-                styles.primaryButton,
-                { backgroundColor: palette.primary },
-              ]}
-              onPress={step === "email" ? handleEmailNext : handleEmailLogin}
-              disabled={isLoading}
-            >
-              <ThemedText style={styles.primaryButtonText}>
-                {isLoading
-                  ? "Loading..."
-                  : step === "email"
-                    ? "Next"
-                    : "Sign in"}
-              </ThemedText>
-            </Pressable>
+                  <View style={styles.inputBlock}>
+                    <ThemedText style={styles.label}>
+                      Password tasdig'i
+                    </ThemedText>
+                    <TextInput
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      placeholder="Passwordni qayta kiriting"
+                      placeholderTextColor={palette.muted}
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: palette.inputBg,
+                          borderColor: palette.inputBorder,
+                        },
+                      ]}
+                      secureTextEntry
+                      editable={!isLoading}
+                    />
+                  </View>
+                </>
+              ) : null}
 
-            {step === "password" ? (
+              {info ? (
+                <ThemedText
+                  style={[styles.feedbackText, { color: palette.info }]}
+                >
+                  {info}
+                </ThemedText>
+              ) : null}
+
+              {error ? (
+                <ThemedText
+                  style={[styles.feedbackText, { color: palette.error }]}
+                >
+                  {error}
+                </ThemedText>
+              ) : null}
+
               <Pressable
-                style={styles.secondaryButton}
-                onPress={() => {
-                  setStep("email");
-                  setPassword("");
-                  setError("");
-                  setInfo("");
-                  setEmail("");
-                }}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: palette.primary },
+                ]}
+                onPress={
+                  step === "email"
+                    ? handleEmailNext
+                    : step === "password"
+                      ? handlePasswordSubmit
+                      : handlePasswordSetup
+                }
                 disabled={isLoading}
               >
-                <ThemedText style={{ color: Colors[colorScheme].text }}>
-                  Back
+                <ThemedText style={styles.primaryButtonText}>
+                  {isLoading
+                    ? "Loading..."
+                    : step === "email"
+                      ? "Next"
+                      : step === "password"
+                        ? "Sign in"
+                        : "Save"}
                 </ThemedText>
               </Pressable>
-            ) : null}
+
+              {step !== "email" ? (
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={() => {
+                    setStep("email");
+                    setPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setError("");
+                    setInfo("");
+                    setEmail("");
+                  }}
+                  disabled={isLoading}
+                >
+                  <ThemedText style={{ color: Colors[colorScheme].text }}>
+                    Back
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+            </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </ThemedView>
@@ -267,6 +364,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     padding: 12,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
   },
   headerBlock: {
     marginTop: 28,
@@ -309,7 +410,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
   },
-   googleButton: {
+  googleButton: {
     marginTop: 12,
     height: 52,
     borderRadius: 12,
