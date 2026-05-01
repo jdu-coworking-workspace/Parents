@@ -77,8 +77,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await loginStudent(email, password);
       await persistSession(response);
-    } catch (error) {
-      console.error("Sign in error:", error);
+    } catch (error: any) {
+      // Don't log expected 403 error (NEW_PASSWORD_REQUIRED challenge) - it's handled by caller
+      if (error?.status !== 403) {
+        console.error("Sign in error:", error);
+      }
       throw error;
     }
   };
@@ -95,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         newPassword,
       );
       await persistSession(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Complete first login error:", error);
       throw error;
     }

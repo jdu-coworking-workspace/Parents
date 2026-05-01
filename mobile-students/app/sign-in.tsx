@@ -72,7 +72,16 @@ export default function SignInScreen() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (e: any) {
-      setError(e?.message || "Email tekshirishda xatolik yuz berdi");
+      // Check if it's a 404 error (email not found in system)
+      if (e?.status === 404) {
+        setError(
+          "Your email address was not found in the system. Please contact your school administrator.",
+        );
+      } else {
+        setError(
+          e?.message || "An error occurred while verifying the email address.",
+        );
+      }
     } finally {
       setIsLoading(false);
     }

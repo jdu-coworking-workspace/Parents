@@ -529,13 +529,10 @@ class MobileAuthModuleController implements IController {
             );
 
             if (students.length <= 0) {
-                return res
-                    .status(200)
-                    .json({
-                        message:
-                            'If the email is registered, a temporary password has been sent.',
-                    })
-                    .end();
+                throw new ApiError(
+                    404,
+                    'Email address not found in the system. Please contact your school administrator.'
+                );
             }
 
             try {

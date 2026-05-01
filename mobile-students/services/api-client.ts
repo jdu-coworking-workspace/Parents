@@ -195,7 +195,11 @@ export async function request<TResponse>(
 
         // Handle ApiError instances
         if (error instanceof ApiError) {
-            console.error('API Error:', error.message);
+            // Don't log expected status codes that are handled by calling code
+            // 401: Unauthorized, 403: NEW_PASSWORD_REQUIRED, 404: Not found (email not in system)
+            if (error.status !== 401 && error.status !== 403 && error.status !== 404) {
+                console.error('API Error:', error.message);
+            }
             throw error;
         }
 
