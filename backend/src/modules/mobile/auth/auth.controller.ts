@@ -40,6 +40,18 @@ class MobileAuthModuleController implements IController {
         legacyHeaders: false,
     });
 
+    // Student initiate step has lower risk than password verification,
+    // so keep a separate higher limit to avoid blocking multi-step login UX.
+    private studentLoginInitiateLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 12,
+        message: {
+            error: 'Too many login initiation requests from this IP, please try again later.',
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+
     // Rate limiter for forgot password endpoint
     private forgotPasswordLimiter = rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
@@ -66,10 +78,15 @@ class MobileAuthModuleController implements IController {
         this.router.post('/login', this.loginLimiter, this.login);
         this.router.post(
             '/student/login-initiate',
-            this.loginLimiter,
+            this.studentLoginInitiateLimiter,
             this.studentLoginInitiate
         );
         this.router.post('/student/login', this.loginLimiter, this.studentLogin);
+        this.router.post(
+            '/student/change-temp-password',
+            this.authLimiter,
+            this.studentChangeTemporaryPassword
+        );
         this.router.post(
             '/student/refresh-token',
             this.authLimiter,
@@ -512,13 +529,10 @@ class MobileAuthModuleController implements IController {
             );
 
             if (students.length <= 0) {
-                return res
-                    .status(200)
-                    .json({
-                        message:
-                            'If the email is registered, a temporary password has been sent.',
-                    })
-                    .end();
+                throw new ApiError(
+                    404,
+                    'Email address not found in the system. Please contact your school administrator.'
+                );
             }
 
             try {
@@ -526,7 +540,14 @@ class MobileAuthModuleController implements IController {
             } catch (e: any) {
                 if (e?.status === 404) {
                     // User doesn't exist, register them
-                    await this.studentCognitoClient.register(email, email, '');
+                    const registeredStudent =
+                        await this.studentCognitoClient.register(
+                            email,
+                            email,
+                            ''
+                        );
+
+                    await this.syncStudentCognitoSub(email, registeredStudent.sub_id);
                 } else if (e?.status === 400) {
                     // User already activated (status is not FORCE_CHANGE_PASSWORD)
                     // Return generic success message so they can proceed to login directly
@@ -579,16 +600,13 @@ class MobileAuthModuleController implements IController {
             try {
                 authData = await this.studentCognitoClient.login(email, password);
             } catch (e: any) {
-                if (e?.status === 403) {
-                    authData = await this.studentCognitoClient.changeTempPassword(
-                        email,
-                        password,
-                        password
-                    );
-                } else {
-                    throw e;
-                }
+                throw e;
             }
+
+            const authUser = await this.studentCognitoClient.accessToken(
+                authData.accessToken
+            );
+            await this.syncStudentCognitoSub(email, authUser.sub_id);
 
             const student = students[0];
 
@@ -611,6 +629,91 @@ class MobileAuthModuleController implements IController {
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);
         }
+    };
+
+    studentChangeTemporaryPassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { email, temp_password, new_password } = req.body;
+
+            if (!email || !temp_password || !new_password) {
+                throw new ApiError(
+                    400,
+                    'Email, temp password and new password are required'
+                );
+            }
+
+            const students = await DB.query(
+                `SELECT
+                    st.id,
+                    st.email,
+                    st.phone_number,
+                    st.given_name,
+                    st.family_name,
+                    sc.name AS school_name
+                FROM Student AS st
+                INNER JOIN School AS sc ON sc.id = st.school_id
+                WHERE st.email = :email
+                LIMIT 1`,
+                { email }
+            );
+
+            if (students.length <= 0) {
+                throw new ApiError(401, 'Invalid email or password');
+            }
+
+            const authData = await this.studentCognitoClient.changeTempPassword(
+                email,
+                temp_password,
+                new_password
+            );
+
+            const authUser = await this.studentCognitoClient.accessToken(
+                authData.accessToken
+            );
+            await this.syncStudentCognitoSub(email, authUser.sub_id);
+
+            const student = students[0];
+
+            return res
+                .status(200)
+                .json({
+                    access_token: authData.accessToken,
+                    refresh_token: authData.refreshToken,
+                    user: {
+                        id: student.id,
+                        email: student.email,
+                        phone_number: student.phone_number,
+                        given_name: student.given_name,
+                        family_name: student.family_name,
+                    },
+                    school_name: student.school_name,
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    syncStudentCognitoSub = async (email: string, cognitoSubId: string) => {
+        if (!cognitoSubId) {
+            return;
+        }
+
+        await DB.execute(
+            `UPDATE Student
+             SET cognito_sub_id = :cognito_sub_id
+             WHERE email = :email
+               AND (cognito_sub_id IS NULL OR cognito_sub_id = '')`,
+            {
+                email,
+                cognito_sub_id: cognitoSubId,
+            }
+        );
     };
 
     studentRefreshToken = async (

@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { loginStudentWithTemporaryPassword } from "@/services/student-auth";
+import {
+  changeStudentTemporaryPassword,
+  loginStudent,
+} from "@/services/student-auth";
 import {
   clearSession,
   loadSession,
@@ -14,6 +17,11 @@ interface AuthContextType {
   isLoading: boolean;
   isSignedIn: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  completeFirstLogin: (
+    email: string,
+    tempPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   restoreToken: () => Promise<void>;
 }
@@ -25,6 +33,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const persistSession = async (response: {
+    access_token: string;
+    refresh_token: string;
+    user: StudentUser;
+  }) => {
+    await saveSession({
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      user: response.user,
+    });
+
+    setAccessToken(response.access_token);
+    setRefreshToken(response.refresh_token);
+    setUser(response.user);
+  };
 
   // Restore token on app startup
   const restoreToken = async () => {
@@ -51,19 +75,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await loginStudentWithTemporaryPassword(email, password);
+      const response = await loginStudent(email, password);
+      await persistSession(response);
+    } catch (error: any) {
+      // Don't log expected 403 error (NEW_PASSWORD_REQUIRED challenge) - it's handled by caller
+      if (error?.status !== 403) {
+        console.error("Sign in error:", error);
+      }
+      throw error;
+    }
+  };
 
-      await saveSession({
-        accessToken: response.access_token,
-        refreshToken: response.refresh_token,
-        user: response.user,
-      });
-
-      setAccessToken(response.access_token);
-      setRefreshToken(response.refresh_token);
-      setUser(response.user);
-    } catch (error) {
-      console.error("Sign in error:", error);
+  const completeFirstLogin = async (
+    email: string,
+    tempPassword: string,
+    newPassword: string,
+  ) => {
+    try {
+      const response = await changeStudentTemporaryPassword(
+        email,
+        tempPassword,
+        newPassword,
+      );
+      await persistSession(response);
+    } catch (error: any) {
+      console.error("Complete first login error:", error);
       throw error;
     }
   };
@@ -87,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     isSignedIn: !!accessToken && !!user,
     signIn,
+    completeFirstLogin,
     signOut,
     restoreToken,
   };

@@ -16,7 +16,8 @@ let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
-    return api.post<T>(path, body, { requiresAuth: false });
+    const response = await api.post<T>(path, body, { requiresAuth: false });
+    return response.data;
 }
 
 export async function initiateStudentLogin(email: string): Promise<LoginInitiateResponse> {
@@ -25,7 +26,7 @@ export async function initiateStudentLogin(email: string): Promise<LoginInitiate
     });
 }
 
-export async function loginStudentWithTemporaryPassword(
+export async function loginStudent(
     email: string,
     password: string
 ): Promise<StudentLoginResponse> {
@@ -38,6 +39,33 @@ export async function loginStudentWithTemporaryPassword(
     refreshToken = payload.refresh_token;
 
     return payload;
+}
+
+export async function changeStudentTemporaryPassword(
+    email: string,
+    tempPassword: string,
+    newPassword: string
+): Promise<StudentLoginResponse> {
+    const payload = await postJson<StudentLoginResponse>(
+        '/student/change-temp-password',
+        {
+            email,
+            temp_password: tempPassword,
+            new_password: newPassword,
+        }
+    );
+
+    accessToken = payload.access_token;
+    refreshToken = payload.refresh_token;
+
+    return payload;
+}
+
+export async function loginStudentWithTemporaryPassword(
+    email: string,
+    password: string
+): Promise<StudentLoginResponse> {
+    return loginStudent(email, password);
 }
 
 export async function refreshStudentAccessToken(

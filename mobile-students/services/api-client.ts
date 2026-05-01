@@ -2,8 +2,7 @@ import { getAccessToken } from '@/services/secure-store';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/mobile';
 
-console.log('[api-client] API base URL:', API_BASE_URL);
-console.log('[api-client] EXPO_PUBLIC_API_URL present:', !!process.env.EXPO_PUBLIC_API_URL);
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface ApiResponse<T> {
     data?: T;
@@ -12,11 +11,78 @@ export interface ApiResponse<T> {
 }
 
 export interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: HttpMethod;
     headers?: Record<string, string>;
     body?: any;
     requiresAuth?: boolean;
+    timeout?: number;
 }
+
+interface RequestOptionsWithBody<TBody = unknown> {
+    method?: HttpMethod;
+    body?: TBody;
+    headers?: Record<string, string>;
+    requiresAuth?: boolean;
+    timeout?: number;
+}
+
+interface ResponseEnvelope<T> {
+    data: T;
+    status: number;
+    ok: boolean;
+}
+
+// Error classes for better error handling
+export class ApiError extends Error {
+    public readonly status: number;
+    public readonly code?: string;
+    public readonly responseData?: any;
+
+    constructor(
+        message: string,
+        status: number = 0,
+        code?: string,
+        responseData?: any
+    ) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = status;
+        this.code = code;
+        this.responseData = responseData;
+    }
+}
+
+export class NetworkError extends ApiError {
+    constructor(message = 'Network request failed') {
+        super(message, 0, 'NETWORK_ERROR');
+        this.name = 'NetworkError';
+    }
+}
+
+export class UnauthorizedError extends ApiError {
+    constructor(message = 'Unauthorized') {
+        super(message, 401, 'UNAUTHORIZED');
+        this.name = 'UnauthorizedError';
+    }
+}
+
+export class ForbiddenError extends ApiError {
+    constructor(message = 'Forbidden') {
+        super(message, 403, 'FORBIDDEN');
+        this.name = 'ForbiddenError';
+    }
+}
+
+let onUnauthorized: (() => void) | null = null;
+let onForbidden: (() => void) | null = null;
+
+export const setAuthCallbacks = (callbacks: {
+    onUnauthorized?: () => void;
+    onForbidden?: () => void;
+}) => {
+    onUnauthorized = callbacks.onUnauthorized || null;
+    onForbidden = callbacks.onForbidden || null;
+};
 
 const getAuthToken = async (): Promise<string | null> => {
     try {
@@ -48,13 +114,14 @@ const buildHeaders = async (
 
 export async function request<TResponse>(
     endpoint: string,
-    options: RequestOptions = {}
-): Promise<TResponse> {
+    options: RequestOptionsWithBody = {}
+): Promise<ResponseEnvelope<TResponse>> {
     const {
         method = 'GET',
         body,
         headers: customHeaders,
-        requiresAuth = false,
+        requiresAuth = true,
+        timeout = 30000, // 30 seconds default timeout
     } = options;
 
     const url = endpoint.startsWith('http')
@@ -63,59 +130,119 @@ export async function request<TResponse>(
 
     const headers = await buildHeaders(customHeaders, requiresAuth);
 
-    console.log('[api-client] request start', {
-        endpoint,
-        url,
-        method,
-        requiresAuth,
-        hasBody: !!body,
-    });
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
         const response = await fetch(url, {
             method,
             headers,
             body: body ? JSON.stringify(body) : undefined,
-        });
-
-        console.log('[api-client] response received', {
-            url,
-            status: response.status,
-            ok: response.ok,
+            signal: controller.signal,
         });
 
         const data = await response.json().catch(() => ({}));
 
-        if (!response.ok) {
-            console.log('[api-client] request failed with response body', data);
-            throw {
-                status: response.status,
-                message: data.error || data.message || 'Request failed',
-                data,
-            };
+        if (response.status === 401) {
+            if (requiresAuth) {
+                onUnauthorized?.();
+                throw new UnauthorizedError();
+            }
+
+            throw new ApiError(
+                data.error || data.message || 'Invalid credentials',
+                response.status,
+                undefined,
+                data
+            );
         }
 
-        console.log('[api-client] request success', { url, data });
-        return data;
+        if (response.status === 403) {
+            if (requiresAuth) {
+                onForbidden?.();
+                throw new ForbiddenError();
+            }
+
+            throw new ApiError(
+                data.error || data.message || 'Forbidden',
+                response.status,
+                undefined,
+                data
+            );
+        }
+
+        if (!response.ok) {
+            throw new ApiError(
+                data.error || data.message || 'Request failed',
+                response.status,
+                undefined,
+                data
+            );
+        }
+
+        return {
+            data,
+            status: response.status,
+            ok: true,
+        };
     } catch (error: any) {
-        console.error('[api-client] API Error:', {
-            url,
-            message: error?.message,
-            status: error?.status,
-            name: error?.name,
-            error,
-        });
-        throw error;
+        // Handle abort/timeout errors
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error('Request timeout');
+            throw new NetworkError('Request timed out after ' + timeout + 'ms');
+        }
+
+        // Handle ApiError instances
+        if (error instanceof ApiError) {
+            // Don't log expected status codes that are handled by calling code
+            // 401: Unauthorized, 403: NEW_PASSWORD_REQUIRED, 404: Not found (email not in system)
+            if (error.status !== 401 && error.status !== 403 && error.status !== 404) {
+                console.error('API Error:', error.message);
+            }
+            throw error;
+        }
+
+        // Handle network errors
+        if (error instanceof Error) {
+            console.error('Network Error:', error.message);
+            throw new NetworkError(error.message || 'Network request failed');
+        }
+
+        // Handle unknown errors
+        console.error('Unknown Error:', error);
+        throw new NetworkError('An unknown error occurred');
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
-export default {
-    get: <T,>(endpoint: string, options?: RequestOptions) =>
+// Convenience methods
+const api = {
+    get: <T,>(endpoint: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
         request<T>(endpoint, { ...options, method: 'GET' }),
-    post: <T,>(endpoint: string, body?: any, options?: RequestOptions) =>
+    post: <T, TBody = unknown>(
+        endpoint: string,
+        body?: TBody,
+        options?: Omit<RequestOptionsWithBody<TBody>, 'method' | 'body'>
+    ) =>
         request<T>(endpoint, { ...options, method: 'POST', body }),
-    put: <T,>(endpoint: string, body?: any, options?: RequestOptions) =>
+    put: <T, TBody = unknown>(
+        endpoint: string,
+        body?: TBody,
+        options?: Omit<RequestOptionsWithBody<TBody>, 'method' | 'body'>
+    ) =>
         request<T>(endpoint, { ...options, method: 'PUT', body }),
-    delete: <T,>(endpoint: string, options?: RequestOptions) =>
+    patch: <T, TBody = unknown>(
+        endpoint: string,
+        body?: TBody,
+        options?: Omit<RequestOptionsWithBody<TBody>, 'method' | 'body'>
+    ) =>
+        request<T>(endpoint, { ...options, method: 'PATCH', body }),
+    delete: <T,>(endpoint: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
         request<T>(endpoint, { ...options, method: 'DELETE' }),
 };
+
+export { API_BASE_URL };
+
+export default api;
