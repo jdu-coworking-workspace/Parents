@@ -13,9 +13,11 @@ export const syncronizePosts = async (parentId: number, studentId: number) => {
     if (!parentStudents.find((ps: any) => ps.student_id === studentId)) return;
 
     const postStudents = await DB.query(
-        `SELECT id
-                                         FROM PostStudent
-                                         WHERE student_id = :student_id`,
+        `SELECT ps.id
+         FROM PostStudent AS ps
+         INNER JOIN Post AS po ON po.id = ps.post_id
+         WHERE ps.student_id = :student_id
+           AND po.audience = 'parents'`,
         {
             student_id: studentId,
         }

@@ -13,6 +13,7 @@ export interface PostRow {
     title: string;
     description: string;
     priority: string;
+    audience: 'parents' | 'students';
     image: string | null;
     admin_id: number;
     school_id: number;
@@ -130,7 +131,7 @@ export class PostRepository {
      */
     async findById(id: number, schoolId: number): Promise<PostRow | null> {
         const result = await DB.query(
-            `SELECT id, title, description, priority, image, admin_id, school_id, sent_at, edited_at
+            `SELECT id, title, description, priority, audience, image, admin_id, school_id, sent_at, edited_at
             FROM Post
             WHERE id = :id AND school_id = :school_id`,
             { id, school_id: schoolId }
@@ -805,7 +806,9 @@ export class PostRepository {
             SELECT ps.id, sp.parent_id
             FROM PostStudent ps
             INNER JOIN StudentParent sp ON sp.student_id = ps.student_id
+            INNER JOIN Post po ON po.id = ps.post_id
             WHERE ps.post_id = ?
+              AND po.audience = 'parents'
             `,
             [postId]
         );

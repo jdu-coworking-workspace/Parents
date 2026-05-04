@@ -495,6 +495,7 @@ export class ScheduleService {
                 scheduled_at,
                 admin_id,
                 school_id,
+                audience = 'parents',
             } = post;
 
             const scheduledAtISO = DateTime.fromJSDate(scheduled_at).toISO();
@@ -513,14 +514,15 @@ export class ScheduleService {
 
             const postInsert = await DB.execute(
                 image
-                    ? `INSERT INTO Post (title, description, priority, admin_id, image, school_id)
-                       VALUE (:title, :description, :priority, :admin_id, :image, :school_id)`
-                    : `INSERT INTO Post (title, description, priority, admin_id, school_id)
-                       VALUE (:title, :description, :priority, :admin_id, :school_id)`,
+                    ? `INSERT INTO Post (title, description, priority, audience, admin_id, image, school_id)
+                              VALUE (:title, :description, :priority, :audience, :admin_id, :image, :school_id)`
+                    : `INSERT INTO Post (title, description, priority, audience, admin_id, school_id)
+                              VALUE (:title, :description, :priority, :audience, :admin_id, :school_id)`,
                 {
                     title,
                     description,
                     priority,
+                    audience,
                     admin_id,
                     image,
                     school_id,
@@ -528,6 +530,7 @@ export class ScheduleService {
             );
 
             const postId = postInsert.insertId;
+            const shouldAttachParents = audience === 'parents';
 
             const { groups, students } =
                 await this.repository.findReceiversByScheduledPostId(
@@ -555,21 +558,23 @@ export class ScheduleService {
                             }
                         );
 
-                        const studentAttachList = await DB.query(
-                            `SELECT sp.parent_id FROM StudentParent AS sp WHERE sp.student_id = :student_id`,
-                            { student_id: student.id }
-                        );
-
-                        if (studentAttachList.length > 0) {
-                            const studentValues = studentAttachList
-                                .map(
-                                    (student: any) =>
-                                        `(${post_student.insertId}, ${student.parent_id})`
-                                )
-                                .join(', ');
-                            await DB.execute(
-                                `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${studentValues}`
+                        if (shouldAttachParents) {
+                            const studentAttachList = await DB.query(
+                                `SELECT sp.parent_id FROM StudentParent AS sp WHERE sp.student_id = :student_id`,
+                                { student_id: student.id }
                             );
+
+                            if (studentAttachList.length > 0) {
+                                const studentValues = studentAttachList
+                                    .map(
+                                        (student: any) =>
+                                            `(${post_student.insertId}, ${student.parent_id})`
+                                    )
+                                    .join(', ');
+                                await DB.execute(
+                                    `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${studentValues}`
+                                );
+                            }
                         }
                     }
                 }
@@ -601,21 +606,23 @@ export class ScheduleService {
                             }
                         );
 
-                        const studentAttachList = await DB.query(
-                            `SELECT sp.parent_id FROM StudentParent AS sp WHERE sp.student_id = :student_id`,
-                            { student_id: student.student_id }
-                        );
-
-                        if (studentAttachList.length > 0) {
-                            const studentValues = studentAttachList
-                                .map(
-                                    (student: any) =>
-                                        `(${post_student.insertId}, ${student.parent_id})`
-                                )
-                                .join(', ');
-                            await DB.execute(
-                                `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${studentValues}`
+                        if (shouldAttachParents) {
+                            const studentAttachList = await DB.query(
+                                `SELECT sp.parent_id FROM StudentParent AS sp WHERE sp.student_id = :student_id`,
+                                { student_id: student.student_id }
                             );
+
+                            if (studentAttachList.length > 0) {
+                                const studentValues = studentAttachList
+                                    .map(
+                                        (student: any) =>
+                                            `(${post_student.insertId}, ${student.parent_id})`
+                                    )
+                                    .join(', ');
+                                await DB.execute(
+                                    `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${studentValues}`
+                                );
+                            }
                         }
                     }
                 }
