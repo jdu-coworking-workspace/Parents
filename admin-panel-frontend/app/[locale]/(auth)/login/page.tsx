@@ -34,6 +34,7 @@ import NewPasswordInput, {
 import Image from "next/image";
 import localImageLoader from "@/lib/localImageLoader";
 import { loginSchema } from "@/lib/validationSchemas";
+import { Eye, EyeOff } from "lucide-react";
 
 const formSchema = loginSchema;
 
@@ -43,6 +44,7 @@ export default function LoginForm() {
 
   const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false); 
   const router = useRouter();
   const t = useTranslations("LoginForm");
   const { toast } = useToast();
@@ -200,7 +202,21 @@ export default function LoginForm() {
                         </Link>
                       </div>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="password"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                       {newPasswordError && (
