@@ -88,6 +88,8 @@ export class PostService {
             image,
         } = request;
 
+        const shouldAttachParents = audience === 'parents';
+
         let imageName: string | null = null;
         if (image && typeof image === 'string') {
             const trimmed = image.trim();
@@ -161,26 +163,28 @@ export class PostService {
                         { post_id: postId, student_id: student.id }
                     );
 
-                    const studentParents = (await DB.query(
-                        `SELECT sp.parent_id FROM StudentParent AS sp WHERE sp.student_id = :student_id`,
-                        { student_id: student.id }
-                    )) as { parent_id: number }[];
+                    if (shouldAttachParents) {
+                        const studentParents = (await DB.query(
+                            `SELECT sp.parent_id FROM StudentParent AS sp WHERE sp.student_id = :student_id`,
+                            { student_id: student.id }
+                        )) as { parent_id: number }[];
 
-                    if (studentParents.length > 0) {
-                        const parentInsertData = studentParents.map(
-                            (parent: { parent_id: number }) => [
-                                postStudent.insertId,
-                                parent.parent_id,
-                            ]
-                        );
-                        const placeholders = parentInsertData
-                            .map(() => '(?, ?)')
-                            .join(', ');
-                        const flatValues = parentInsertData.flat();
-                        await DB.execute(
-                            `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${placeholders}`,
-                            flatValues
-                        );
+                        if (studentParents.length > 0) {
+                            const parentInsertData = studentParents.map(
+                                (parent: { parent_id: number }) => [
+                                    postStudent.insertId,
+                                    parent.parent_id,
+                                ]
+                            );
+                            const placeholders = parentInsertData
+                                .map(() => '(?, ?)')
+                                .join(', ');
+                            const flatValues = parentInsertData.flat();
+                            await DB.execute(
+                                `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${placeholders}`,
+                                flatValues
+                            );
+                        }
                     }
                 }
             }
@@ -222,55 +226,59 @@ export class PostService {
                         flatValues
                     );
 
-                    const newPostStudents = (await DB.query(
-                        `SELECT id, student_id FROM PostStudent WHERE post_id = :postId AND group_id IS NOT NULL`,
-                        { postId }
-                    )) as { id: number; student_id: number }[];
+                    if (shouldAttachParents) {
+                        const newPostStudents = (await DB.query(
+                            `SELECT id, student_id FROM PostStudent WHERE post_id = :postId AND group_id IS NOT NULL`,
+                            { postId }
+                        )) as { id: number; student_id: number }[];
 
-                    const studentIdsForParentQuery = newPostStudents.map(
-                        ps => ps.student_id
-                    );
+                        const studentIdsForParentQuery = newPostStudents.map(
+                            ps => ps.student_id
+                        );
 
-                    if (studentIdsForParentQuery.length > 0) {
-                        const allParents = (await DB.query(
-                            `SELECT student_id, parent_id FROM StudentParent WHERE student_id IN (:studentIds)`,
-                            { studentIds: studentIdsForParentQuery }
-                        )) as { student_id: number; parent_id: number }[];
+                        if (studentIdsForParentQuery.length > 0) {
+                            const allParents = (await DB.query(
+                                `SELECT student_id, parent_id FROM StudentParent WHERE student_id IN (:studentIds)`,
+                                { studentIds: studentIdsForParentQuery }
+                            )) as { student_id: number; parent_id: number }[];
 
-                        if (allParents.length > 0) {
-                            const postStudentIdMap = new Map(
-                                newPostStudents.map(ps => [
-                                    ps.student_id,
-                                    ps.id,
-                                ])
-                            );
-
-                            const allParentInsertData = allParents
-                                .map(parent => {
-                                    const postStudentId = postStudentIdMap.get(
-                                        parent.student_id
-                                    );
-                                    if (postStudentId) {
-                                        return [
-                                            postStudentId,
-                                            parent.parent_id,
-                                        ];
-                                    }
-                                    return null;
-                                })
-                                .filter(Boolean);
-
-                            if (allParentInsertData.length > 0) {
-                                const parentPlaceholders = allParentInsertData
-                                    .map(() => '(?, ?)')
-                                    .join(', ');
-                                const flatParentValues =
-                                    allParentInsertData.flat();
-
-                                await DB.query(
-                                    `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${parentPlaceholders}`,
-                                    flatParentValues
+                            if (allParents.length > 0) {
+                                const postStudentIdMap = new Map(
+                                    newPostStudents.map(ps => [
+                                        ps.student_id,
+                                        ps.id,
+                                    ])
                                 );
+
+                                const allParentInsertData = allParents
+                                    .map(parent => {
+                                        const postStudentId =
+                                            postStudentIdMap.get(
+                                                parent.student_id
+                                            );
+                                        if (postStudentId) {
+                                            return [
+                                                postStudentId,
+                                                parent.parent_id,
+                                            ];
+                                        }
+                                        return null;
+                                    })
+                                    .filter(Boolean);
+
+                                if (allParentInsertData.length > 0) {
+                                    const parentPlaceholders =
+                                        allParentInsertData
+                                            .map(() => '(?, ?)')
+                                            .join(', ');
+                                    const flatParentValues =
+                                        allParentInsertData.flat();
+
+                                    await DB.query(
+                                        `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${parentPlaceholders}`,
+                                        flatParentValues
+                                    );
+                                }
                             }
                         }
                     }
@@ -843,8 +851,10 @@ export class PostService {
             await postRepository.insertPostStudents(postId, allStudentIds);
             await postRepository.insertPostGroups(postId, groupIds);
 
-            // Rebuild post parents for the new PostStudent set
-            await postRepository.insertPostParents(postId);
+            // Rebuild post parents only for parent audience
+            if (post.audience === 'parents') {
+                await postRepository.insertPostParents(postId);
+            }
 
             // Commit transaction
             await DB.query('COMMIT');

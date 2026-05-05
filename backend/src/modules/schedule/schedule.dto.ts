@@ -135,6 +135,7 @@ export interface ScheduledPostBasic {
     title: string;
     description: string;
     priority: string;
+    audience?: 'parents' | 'students';
     scheduled_at: Date;
     created_at: Date;
     edited_at: Date | null;
