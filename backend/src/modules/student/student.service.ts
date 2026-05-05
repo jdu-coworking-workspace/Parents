@@ -9,6 +9,7 @@ import { studentRepository } from './student.repository';
 import { ApiError } from '../../errors/ApiError';
 import { generatePaginationLinks } from '../../utils/helper';
 import { ErrorKeys } from '../../utils/error-codes';
+import { Student } from '../../utils/cognito-client';
 import type {
     GetStudentsByIdsResponse,
     GetStudentListRequest,
@@ -26,6 +27,8 @@ import type {
 import { config } from '../../config';
 
 export class StudentService {
+    constructor(private cognitoClient: any = Student) { }
+
     /**
      * Get students by ID array
      */
@@ -278,6 +281,9 @@ export class StudentService {
         if (!student) {
             throw new ApiError(404, 'student_not_found');
         }
+
+        // Delete from Cognito first so the auth account does not remain orphaned.
+        await this.cognitoClient.delete(student.email);
 
         // Delete student and all relationships
         await studentRepository.delete(studentId, schoolId);

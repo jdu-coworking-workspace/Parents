@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 643-students-delete-qiliganda-cognitodan-delet-qilinadigan-qilish-kerak
     paths:
       - "backend/**"
 
