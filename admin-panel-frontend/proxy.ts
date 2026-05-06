@@ -1,10 +1,51 @@
 import { auth } from "@/auth";
 import createMiddleware from "next-intl/middleware";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { routing } from "@/i18n/routing";
 import { onlyAdminPathNameRegex, publicPathnameRegex } from "@/lib/routeAccess";
 
 const intlMiddleware = createMiddleware(routing);
+const SUPPORTED_LOCALES = ["en", "uz", "ja", "ru"] as const;
+
+/**
+ * Detects user's preferred language from multiple sources:
+ * 1. NEXT_LOCALE cookie (user's saved preference)
+ * 2. Accept-Language header (browser preference)
+ * 3. Fallback to "en" (English)
+ */
+function detectLocaleFromRequest(
+  req: NextRequest
+): (typeof SUPPORTED_LOCALES)[number] {
+  // Check for saved language preference
+  const savedLocale = req.cookies.get("NEXT_LOCALE")?.value;
+  if (savedLocale && SUPPORTED_LOCALES.includes(savedLocale as any)) {
+    return savedLocale as (typeof SUPPORTED_LOCALES)[number];
+  }
+
+  // Extract Accept-Language header
+  const acceptLanguage = req.headers.get("accept-language") || "";
+
+  // Parse Accept-Language header and match against supported locales
+  const languages = acceptLanguage
+    .split(",")
+    .map((lang) => lang.split(";")[0].trim().toLowerCase());
+
+  for (const lang of languages) {
+    // Try direct match
+    if (SUPPORTED_LOCALES.includes(lang as any)) {
+      return lang as (typeof SUPPORTED_LOCALES)[number];
+    }
+
+    // Try language prefix match (e.g., "en-US" → "en")
+    const langPrefix = lang.split("-")[0];
+    if (SUPPORTED_LOCALES.includes(langPrefix as any)) {
+      return langPrefix as (typeof SUPPORTED_LOCALES)[number];
+    }
+  }
+
+  // Fallback to English
+  return "en";
+}
 
 const authMiddleware = auth((req) => {
   const isAdminPath = onlyAdminPathNameRegex.test(req.nextUrl.pathname);
@@ -33,7 +74,7 @@ const authMiddleware = auth((req) => {
   }
 
   if (!req.auth && !isPublicPage) {
-    const locale = req.nextUrl.locale || routing.defaultLocale;
+    const locale = req.nextUrl.locale || detectLocaleFromRequest(req);
     const newUrl = new URL(`/${locale}/login`, req.nextUrl.origin);
     return Response.redirect(newUrl);
   }
@@ -43,18 +84,27 @@ const authMiddleware = auth((req) => {
     (req.nextUrl.pathname.endsWith("/login") ||
       req.nextUrl.pathname.endsWith("/forgot-password"))
   ) {
-    const locale = req.nextUrl.locale || routing.defaultLocale;
+    const locale = req.nextUrl.locale || detectLocaleFromRequest(req);
     const newUrl = new URL(`/${locale}`, req.nextUrl.origin);
     return Response.redirect(newUrl);
   }
 
   if (req.auth?.user?.role !== "admin" && isAdminPath) {
-    const locale = req.nextUrl.locale || routing.defaultLocale;
+    const locale = req.nextUrl.locale || detectLocaleFromRequest(req);
     const newUrl = new URL(`/${locale}`, req.nextUrl.origin);
     return Response.redirect(newUrl);
   }
 
-  return intlMiddleware(req);
+  // Set ACCEPT_LANGUAGE cookie for client-side detection
+  const response = intlMiddleware(req);
+  const acceptLanguage = req.headers.get("accept-language") || "";
+  response.cookies.set("ACCEPT_LANGUAGE", acceptLanguage, {
+    maxAge: 365 * 24 * 60 * 60,
+    path: "/",
+    sameSite: "lax",
+  });
+
+  return response;
 });
 
 export default function proxy(req: NextRequest) {

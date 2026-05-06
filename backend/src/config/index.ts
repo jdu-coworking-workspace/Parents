@@ -119,9 +119,12 @@ export const config: Config = {
     ADMIN_POOL_ID: getEnv('ADMIN_POOL_ID'),
     ADMIN_CLIENT_ID: getEnv('ADMIN_CLIENT_ID'),
 
-    // Student Pool
-    STUDENT_POOL_ID: getEnv('STUDENT_POOL_ID'),
-    STUDENT_CLIENT_ID: getEnv('STUDENT_CLIENT_ID'),
+    // Student Pool (fallback to Parent Pool if not set)
+    STUDENT_POOL_ID: getEnv('STUDENT_POOL_ID', process.env.PARENT_POOL_ID),
+    STUDENT_CLIENT_ID: getEnv(
+        'STUDENT_CLIENT_ID',
+        process.env.PARENT_CLIENT_ID
+    ),
 
     // Database
     DB_HOST: getEnv('DB_HOST'),

@@ -8,6 +8,7 @@ import ReactQueryProvider from "@/contexts/ReactQueryProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { auth } from "@/auth";
 import TimezoneDetector from "@/components/TimezoneDetector";
+import LanguageDetector from "@/components/LanguageDetector";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.parents.jdu.uz";
@@ -102,6 +103,7 @@ export default async function RootLayout({
           >
             <SessionProvider>
               <ReactQueryProvider>
+                <LanguageDetector />
                 <TimezoneDetector />
                 {children}
               </ReactQueryProvider>
