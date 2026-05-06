@@ -76,6 +76,12 @@ class MobileAuthModuleController implements IController {
     initRoutes(): void {
         // Apply rate limiting to login
         this.router.post('/login', this.loginLimiter, this.login);
+        this.router.get('/student/google', this.authLimiter, this.studentGoogleLogin);
+        this.router.get(
+            '/student/google/callback',
+            this.authLimiter,
+            this.studentGoogleCallback
+        );
         this.router.post(
             '/student/login-initiate',
             this.studentLoginInitiateLimiter,
@@ -131,6 +137,203 @@ class MobileAuthModuleController implements IController {
             this.forgotPasswordConfirm
         );
         this.router.post('/verify-otp', this.authLimiter, this.verifyOtp);
+    }
+
+    private buildStudentSignInUrl(params: Record<string, string>): string {
+        const url = new URL('mobilestudents://sign-in');
+
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.set(key, value);
+        });
+
+        return url.toString();
+    }
+
+    private async getGoogleUserInfo(accessToken: string) {
+        const cognitoDomain = config.COGNITO_DOMAIN;
+
+        if (!cognitoDomain) {
+            throw new Error('COGNITO_DOMAIN not configured');
+        }
+
+        const response = await fetch(`${cognitoDomain}/oauth2/userInfo`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new ApiError(401, 'Access token is invalid.');
+        }
+
+        const data = await response.json();
+        return {
+            email: data.email as string,
+            sub_id: data.sub as string,
+        };
+    }
+
+    studentGoogleLogin = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const cognitoDomain = config.COGNITO_DOMAIN;
+            const clientId = config.STUDENT_CLIENT_ID;
+            const callbackUrl = `${config.BACKEND_URL}/mobile/student/google/callback`;
+            const mobileRedirectUrl = 'mobilestudents://sign-in';
+
+            if (!cognitoDomain || !clientId || !config.BACKEND_URL) {
+                throw new ApiError(500, 'Cognito configuration missing');
+            }
+
+            const cognitoUrl =
+                `${cognitoDomain}/oauth2/authorize?` +
+                `response_type=code&` +
+                `client_id=${clientId}&` +
+                `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
+                `identity_provider=Google&` +
+                `prompt=select_account&` +
+                `scope=${encodeURIComponent('openid email profile')}&` +
+                `state=${encodeURIComponent(mobileRedirectUrl)}`;
+
+            return res.redirect(cognitoUrl);
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentGoogleCallback = async (req: Request, res: Response) => {
+        try {
+            const { code, error } = req.query;
+
+            if (error) {
+                const url = this.buildStudentSignInUrl({
+                    error: 'oauth_error',
+                });
+                return res.redirect(url);
+            }
+
+            if (!code) {
+                throw new ApiError(400, 'Authorization code missing');
+            }
+
+            const redirectUri = `${config.BACKEND_URL}/mobile/student/google/callback`;
+            const tokenResponse = await this.exchangeCodeForTokens(
+                code as string,
+                redirectUri,
+                config.STUDENT_CLIENT_ID
+            );
+
+            if (!tokenResponse.access_token) {
+                throw new ApiError(400, 'Failed to get access token');
+            }
+
+            const userData = await this.getGoogleUserInfo(
+                tokenResponse.access_token
+            );
+
+            const students = await DB.query(
+                `SELECT
+                    st.id,
+                    st.email,
+                    st.phone_number,
+                    st.given_name,
+                    st.family_name,
+                    st.cognito_sub_id,
+                    sc.name AS school_name
+                FROM Student AS st
+                INNER JOIN School AS sc ON sc.id = st.school_id
+                WHERE st.email = :email
+                LIMIT 1`,
+                { email: userData.email }
+            );
+
+            if (students.length <= 0) {
+                const url = this.buildStudentSignInUrl({
+                    error: 'user_not_found',
+                });
+                return res.redirect(url);
+            }
+
+            const student = students[0];
+
+            await DB.execute(
+                `UPDATE Student
+                 SET last_login_at = NOW(),
+                     cognito_sub_id = CASE
+                        WHEN cognito_sub_id IS NULL OR cognito_sub_id = ''
+                        THEN :cognito_sub_id
+                        ELSE cognito_sub_id
+                     END
+                 WHERE id = :id`,
+                {
+                    id: student.id,
+                    cognito_sub_id: userData.sub_id,
+                }
+            );
+
+            const url = this.buildStudentSignInUrl({
+                access_token: tokenResponse.access_token,
+                refresh_token: tokenResponse.refresh_token ?? '',
+                user: encodeURIComponent(
+                    JSON.stringify({
+                        id: student.id,
+                        email: student.email,
+                        phone_number: student.phone_number,
+                        given_name: student.given_name,
+                        family_name: student.family_name,
+                    })
+                ),
+                school_name: encodeURIComponent(student.school_name ?? ''),
+            });
+
+            return res.redirect(url);
+        } catch (e: any) {
+            console.error('Student Google callback error:', e);
+            const url = this.buildStudentSignInUrl({
+                error: 'callback_error',
+            });
+            return res.redirect(url);
+        }
+    };
+
+    private async exchangeCodeForTokens(
+        code: string,
+        redirectUri: string,
+        clientId: string
+    ) {
+        const cognitoDomain = config.COGNITO_DOMAIN;
+
+        if (!cognitoDomain) {
+            throw new Error('COGNITO_DOMAIN not configured');
+        }
+
+        const tokenUrl = `${cognitoDomain}/oauth2/token`;
+
+        const params = new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: clientId,
+            code,
+            redirect_uri: redirectUri,
+        });
+
+        const response = await fetch(tokenUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            throw new ApiError(400, 'Failed to exchange code for tokens');
+        }
+
+        return response.json();
     }
 
     forgotPasswordInitiate = async (

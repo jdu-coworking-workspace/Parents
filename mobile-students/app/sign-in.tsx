@@ -32,6 +32,7 @@ export default function SignInScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const {
     signIn,
+    signInWithGoogle,
     completeFirstLogin,
     isSignedIn,
     isLoading: isAuthLoading,
@@ -150,9 +151,29 @@ export default function SignInScreen() {
     }
   };
 
-  //   const handleGoogleLogin = () => {
-  //   router.replace('/(tabs)/(home)');
-  // };
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      setInfo("");
+
+      await signInWithGoogle();
+      router.replace("/(tabs)/(home)");
+    } catch (e: any) {
+      const message =
+        e?.message === "user_not_found"
+          ? "Your email address was not found in the system. Please contact your school administrator."
+          : e?.message === "oauth_error"
+            ? "Google authentication failed. Please try again."
+            : e?.message === "callback_error"
+              ? "Google callback processing failed. Please try again."
+              : e?.message || "Google login xatoligi";
+
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -179,9 +200,11 @@ export default function SignInScreen() {
                   {
                     backgroundColor: palette.inputBg,
                     borderColor: palette.inputBorder,
+                    opacity: isLoading ? 0.75 : 1,
                   },
                 ]}
-                // onPress={handleGoogleLogin}
+                onPress={handleGoogleLogin}
+                disabled={isLoading || isAuthLoading}
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
                 <ThemedText

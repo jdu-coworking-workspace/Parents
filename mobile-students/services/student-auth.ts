@@ -12,12 +12,51 @@ export type StudentLoginResponse = {
     school_name: string;
 };
 
+type GoogleCallbackQuery = {
+    access_token?: string;
+    refresh_token?: string;
+    user?: string;
+    school_name?: string;
+    error?: string;
+};
+
+const API_BASE_URL =
+    process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/mobile';
+
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
     const response = await api.post<T>(path, body, { requiresAuth: false });
     return response.data;
+}
+
+function parseGoogleCallbackUrl(url: string): StudentLoginResponse {
+    const parsedUrl = new URL(url);
+    const params = Object.fromEntries(parsedUrl.searchParams.entries()) as GoogleCallbackQuery;
+
+    if (params.error) {
+        throw new Error(params.error);
+    }
+
+    if (!params.access_token || !params.refresh_token || !params.user) {
+        throw new Error('oauth_missing_params');
+    }
+
+    return {
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+        user: JSON.parse(decodeURIComponent(params.user)) as StudentUser,
+        school_name: params.school_name ? decodeURIComponent(params.school_name) : '',
+    };
+}
+
+export function getStudentGoogleLoginUrl(): string {
+    return `${API_BASE_URL}/student/google`;
+}
+
+export function parseStudentGoogleCallbackUrl(url: string): StudentLoginResponse {
+    return parseGoogleCallbackUrl(url);
 }
 
 export async function initiateStudentLogin(email: string): Promise<LoginInitiateResponse> {

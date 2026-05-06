@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import {
   changeStudentTemporaryPassword,
   loginStudent,
+  getStudentGoogleLoginUrl,
+  parseStudentGoogleCallbackUrl,
 } from "@/services/student-auth";
 import {
   clearSession,
@@ -10,6 +14,8 @@ import {
 } from "@/services/secure-store";
 import type { StudentUser } from "@/types/auth";
 
+WebBrowser.maybeCompleteAuthSession();
+
 interface AuthContextType {
   user: StudentUser | null;
   accessToken: string | null;
@@ -17,6 +23,7 @@ interface AuthContextType {
   isLoading: boolean;
   isSignedIn: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   completeFirstLogin: (
     email: string,
     tempPassword: string,
@@ -86,6 +93,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    const authUrl = getStudentGoogleLoginUrl();
+    const redirectUrl = "mobilestudents://sign-in";
+
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+
+    if (result.type !== "success" || !result.url) {
+      throw new Error("Google login cancelled");
+    }
+
+    const response = parseStudentGoogleCallbackUrl(result.url);
+    await persistSession(response);
+  };
+
   const completeFirstLogin = async (
     email: string,
     tempPassword: string,
@@ -111,6 +132,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
+
+      router.replace("/sign-in");
     } catch (error) {
       console.error("Sign out error:", error);
     }
@@ -123,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     isSignedIn: !!accessToken && !!user,
     signIn,
+    signInWithGoogle,
     completeFirstLogin,
     signOut,
     restoreToken,
