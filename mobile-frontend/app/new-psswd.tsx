@@ -157,7 +157,7 @@ export default function NewPassword() {
                 {i18n[language].createNewPassword}
               </ThemedText>
               <ThemedText style={styles.subtitle}>
-                Please create a secure password for your account
+                {i18n[language].enterNewPasswordText}
               </ThemedText>
             </ThemedView>
           </ThemedView>

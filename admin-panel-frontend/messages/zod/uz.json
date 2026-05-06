@@ -1,5 +1,7 @@
 {
   "zod": {
+    "email": "Email",
+    "password": "Parol",
     "errors": {
       "invalid_type": "{expected} kutilgan edi, {received} olindi",
       "invalid_type_received_undefined": "Talab qilinadi",
