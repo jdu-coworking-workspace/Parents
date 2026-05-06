@@ -149,8 +149,12 @@ class MobileAuthModuleController implements IController {
         return url.toString();
     }
 
+    private getStudentCognitoDomain(): string {
+        return config.STUDENT_COGNITO_DOMAIN || config.COGNITO_DOMAIN;
+    }
+
     private async getGoogleUserInfo(accessToken: string) {
-        const cognitoDomain = config.COGNITO_DOMAIN;
+        const cognitoDomain = this.getStudentCognitoDomain();
 
         if (!cognitoDomain) {
             throw new Error('COGNITO_DOMAIN not configured');
@@ -180,7 +184,7 @@ class MobileAuthModuleController implements IController {
         next: NextFunction
     ) => {
         try {
-            const cognitoDomain = config.COGNITO_DOMAIN;
+            const cognitoDomain = this.getStudentCognitoDomain();
             const clientId = config.STUDENT_CLIENT_ID;
             const callbackUrl = `${config.BACKEND_URL}/mobile/student/google/callback`;
             const mobileRedirectUrl = 'mobilestudents://sign-in';
@@ -306,7 +310,7 @@ class MobileAuthModuleController implements IController {
         redirectUri: string,
         clientId: string
     ) {
-        const cognitoDomain = config.COGNITO_DOMAIN;
+        const cognitoDomain = this.getStudentCognitoDomain();
 
         if (!cognitoDomain) {
             throw new Error('COGNITO_DOMAIN not configured');
