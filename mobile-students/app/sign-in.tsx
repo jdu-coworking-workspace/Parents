@@ -183,6 +183,7 @@ export default function SignInScreen() {
                     {
                       backgroundColor: palette.inputBg,
                       borderColor: palette.inputBorder,
+                      color: palette.muted,
                     },
                   ]}
                   keyboardType="email-address"
@@ -205,6 +206,7 @@ export default function SignInScreen() {
                       {
                         backgroundColor: palette.inputBg,
                         borderColor: palette.inputBorder,
+                        color: palette.muted,
                       },
                     ]}
                     secureTextEntry
