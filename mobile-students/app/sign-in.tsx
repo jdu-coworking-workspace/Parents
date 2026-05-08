@@ -25,6 +25,7 @@ export default function SignInScreen() {
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -181,6 +182,7 @@ export default function SignInScreen() {
                   style={[
                     styles.input,
                     {
+                      color: Colors[colorScheme].text,
                       backgroundColor: palette.inputBg,
                       borderColor: palette.inputBorder,
                     },
@@ -195,21 +197,34 @@ export default function SignInScreen() {
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
                   <ThemedText style={styles.label}>Password</ThemedText>
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Emailga kelgan yoki shaxsiy password"
-                    placeholderTextColor={palette.muted}
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: palette.inputBg,
-                        borderColor: palette.inputBorder,
-                      },
-                    ]}
-                    secureTextEntry
-                    editable={step === "password" && !isLoading}
-                  />
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Emailga kelgan yoki shaxsiy password"
+                      placeholderTextColor={palette.muted}
+                      style={[
+                        styles.input,
+                        {
+                          color: Colors[colorScheme].text,
+                          backgroundColor: palette.inputBg,
+                          borderColor: palette.inputBorder,
+                        },
+                      ]}
+                      secureTextEntry={!showPassword}
+                      editable={step === "password" && !isLoading}
+                    />
+                    <Pressable
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={20}
+                        color={palette.muted}
+                      />
+                    </Pressable>
+                  </View>
                 </View>
               ) : null}
 
@@ -300,6 +315,16 @@ const styles = StyleSheet.create({
   inputBlock: {
     marginBottom: 16,
   },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 14,
+    padding: 12,
+  },
   label: {
     fontSize: 14,
     fontWeight: "500",
@@ -311,6 +336,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     fontSize: 16,
+    flex: 1,
   },
   primaryButton: {
     marginTop: 24,
