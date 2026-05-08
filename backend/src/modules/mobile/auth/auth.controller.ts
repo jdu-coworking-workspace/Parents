@@ -193,6 +193,13 @@ class MobileAuthModuleController implements IController {
                 throw new ApiError(500, 'Cognito configuration missing');
             }
 
+            // Debug logging
+            console.log('[Student Google Login] Config values:');
+            console.log('  - Cognito Domain:', cognitoDomain);
+            console.log('  - Client ID:', clientId);
+            console.log('  - Backend URL:', config.BACKEND_URL);
+            console.log('  - Callback URL (redirect_uri):', callbackUrl);
+
             const cognitoUrl =
                 `${cognitoDomain}/oauth2/authorize?` +
                 `response_type=code&` +
@@ -202,6 +209,8 @@ class MobileAuthModuleController implements IController {
                 `prompt=select_account&` +
                 `scope=${encodeURIComponent('openid email profile')}&` +
                 `state=${encodeURIComponent(mobileRedirectUrl)}`;
+
+            console.log('[Student Google Login] Full Cognito URL:', cognitoUrl);
 
             return res.redirect(cognitoUrl);
         } catch (e: any) {
