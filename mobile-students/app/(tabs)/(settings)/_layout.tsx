@@ -10,7 +10,7 @@ export default function SettingsLayout() {
           headerShown: true,
           title: 'Sozlamalar',
           headerStyle: {
-            backgroundColor: '#3B82F6',
+            backgroundColor: '#1A4AAC',
           },
           headerTintColor: '#fff',
           headerTitleStyle: {

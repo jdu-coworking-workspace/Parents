@@ -185,6 +185,7 @@ export default function SignInScreen() {
                       color: Colors[colorScheme].text,
                       backgroundColor: palette.inputBg,
                       borderColor: palette.inputBorder,
+                      color: palette.muted,
                     },
                   ]}
                   keyboardType="email-address"
@@ -206,7 +207,7 @@ export default function SignInScreen() {
                       style={[
                         styles.input,
                         {
-                          color: Colors[colorScheme].text,
+                          color: palette.muted,
                           backgroundColor: palette.inputBg,
                           borderColor: palette.inputBorder,
                         },
