@@ -1,5 +1,7 @@
 {
   "zod": {
+    "email": "Email",
+    "password": "Password",
     "errors": {
       "invalid_type": "Expected {expected}, received {received}",
       "invalid_type_received_undefined": "Required",
