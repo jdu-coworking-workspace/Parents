@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
+import { createHash, randomBytes } from 'crypto';
 
 import { verifyToken, ExtendedRequest } from '../../../middlewares/mobileAuth';
 import { Parent, Student } from '../../../utils/cognito-client';
@@ -13,6 +14,10 @@ class MobileAuthModuleController implements IController {
     public router: Router = express.Router();
     public cognitoClient: any;
     public studentCognitoClient: any;
+    private studentOAuthAttempts = new Map<string, {
+        codeVerifier: string;
+        expiresAt: number;
+    }>();
     private forgotPasswordVerifiedPhones = new Map<string, {
         token: string;
         expiresAt: number
@@ -140,13 +145,52 @@ class MobileAuthModuleController implements IController {
     }
 
     private buildStudentSignInUrl(params: Record<string, string>): string {
-        const url = new URL('mobilestudents://sign-in');
+        const baseUrl = 'mobilestudents://sign-in';
+        const searchParams = new URLSearchParams();
 
         Object.entries(params).forEach(([key, value]) => {
-            url.searchParams.set(key, value);
+            searchParams.set(key, value);
         });
 
-        return url.toString();
+        const queryString = searchParams.toString();
+        return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    }
+
+    private generateOAuthState(): string {
+        return randomBytes(32).toString('base64url');
+    }
+
+    private generatePkceCodeVerifier(): string {
+        return randomBytes(64).toString('base64url');
+    }
+
+    private generatePkceCodeChallenge(codeVerifier: string): string {
+        return createHash('sha256')
+            .update(codeVerifier)
+            .digest('base64url');
+    }
+
+    private storeStudentOAuthAttempt(state: string, codeVerifier: string): void {
+        this.studentOAuthAttempts.set(state, {
+            codeVerifier,
+            expiresAt: Date.now() + 10 * 60 * 1000,
+        });
+    }
+
+    private consumeStudentOAuthAttempt(state: string): string | null {
+        const attempt = this.studentOAuthAttempts.get(state);
+
+        if (!attempt) {
+            return null;
+        }
+
+        this.studentOAuthAttempts.delete(state);
+
+        if (attempt.expiresAt <= Date.now()) {
+            return null;
+        }
+
+        return attempt.codeVerifier;
     }
 
     private getStudentCognitoDomain(): string {
@@ -187,18 +231,15 @@ class MobileAuthModuleController implements IController {
             const cognitoDomain = this.getStudentCognitoDomain();
             const clientId = config.STUDENT_CLIENT_ID;
             const callbackUrl = `${config.BACKEND_URL}/mobile/student/google/callback`;
-            const mobileRedirectUrl = 'mobilestudents://sign-in';
+            const state = this.generateOAuthState();
+            const codeVerifier = this.generatePkceCodeVerifier();
+            const codeChallenge = this.generatePkceCodeChallenge(codeVerifier);
 
             if (!cognitoDomain || !clientId || !config.BACKEND_URL) {
                 throw new ApiError(500, 'Cognito configuration missing');
             }
 
-            // Debug logging
-            console.log('[Student Google Login] Config values:');
-            console.log('  - Cognito Domain:', cognitoDomain);
-            console.log('  - Client ID:', clientId);
-            console.log('  - Backend URL:', config.BACKEND_URL);
-            console.log('  - Callback URL (redirect_uri):', callbackUrl);
+            this.storeStudentOAuthAttempt(state, codeVerifier);
 
             const cognitoUrl =
                 `${cognitoDomain}/oauth2/authorize?` +
@@ -208,9 +249,9 @@ class MobileAuthModuleController implements IController {
                 `identity_provider=Google&` +
                 `prompt=select_account&` +
                 `scope=${encodeURIComponent('openid email profile')}&` +
-                `state=${encodeURIComponent(mobileRedirectUrl)}`;
-
-            console.log('[Student Google Login] Full Cognito URL:', cognitoUrl);
+                `state=${encodeURIComponent(state)}&` +
+                `code_challenge=${encodeURIComponent(codeChallenge)}&` +
+                `code_challenge_method=S256`;
 
             return res.redirect(cognitoUrl);
         } catch (e: any) {
@@ -221,7 +262,7 @@ class MobileAuthModuleController implements IController {
 
     studentGoogleCallback = async (req: Request, res: Response) => {
         try {
-            const { code, error } = req.query;
+            const { code, error, state } = req.query;
 
             if (error) {
                 const url = this.buildStudentSignInUrl({
@@ -234,11 +275,22 @@ class MobileAuthModuleController implements IController {
                 throw new ApiError(400, 'Authorization code missing');
             }
 
+            if (!state || typeof state !== 'string') {
+                throw new ApiError(400, 'Invalid OAuth state');
+            }
+
+            const codeVerifier = this.consumeStudentOAuthAttempt(state);
+
+            if (!codeVerifier) {
+                throw new ApiError(400, 'Invalid or expired OAuth state');
+            }
+
             const redirectUri = `${config.BACKEND_URL}/mobile/student/google/callback`;
             const tokenResponse = await this.exchangeCodeForTokens(
                 code as string,
                 redirectUri,
-                config.STUDENT_CLIENT_ID
+                config.STUDENT_CLIENT_ID,
+                codeVerifier
             );
 
             if (!tokenResponse.access_token) {
@@ -291,17 +343,17 @@ class MobileAuthModuleController implements IController {
 
             const url = this.buildStudentSignInUrl({
                 access_token: tokenResponse.access_token,
-                refresh_token: tokenResponse.refresh_token ?? '',
-                user: encodeURIComponent(
-                    JSON.stringify({
-                        id: student.id,
-                        email: student.email,
-                        phone_number: student.phone_number,
-                        given_name: student.given_name,
-                        family_name: student.family_name,
-                    })
-                ),
-                school_name: encodeURIComponent(student.school_name ?? ''),
+                ...(tokenResponse.refresh_token
+                    ? { refresh_token: tokenResponse.refresh_token }
+                    : {}),
+                user: JSON.stringify({
+                    id: student.id,
+                    email: student.email,
+                    phone_number: student.phone_number,
+                    given_name: student.given_name,
+                    family_name: student.family_name,
+                }),
+                school_name: student.school_name ?? '',
             });
 
             return res.redirect(url);
@@ -317,7 +369,8 @@ class MobileAuthModuleController implements IController {
     private async exchangeCodeForTokens(
         code: string,
         redirectUri: string,
-        clientId: string
+        clientId: string,
+        codeVerifier: string
     ) {
         const cognitoDomain = this.getStudentCognitoDomain();
 
@@ -332,6 +385,7 @@ class MobileAuthModuleController implements IController {
             client_id: clientId,
             code,
             redirect_uri: redirectUri,
+            code_verifier: codeVerifier,
         });
 
         const response = await fetch(tokenUrl, {

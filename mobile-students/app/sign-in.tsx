@@ -167,8 +167,9 @@ export default function SignInScreen() {
             ? "Google authentication failed. Please try again."
             : e?.message === "callback_error"
               ? "Google callback processing failed. Please try again."
-              : e?.message || "Google login xatoligi";
-
+               : e?.message === "oauth_missing_params"
+                ? "Google authentication could not be completed. Missing required login data. Please try again."
+                 : "Google login failed. Please try again.";
       setError(message);
     } finally {
       setIsLoading(false);

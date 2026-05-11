@@ -43,17 +43,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const persistSession = async (response: {
     access_token: string;
-    refresh_token: string;
+    refresh_token?: string | null;
     user: StudentUser;
   }) => {
     await saveSession({
       accessToken: response.access_token,
-      refreshToken: response.refresh_token,
+      refreshToken: response.refresh_token ?? null,
       user: response.user,
     });
 
     setAccessToken(response.access_token);
-    setRefreshToken(response.refresh_token);
+    setRefreshToken(response.refresh_token ?? null);
     setUser(response.user);
   };
 
