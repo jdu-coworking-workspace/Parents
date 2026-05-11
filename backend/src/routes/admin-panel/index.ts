@@ -5,6 +5,7 @@ import PostController from './post';
 import SchedulePostController from './schedule';
 import AdminController from './admin';
 import GroupController from './group';
+import NotificationController from './notification';
 import FormController from './form';
 import SchoolController from './school';
 import { Router } from 'express';
@@ -28,6 +29,7 @@ class AdminPanelController implements IController {
         this.router.use('/schedule', new SchedulePostController().router);
         this.router.use('/admin', new AdminController().router);
         this.router.use('/group', new GroupController().router);
+        this.router.use('/notifications', new NotificationController().router);
         this.router.use('/form', new FormController().router);
         this.router.use('/school', new SchoolController().router);
     }

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import AuthController from './auth';
 import FormController from './form';
+import NotificationController from './notification';
 import ParentController from './parent';
 import PostController from './post';
 import StudentController from './student';
@@ -19,6 +20,7 @@ class MobileController implements IController {
     initRoutes() {
         this.router.use(new AuthController().router);
         this.router.use(new FormController().router);
+        this.router.use(new NotificationController().router);
         this.router.use(new ParentController().router);
         this.router.use(new PostController().router);
         this.router.use(new StudentController().router);

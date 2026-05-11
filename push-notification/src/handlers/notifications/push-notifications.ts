@@ -33,7 +33,16 @@ export class NotificationProcessor {
             console.timeEnd('db-fetch');
 
             if (!posts.length) {
-                console.log('📭 No notifications to process');
+                console.log('📭 No notifications to process (queue empty).');
+                console.log(
+                    '   ℹ️  Bu xato emas — servis ishga tushdi, DB dan 0 ta kutilayotgan xabar topildi.'
+                );
+                console.log(
+                    '   Student push: Post (audience=students) + PostStudent (push=0, viewed_at NULL) + Student.arn (Expo token) kerak.'
+                );
+                console.log(
+                    '   Agar Post bor-yu PostStudent yo‘q bo‘lsa — avval backend orqali qabul qiluvchilarni yuboring (students/groups).'
+                );
                 return { message: 'no notifications', count: 0, total: 0 };
             }
 
@@ -56,25 +65,21 @@ export class NotificationProcessor {
             );
             console.timeEnd('send-notifications');
 
-            const successfulIds = results.successful.map(id =>
-                parseInt(id, 10)
-            );
-
-            if (successfulIds.length) {
+            if (results.successful.length) {
                 console.time('db-update');
-                await this.dbQueries.updateProcessedPosts(successfulIds);
+                await this.dbQueries.updateProcessedPosts(results.successful);
                 console.timeEnd('db-update');
             }
 
             console.log(
-                `✅ Successfully processed ${successfulIds.length}/${posts.length} notifications`
+                `✅ Successfully processed ${results.successful.length}/${posts.length} notifications`
             );
             console.log(`   📱 Push notifications: ${results.pushCount}`);
             console.log(`   📧 SMS notifications: ${results.smsCount}`);
 
             return {
                 message: 'success',
-                count: successfulIds.length,
+                count: results.successful.length,
                 total: posts.length,
                 push_count: results.pushCount,
                 sms_only_count: results.smsOnlyCount,
@@ -91,13 +96,13 @@ export class NotificationProcessor {
         pushPosts: NotificationPost[],
         smsOnlyPosts: NotificationPost[]
     ): Promise<{
-        successful: string[];
+        successful: NotificationPost[];
         pushCount: number;
         smsCount: number;
         smsOnlyCount: number;
     }> {
         const results = {
-            successful: [] as string[],
+            successful: [] as NotificationPost[],
             pushCount: 0,
             smsCount: 0,
             smsOnlyCount: 0,
@@ -128,7 +133,13 @@ export class NotificationProcessor {
                     if (pushSuccess) {
                         hasSuccessfulNotification = true;
                         results.pushCount++;
-                        console.log(`📱 Push sent to post ${post.id}`);
+                        console.log(
+                            `📱 Push sent: postStudentId=${post.id} studentId=${post.student_id} arn=${post.arn}`
+                        );
+                    } else {
+                        console.error(
+                            `❌ Push FAILED: postStudentId=${post.id} studentId=${post.student_id} arn=${post.arn} — push=false remains`
+                        );
                     }
 
                     // Send SMS if enabled for this priority level
@@ -143,7 +154,7 @@ export class NotificationProcessor {
                         }
                     }
 
-                    return hasSuccessfulNotification ? post.id : null;
+                    return hasSuccessfulNotification ? post : null;
                 } catch (error) {
                     console.error(
                         `❌ Error processing push post ${post.id}:`,
@@ -156,7 +167,7 @@ export class NotificationProcessor {
             const pushResults = await Promise.all(pushPromises);
             const successfulPushIds = pushResults.filter(
                 id => id !== null
-            ) as string[];
+            ) as NotificationPost[];
             results.successful.push(...successfulPushIds);
         }
 
@@ -189,7 +200,7 @@ export class NotificationProcessor {
                         }
                     }
 
-                    return hasSuccessfulNotification ? post.id : null;
+                    return hasSuccessfulNotification ? post : null;
                 } catch (error) {
                     console.error(
                         `❌ Error processing SMS-only post ${post.id}:`,
@@ -202,7 +213,7 @@ export class NotificationProcessor {
             const smsOnlyResults = await Promise.all(smsOnlyPromises);
             const successfulSmsOnlyIds = smsOnlyResults.filter(
                 id => id !== null
-            ) as string[];
+            ) as NotificationPost[];
             results.successful.push(...successfulSmsOnlyIds);
         }
 

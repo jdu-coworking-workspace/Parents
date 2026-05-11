@@ -90,12 +90,21 @@ export class PostService {
 
         const shouldAttachParents = audience === 'parents';
 
+        const hasStudentIds = Array.isArray(students) && students.length > 0;
+        const hasGroupIds = Array.isArray(groups) && groups.length > 0;
+
+        if (audience === 'students' && !hasStudentIds && !hasGroupIds) {
+            console.warn(
+                `[createPost] audience=students but no students/groups provided. adminId=${adminId} schoolId=${schoolId}`
+            );
+            throw new ApiError(400, 'student_post_requires_recipients');
+        }
+
         let imageName: string | null = null;
         if (image && typeof image === 'string') {
             const trimmed = image.trim();
 
             if (trimmed.startsWith('data:')) {
-                // data URL format: data:image/<mime>;base64,<payload>
                 const matches = trimmed.match(
                     /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/
                 );
@@ -111,7 +120,6 @@ export class PostService {
                     throw new ApiError(400, 'image_size_too_large');
                 }
 
-                // Only allow the same types as the upload endpoint.
                 const extensionMap: Record<string, string> = {
                     'image/jpeg': '.jpg',
                     'image/jpg': '.jpg',
@@ -130,7 +138,6 @@ export class PostService {
                 const imagePath = 'images/' + imageName;
                 await Images3Client.uploadFile(buffer, mimeType, imagePath);
             } else if (trimmed.length > 0) {
-                // Treat as uploaded filename
                 if (!this.isSafeUploadedImageName(trimmed)) {
                     throw new ApiError(400, 'invalid_image_format');
                 }
@@ -149,19 +156,40 @@ export class PostService {
             image: imageName,
         });
 
+        console.log(
+            `[createPost] Post created: id=${postId} audience=${audience} adminId=${adminId} schoolId=${schoolId}`
+        );
+
+        let totalPostStudentCount = 0;
+        let totalPostParentCount = 0;
+
         // Link individual students
-        if (students && Array.isArray(students) && students.length > 0) {
+        if (hasStudentIds) {
             const studentList = (await DB.query(
-                `SELECT st.id FROM Student AS st WHERE st.id IN (:students)`,
-                { students }
-            )) as { id: number }[];
+                `SELECT st.id, st.arn FROM Student AS st WHERE st.id IN (:students) AND st.school_id = :school_id`,
+                { students, school_id: schoolId }
+            )) as { id: number; arn: string | null }[];
+
+            const skipped = (students as number[]).length - studentList.length;
+            if (skipped > 0) {
+                console.warn(
+                    `[createPost] Skipped ${skipped} student(s) not found in school ${schoolId}`
+                );
+            }
 
             if (studentList.length > 0) {
                 for (const student of studentList) {
+                    if (!student.arn) {
+                        console.warn(
+                            `[createPost] Student id=${student.id} has no ARN/push token — PostStudent will be created but push will not fire`
+                        );
+                    }
+
                     const postStudent = await DB.execute(
                         `INSERT INTO PostStudent (post_id, student_id) VALUES (:post_id, :student_id)`,
                         { post_id: postId, student_id: student.id }
                     );
+                    totalPostStudentCount++;
 
                     if (shouldAttachParents) {
                         const studentParents = (await DB.query(
@@ -184,6 +212,7 @@ export class PostService {
                                 `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${placeholders}`,
                                 flatValues
                             );
+                            totalPostParentCount += studentParents.length;
                         }
                     }
                 }
@@ -204,11 +233,26 @@ export class PostService {
                 schoolId
             );
 
+            console.log(
+                `[createPost] Groups resolved: requested=${groupIds.length} total_with_descendants=${allGroupIds.length}`
+            );
+
             if (allGroupIds.length > 0) {
                 const studentList = (await DB.query(
-                    `SELECT gm.student_id, gm.group_id FROM GroupMember AS gm WHERE gm.group_id IN (:groups)`,
+                    `SELECT gm.student_id, gm.group_id, st.arn FROM GroupMember AS gm INNER JOIN Student AS st ON gm.student_id = st.id WHERE gm.group_id IN (:groups)`,
                     { groups: allGroupIds }
-                )) as { student_id: number; group_id: number }[];
+                )) as {
+                    student_id: number;
+                    group_id: number;
+                    arn: string | null;
+                }[];
+
+                const missingArn = studentList.filter(s => !s.arn).length;
+                if (missingArn > 0) {
+                    console.warn(
+                        `[createPost] ${missingArn} student(s) in groups have no ARN/push token`
+                    );
+                }
 
                 if (studentList.length > 0) {
                     const postStudentInsertData = studentList.map(student => [
@@ -225,6 +269,7 @@ export class PostService {
                         `INSERT INTO PostStudent (post_id, student_id, group_id) VALUES ${placeholders}`,
                         flatValues
                     );
+                    totalPostStudentCount += studentList.length;
 
                     if (shouldAttachParents) {
                         const newPostStudents = (await DB.query(
@@ -278,11 +323,29 @@ export class PostService {
                                         `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${parentPlaceholders}`,
                                         flatParentValues
                                     );
+                                    totalPostParentCount +=
+                                        allParentInsertData.length;
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
+
+        console.log(
+            `[createPost] Summary: postId=${postId} PostStudent=${totalPostStudentCount} PostParent=${totalPostParentCount} audience=${audience}`
+        );
+
+        if (audience === 'students') {
+            if (totalPostStudentCount === 0) {
+                await DB.execute(`DELETE FROM Post WHERE id = :postId`, {
+                    postId,
+                });
+                console.error(
+                    `[createPost] No matching students found — post ${postId} deleted`
+                );
+                throw new ApiError(400, 'student_post_no_matching_recipients');
             }
         }
 

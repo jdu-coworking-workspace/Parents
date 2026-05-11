@@ -2,10 +2,11 @@ import { NotificationPost } from '../types/events';
 import { buildParentNotificationMessageUrl } from './parent-app-links';
 
 export const getLocalizedText = (
-    language: string,
+    language: string | null | undefined,
     type: 'title' | 'body' | 'sms',
     data: NotificationPost
 ): string => {
+    const lang = language ?? 'uz';
     const studentName = `${data.given_name} ${data.family_name}`;
 
     const link = buildParentNotificationMessageUrl(data.student_id, data.id);
@@ -27,7 +28,7 @@ export const getLocalizedText = (
         },
     };
 
-    return texts[language as keyof typeof texts]?.[type] || texts.uz[type];
+    return texts[lang as keyof typeof texts]?.[type] || texts.uz[type];
 };
 
 /**

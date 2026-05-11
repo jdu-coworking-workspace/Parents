@@ -13,10 +13,13 @@ class MobileAuthModuleController implements IController {
     public router: Router = express.Router();
     public cognitoClient: any;
     public studentCognitoClient: any;
-    private forgotPasswordVerifiedPhones = new Map<string, {
-        token: string;
-        expiresAt: number
-    }>();
+    private forgotPasswordVerifiedPhones = new Map<
+        string,
+        {
+            token: string;
+            expiresAt: number;
+        }
+    >();
 
     // Add general rate limiting for all auth endpoints
     private authLimiter = rateLimit({
@@ -81,7 +84,11 @@ class MobileAuthModuleController implements IController {
             this.studentLoginInitiateLimiter,
             this.studentLoginInitiate
         );
-        this.router.post('/student/login', this.loginLimiter, this.studentLogin);
+        this.router.post(
+            '/student/login',
+            this.loginLimiter,
+            this.studentLogin
+        );
         this.router.post(
             '/student/change-temp-password',
             this.authLimiter,
@@ -120,11 +127,13 @@ class MobileAuthModuleController implements IController {
         this.router.post(
             '/forgot-password-verify-code',
             this.forgotPasswordLimiter,
-            this.forgotPasswordVerifyCode)
+            this.forgotPasswordVerifyCode
+        );
         this.router.post(
             '/forgot-password-set-password',
             this.forgotPasswordLimiter,
-            this.forgotPasswordSetPassword)
+            this.forgotPasswordSetPassword
+        );
         this.router.post(
             '/forgot-password-confirm',
             this.authLimiter,
@@ -279,7 +288,10 @@ class MobileAuthModuleController implements IController {
 
             // ✅ Validation qo'shildi
             if (!phone_number || !verification_code) {
-                throw new ApiError(400, 'Phone number and verification code are required');
+                throw new ApiError(
+                    400,
+                    'Phone number and verification code are required'
+                );
             }
 
             // ✅ fullPhoneNumber aniqlandi
@@ -297,11 +309,13 @@ class MobileAuthModuleController implements IController {
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
 
-            return res.status(200).json({
-                message: 'Verification code verified successfully',
-                reset_token: result.resetToken,
-            }).end();
-
+            return res
+                .status(200)
+                .json({
+                    message: 'Verification code verified successfully',
+                    reset_token: result.resetToken,
+                })
+                .end();
         } catch (e: any) {
             // ✅ Phone enumeration oldini olish
             if (e?.status === 404) {
@@ -369,6 +383,28 @@ class MobileAuthModuleController implements IController {
         if (typeof raw === 'object' && typeof raw.data === 'string')
             return raw.data.trim();
         return null;
+    }
+
+    private async persistStudentDeviceToken(
+        studentId: number,
+        token: unknown,
+        updateLastLogin: boolean = false
+    ): Promise<void> {
+        const normalizedToken = this.normalizeToken(token);
+
+        if (normalizedToken == null || normalizedToken === '[object Object]') {
+            return;
+        }
+
+        const loginSql = updateLastLogin ? ', last_login_at = NOW()' : '';
+
+        await DB.execute(
+            `UPDATE Student SET arn = :arn${loginSql} WHERE id = :id;`,
+            {
+                id: studentId,
+                arn: normalizedToken,
+            }
+        );
     }
 
     deviceToken = async (
@@ -547,7 +583,10 @@ class MobileAuthModuleController implements IController {
                             ''
                         );
 
-                    await this.syncStudentCognitoSub(email, registeredStudent.sub_id);
+                    await this.syncStudentCognitoSub(
+                        email,
+                        registeredStudent.sub_id
+                    );
                 } else if (e?.status === 400) {
                     // User already activated (status is not FORCE_CHANGE_PASSWORD)
                     // Return generic success message so they can proceed to login directly
@@ -571,7 +610,7 @@ class MobileAuthModuleController implements IController {
 
     studentLogin = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { email, password } = req.body;
+            const { email, password, token } = req.body;
 
             if (!email || !password) {
                 throw new ApiError(400, 'Email and password are required');
@@ -598,7 +637,10 @@ class MobileAuthModuleController implements IController {
 
             let authData;
             try {
-                authData = await this.studentCognitoClient.login(email, password);
+                authData = await this.studentCognitoClient.login(
+                    email,
+                    password
+                );
             } catch (e: any) {
                 throw e;
             }
@@ -609,6 +651,15 @@ class MobileAuthModuleController implements IController {
             await this.syncStudentCognitoSub(email, authUser.sub_id);
 
             const student = students[0];
+
+            try {
+                await this.persistStudentDeviceToken(student.id, token, true);
+            } catch (error) {
+                console.error(
+                    'Error during updating student device token:',
+                    error
+                );
+            }
 
             return res
                 .status(200)
@@ -637,7 +688,7 @@ class MobileAuthModuleController implements IController {
         next: NextFunction
     ) => {
         try {
-            const { email, temp_password, new_password } = req.body;
+            const { email, temp_password, new_password, token } = req.body;
 
             if (!email || !temp_password || !new_password) {
                 throw new ApiError(
@@ -677,6 +728,15 @@ class MobileAuthModuleController implements IController {
             await this.syncStudentCognitoSub(email, authUser.sub_id);
 
             const student = students[0];
+
+            try {
+                await this.persistStudentDeviceToken(student.id, token, true);
+            } catch (error) {
+                console.error(
+                    'Error during updating student device token:',
+                    error
+                );
+            }
 
             return res
                 .status(200)

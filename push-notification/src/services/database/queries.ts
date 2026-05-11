@@ -80,43 +80,69 @@ export class DatabaseQueries {
     // Combined method - gets all posts for both push and SMS notifications
     async fetchAllNotificationPosts(): Promise<NotificationPost[]> {
         return await this.db.query(
-            `SELECT pp.id,
-                    pa.arn,
-                    po.title,
-                    po.description,
-                    st.family_name,
-                    st.given_name,
-                    st.id as student_id,
-                    pses.chat_id,
-                    pses.language,
-                    pa.phone_number,
-                    po.priority,
-                    CASE
-                        WHEN (po.priority = 'high' AND sc.sms_high = true) OR
-                             (po.priority = 'medium' AND sc.sms_medium = true) OR
-                             (po.priority = 'low' AND sc.sms_low = true)
-                            THEN true
-                        ELSE false
-                        END AS sms
-             FROM PostParent AS pp
-                      INNER JOIN Parent AS pa ON pp.parent_id = pa.id
-                      INNER JOIN PostStudent AS ps ON pp.post_student_id = ps.id
-                      LEFT JOIN Post AS po ON ps.post_id = po.id
-                      INNER JOIN Student AS st ON ps.student_id = st.id
-                      LEFT JOIN ParentSession AS pses ON pses.parent_id = pa.id
-                      INNER JOIN School AS sc ON st.school_id = sc.id
-             WHERE (
-                 -- Has ARN for push notifications
-                 (pa.arn IS NOT NULL AND pa.arn != '') OR
-                 -- OR has phone number for SMS notifications (and SMS is enabled)
-                 (pa.phone_number IS NOT NULL AND pa.phone_number != '' AND (
-                     (po.priority = 'high' AND sc.sms_high = true) OR
-                     (po.priority = 'medium' AND sc.sms_medium = true) OR
-                     (po.priority = 'low' AND sc.sms_low = true)
-                 ))
-             )
-               AND pp.push = false
-               AND pp.viewed_at IS NULL LIMIT 25;`
+            `SELECT *
+             FROM (
+                      SELECT pp.id,
+                             pa.arn,
+                             po.title,
+                             po.description,
+                             st.family_name,
+                             st.given_name,
+                             st.id as student_id,
+                             pses.chat_id,
+                             pses.language,
+                             pa.phone_number,
+                             po.priority,
+                             CASE
+                                 WHEN (po.priority = 'high' AND sc.sms_high = true) OR
+                                      (po.priority = 'medium' AND sc.sms_medium = true) OR
+                                      (po.priority = 'low' AND sc.sms_low = true)
+                                     THEN true
+                                 ELSE false
+                                 END AS sms,
+                             'parent'  AS recipient_type
+                      FROM PostParent AS pp
+                               INNER JOIN Parent AS pa ON pp.parent_id = pa.id
+                               INNER JOIN PostStudent AS ps ON pp.post_student_id = ps.id
+                               LEFT JOIN Post AS po ON ps.post_id = po.id
+                               INNER JOIN Student AS st ON ps.student_id = st.id
+                               LEFT JOIN ParentSession AS pses ON pses.parent_id = pa.id
+                               INNER JOIN School AS sc ON st.school_id = sc.id
+                      WHERE (
+                          (pa.arn IS NOT NULL AND pa.arn != '') OR
+                          (pa.phone_number IS NOT NULL AND pa.phone_number != '' AND (
+                              (po.priority = 'high' AND sc.sms_high = true) OR
+                              (po.priority = 'medium' AND sc.sms_medium = true) OR
+                              (po.priority = 'low' AND sc.sms_low = true)
+                          ))
+                          )
+                        AND pp.push = false
+                        AND pp.viewed_at IS NULL
+
+                      UNION ALL
+
+                      SELECT ps.id,
+                             st.arn,
+                             po.title,
+                             po.description,
+                             st.family_name,
+                             st.given_name,
+                             st.id       as student_id,
+                             NULL        as chat_id,
+                             NULL        as language,
+                             st.phone_number,
+                             po.priority,
+                             false       as sms,
+                             'student'   AS recipient_type
+                      FROM PostStudent AS ps
+                               INNER JOIN Student AS st ON ps.student_id = st.id
+                               INNER JOIN Post AS po ON ps.post_id = po.id
+                      WHERE po.audience = 'students'
+                        AND ps.push = false
+                        AND ps.viewed_at IS NULL
+                        AND st.arn IS NOT NULL
+                        AND st.arn != '') AS notifications
+             LIMIT 25;`
         );
     }
 
@@ -155,11 +181,30 @@ export class DatabaseQueries {
         );
     }
 
-    async updateProcessedPosts(ids: number[]): Promise<void> {
-        if (!ids.length) return;
-        await this.db.execute(
-            `UPDATE PostParent SET push = true WHERE id IN (${ids.join(',')});`
-        );
+    async updateProcessedPosts(posts: NotificationPost[]): Promise<void> {
+        if (!posts.length) return;
+
+        const parentIds = posts
+            .filter(post => post.recipient_type !== 'student')
+            .map(post => parseInt(post.id, 10))
+            .filter(id => !Number.isNaN(id));
+
+        const studentIds = posts
+            .filter(post => post.recipient_type === 'student')
+            .map(post => parseInt(post.id, 10))
+            .filter(id => !Number.isNaN(id));
+
+        if (parentIds.length > 0) {
+            await this.db.execute(
+                `UPDATE PostParent SET push = true WHERE id IN (${parentIds.join(',')});`
+            );
+        }
+
+        if (studentIds.length > 0) {
+            await this.db.execute(
+                `UPDATE PostStudent SET push = true WHERE id IN (${studentIds.join(',')});`
+            );
+        }
     }
 
     async getTokensForAnalysis(limit: number = 20): Promise<any[]> {

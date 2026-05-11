@@ -102,11 +102,10 @@ export class AuthChallengeHandler {
         );
 
         if (previousChallenge) {
-            const previousCode =
-                previousChallenge.challengeMetadata!.replace(
-                    'OTP_CHALLENGE_',
-                    ''
-                );
+            const previousCode = previousChallenge.challengeMetadata!.replace(
+                'OTP_CHALLENGE_',
+                ''
+            );
             console.log(
                 '🔄 Retry attempt — reusing previous OTP code (no new SMS)'
             );
