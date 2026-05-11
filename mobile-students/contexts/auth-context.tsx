@@ -22,6 +22,9 @@ interface AuthContextType {
   refreshToken: string | null;
   isLoading: boolean;
   isSignedIn: boolean;
+  firstLoginChallenge: FirstLoginChallenge | null;
+  setFirstLoginChallenge: (challenge: FirstLoginChallenge) => void;
+  clearFirstLoginChallenge: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   completeFirstLogin: (
@@ -33,12 +36,19 @@ interface AuthContextType {
   restoreToken: () => Promise<void>;
 }
 
+type FirstLoginChallenge = {
+  email: string;
+  tempPassword: string;
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<StudentUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [firstLoginChallenge, setFirstLoginChallenge] =
+    useState<FirstLoginChallenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const persistSession = async (response: {
@@ -55,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(response.access_token);
     setRefreshToken(response.refresh_token ?? null);
     setUser(response.user);
+    setFirstLoginChallenge(null);
   };
 
   // Restore token on app startup
@@ -145,6 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshToken,
     isLoading,
     isSignedIn: !!accessToken && !!user,
+    firstLoginChallenge,
+    setFirstLoginChallenge,
+    clearFirstLoginChallenge: () => setFirstLoginChallenge(null),
     signIn,
     signInWithGoogle,
     completeFirstLogin,

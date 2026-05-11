@@ -1,5 +1,7 @@
 {
   "zod": {
+    "email": "Электронная почта",
+    "password": "Пароль",
     "errors": {
       "invalid_type": "Ожидалось {expected}, но получено {received}",
       "invalid_type_received_undefined": "Обязательно",

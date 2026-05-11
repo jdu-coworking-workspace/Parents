@@ -3,6 +3,7 @@ export interface CreateScheduledPostRequest {
     title: string;
     description: string;
     priority: string;
+    audience?: 'parents' | 'students';
     students: number[];
     groups: number[];
     image?: string;
@@ -22,6 +23,7 @@ export interface CreateScheduledPostResponse {
 export interface ScheduledPostListRequest {
     page?: number;
     perPage?: number;
+    audience?: 'parents' | 'students';
     priority?: string;
     text?: string;
 }
@@ -133,6 +135,7 @@ export interface ScheduledPostBasic {
     title: string;
     description: string;
     priority: string;
+    audience?: 'parents' | 'students';
     scheduled_at: Date;
     created_at: Date;
     edited_at: Date | null;

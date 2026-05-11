@@ -22,18 +22,15 @@ import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function SignInScreen() {
-  const [step, setStep] = useState<"email" | "password" | "setup">("email");
+  const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const {
     signIn,
-    signInWithGoogle,
-    completeFirstLogin,
+    setFirstLoginChallenge,
     isSignedIn,
     isLoading: isAuthLoading,
   } = useAuth();
@@ -70,8 +67,6 @@ export default function SignInScreen() {
       setInfo(response.message || "Emailga temporary password yuborildi.");
       setStep("password");
       setPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
     } catch (e: any) {
       // Check if it's a 404 error (email not found in system)
       if (e?.status === 404) {
@@ -104,10 +99,11 @@ export default function SignInScreen() {
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
       if (e?.status === 403) {
-        setStep("setup");
-        setInfo(
-          "Temporary password tasdiqlandi. Endi shaxsiy password yarating.",
-        );
+        setFirstLoginChallenge({
+          email: email.trim().toLowerCase(),
+          tempPassword: password,
+        });
+        router.push("/new-psswd");
         return;
       }
 
@@ -204,7 +200,8 @@ export default function SignInScreen() {
                     opacity: isLoading ? 0.75 : 1,
                   },
                 ]}
-                onPress={handleGoogleLogin}
+                onPress={
+                }
                 disabled={isLoading || isAuthLoading}
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
@@ -244,6 +241,7 @@ export default function SignInScreen() {
                     {
                       backgroundColor: palette.inputBg,
                       borderColor: palette.inputBorder,
+                      color: palette.muted,
                     },
                   ]}
                   keyboardType="email-address"
@@ -255,9 +253,7 @@ export default function SignInScreen() {
 
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
-                  <ThemedText style={styles.label}>
-                    {step === "setup" ? "Temporary password" : "Password"}
-                  </ThemedText>
+                  <ThemedText style={styles.label}>Password</ThemedText>
                   <TextInput
                     value={password}
                     onChangeText={setPassword}
@@ -268,58 +264,13 @@ export default function SignInScreen() {
                       {
                         backgroundColor: palette.inputBg,
                         borderColor: palette.inputBorder,
+                        color: palette.muted,
                       },
                     ]}
                     secureTextEntry
                     editable={step === "password" && !isLoading}
                   />
                 </View>
-              ) : null}
-
-              {step === "setup" ? (
-                <>
-                  <View style={styles.inputBlock}>
-                    <ThemedText style={styles.label}>
-                      O'zingizning passwordingiz
-                    </ThemedText>
-                    <TextInput
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      placeholder="Yangi password kiriting"
-                      placeholderTextColor={palette.muted}
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: palette.inputBg,
-                          borderColor: palette.inputBorder,
-                        },
-                      ]}
-                      secureTextEntry
-                      editable={!isLoading}
-                    />
-                  </View>
-
-                  <View style={styles.inputBlock}>
-                    <ThemedText style={styles.label}>
-                      Password tasdig'i
-                    </ThemedText>
-                    <TextInput
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="Passwordni qayta kiriting"
-                      placeholderTextColor={palette.muted}
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: palette.inputBg,
-                          borderColor: palette.inputBorder,
-                        },
-                      ]}
-                      secureTextEntry
-                      editable={!isLoading}
-                    />
-                  </View>
-                </>
               ) : null}
 
               {info ? (
@@ -346,9 +297,7 @@ export default function SignInScreen() {
                 onPress={
                   step === "email"
                     ? handleEmailNext
-                    : step === "password"
-                      ? handlePasswordSubmit
-                      : handlePasswordSetup
+                    : handlePasswordSubmit
                 }
                 disabled={isLoading}
               >
@@ -357,9 +306,7 @@ export default function SignInScreen() {
                     ? "Loading..."
                     : step === "email"
                       ? "Next"
-                      : step === "password"
-                        ? "Sign in"
-                        : "Save"}
+                      : "Sign in"}
                 </ThemedText>
               </Pressable>
 
@@ -369,8 +316,6 @@ export default function SignInScreen() {
                   onPress={() => {
                     setStep("email");
                     setPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
                     setError("");
                     setInfo("");
                     setEmail("");
