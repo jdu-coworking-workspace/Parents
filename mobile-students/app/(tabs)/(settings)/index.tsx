@@ -101,7 +101,6 @@ const LanguageSelection: React.FC<
 };
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const { signOut } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];

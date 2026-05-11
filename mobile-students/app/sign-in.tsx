@@ -113,9 +113,64 @@ export default function SignInScreen() {
     }
   };
 
-  //   const handleGoogleLogin = () => {
-  //   router.replace('/(tabs)/(home)');
-  // };
+  const handlePasswordSetup = async () => {
+    if (!password.trim()) {
+      setError("Temporary password kiriting");
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setError("O'zingizning passwordingizni kiriting");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwordlar mos kelmadi");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      await completeFirstLogin(
+        email.trim().toLowerCase(),
+        password,
+        newPassword,
+      );
+
+      router.replace("/(tabs)/(home)");
+    } catch (e: any) {
+      setError(e?.message || "Password saqlashda xatolik yuz berdi");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      setInfo("");
+
+      await signInWithGoogle();
+      router.replace("/(tabs)/(home)");
+    } catch (e: any) {
+      const message =
+        e?.message === "user_not_found"
+          ? "Your email address was not found in the system. Please contact your school administrator."
+          : e?.message === "oauth_error"
+            ? "Google authentication failed. Please try again."
+            : e?.message === "callback_error"
+              ? "Google callback processing failed. Please try again."
+              : e?.message === "oauth_missing_params"
+                ? "Google authentication could not be completed. Missing required login data. Please try again."
+                : "Google login failed. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -142,9 +197,12 @@ export default function SignInScreen() {
                   {
                     backgroundColor: palette.inputBg,
                     borderColor: palette.inputBorder,
+                    opacity: isLoading ? 0.75 : 1,
                   },
                 ]}
-                // onPress={handleGoogleLogin}
+                onPress={
+                }
+                disabled={isLoading || isAuthLoading}
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
                 <ThemedText
