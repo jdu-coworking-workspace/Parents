@@ -43,6 +43,7 @@ export default function SignInScreen() {
   }, [isAuthLoading, isSignedIn, router]);
 
   const colorScheme = useColorScheme() ?? "light";
+  const passwordPlaceholder = "Email yoki shaxsiy password";
 
   const palette = {
     inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
@@ -185,7 +186,6 @@ export default function SignInScreen() {
                       color: Colors[colorScheme].text,
                       backgroundColor: palette.inputBg,
                       borderColor: palette.inputBorder,
-                      color: palette.muted,
                     },
                   ]}
                   keyboardType="email-address"
@@ -202,10 +202,11 @@ export default function SignInScreen() {
                     <TextInput
                       value={password}
                       onChangeText={setPassword}
-                      placeholder="Emailga kelgan yoki shaxsiy password"
+                      placeholder={passwordPlaceholder}
                       placeholderTextColor={palette.muted}
                       style={[
                         styles.input,
+                        styles.passwordInput,
                         {
                           color: palette.muted,
                           backgroundColor: palette.inputBg,
@@ -336,8 +337,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 14,
+    paddingVertical: Platform.OS === "android" ? 10 : 0,
+    textAlignVertical: "center",
+    includeFontPadding: false,
     fontSize: 16,
     flex: 1,
+  },
+  passwordInput: {
+    paddingRight: 56,
   },
   primaryButton: {
     marginTop: 24,
