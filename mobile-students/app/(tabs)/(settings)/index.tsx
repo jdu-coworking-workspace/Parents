@@ -101,8 +101,8 @@ const LanguageSelection: React.FC<
 };
 
 export default function SettingsScreen() {
+  const { signOut, user } = useAuth();
   const router = useRouter();
-  const { signOut } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
@@ -123,13 +123,13 @@ export default function SettingsScreen() {
     setIsLightModeOn(!isLightModeOn);
   }, [isLightModeOn]);
 
-  // Compute display name
+  // Compute display name from authenticated user
   const displayName = useMemo(() => {
-    const given = (mockStudentData.given_name ?? '').trim();
-    const family = (mockStudentData.family_name ?? '').trim();
+    const given = (user?.given_name ?? '').trim();
+    const family = (user?.family_name ?? '').trim();
     const combined = [given, family].filter(Boolean).join(' ');
     return combined || '';
-  }, []);
+  }, [user]);
 
   const handleLogout = useCallback(() => {
     Alert.alert(
@@ -202,10 +202,10 @@ export default function SettingsScreen() {
                       { color: colors.icon },
                     ]}
                   >
-                    Telefon raqam
+                    Email
                   </ThemedText>
                   <ThemedText style={styles.profileText}>
-                    +{mockStudentData.phone_number}
+                    {user?.email ?? ''}
                   </ThemedText>
                 </View>
               </View>
