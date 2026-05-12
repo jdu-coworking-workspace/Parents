@@ -202,7 +202,7 @@ export default function SettingsScreen() {
                       { color: colors.icon },
                     ]}
                   >
-                    Telefon raqam
+                    Email
                   </ThemedText>
                   <ThemedText style={styles.profileText}>
                     {user?.email ?? ''}
