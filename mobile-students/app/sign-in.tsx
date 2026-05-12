@@ -25,11 +25,15 @@ export default function SignInScreen() {
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const {
     signIn,
+    signInWithGoogle,
+    completeFirstLogin,
     setFirstLoginChallenge,
     isSignedIn,
     isLoading: isAuthLoading,
@@ -103,7 +107,7 @@ export default function SignInScreen() {
           email: email.trim().toLowerCase(),
           tempPassword: password,
         });
-        router.push("/new-psswd");
+        router.push("/new-psswd" as any);
         return;
       }
 
@@ -200,8 +204,7 @@ export default function SignInScreen() {
                     opacity: isLoading ? 0.75 : 1,
                   },
                 ]}
-                onPress={
-                }
+                onPress={handleGoogleLogin}
                 disabled={isLoading || isAuthLoading}
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
@@ -295,9 +298,7 @@ export default function SignInScreen() {
                   { backgroundColor: palette.primary },
                 ]}
                 onPress={
-                  step === "email"
-                    ? handleEmailNext
-                    : handlePasswordSubmit
+                  step === "email" ? handleEmailNext : handlePasswordSubmit
                 }
                 disabled={isLoading}
               >
