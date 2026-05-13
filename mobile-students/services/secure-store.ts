@@ -8,14 +8,18 @@ const STUDENT_USER_KEY = 'student_user';
 
 export type StoredSession = {
     accessToken: string;
-    refreshToken: string;
+    refreshToken: string | null;
     user: StudentUser;
 };
 
 export async function saveSession(session: StoredSession): Promise<void> {
+    const refreshTokenOp = session.refreshToken
+        ? SecureStore.setItemAsync(REFRESH_TOKEN_KEY, session.refreshToken)
+        : SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+
     await Promise.all([
         SecureStore.setItemAsync(ACCESS_TOKEN_KEY, session.accessToken),
-        SecureStore.setItemAsync(REFRESH_TOKEN_KEY, session.refreshToken),
+        refreshTokenOp,
         SecureStore.setItemAsync(STUDENT_USER_KEY, JSON.stringify(session.user)),
     ]);
 }
@@ -27,13 +31,13 @@ export async function loadSession(): Promise<StoredSession | null> {
         SecureStore.getItemAsync(STUDENT_USER_KEY),
     ]);
 
-    if (!accessToken || !refreshToken || !userRaw) {
+    if (!accessToken || !userRaw) {
         return null;
     }
 
     try {
         const user = JSON.parse(userRaw) as StudentUser;
-        return { accessToken, refreshToken, user };
+        return { accessToken, refreshToken: refreshToken ?? null, user };
     } catch {
         return null;
     }
