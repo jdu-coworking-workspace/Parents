@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import {
   changeStudentTemporaryPassword,
   loginStudent,
+  getStudentGoogleLoginUrl,
+  parseStudentGoogleCallbackUrl,
 } from "@/services/student-auth";
 import {
   clearSession,
@@ -9,6 +13,8 @@ import {
   saveSession,
 } from "@/services/secure-store";
 import type { StudentUser } from "@/types/auth";
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   user: StudentUser | null;
@@ -20,6 +26,7 @@ interface AuthContextType {
   setFirstLoginChallenge: (challenge: FirstLoginChallenge) => void;
   clearFirstLoginChallenge: () => void;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   completeFirstLogin: (
     email: string,
     tempPassword: string,
@@ -46,17 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const persistSession = async (response: {
     access_token: string;
-    refresh_token: string;
+    refresh_token?: string | null;
     user: StudentUser;
   }) => {
     await saveSession({
       accessToken: response.access_token,
-      refreshToken: response.refresh_token,
+      refreshToken: response.refresh_token ?? null,
       user: response.user,
     });
 
     setAccessToken(response.access_token);
-    setRefreshToken(response.refresh_token);
+    setRefreshToken(response.refresh_token ?? null);
     setUser(response.user);
     setFirstLoginChallenge(null);
   };
@@ -97,6 +104,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    const authUrl = getStudentGoogleLoginUrl();
+    const redirectUrl = "mobilestudents://sign-in";
+
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+
+    if (result.type !== "success" || !result.url) {
+      throw new Error("Google login cancelled");
+    }
+
+    const response = parseStudentGoogleCallbackUrl(result.url);
+    await persistSession(response);
+  };
+
   const completeFirstLogin = async (
     email: string,
     tempPassword: string,
@@ -122,7 +143,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
-      setFirstLoginChallenge(null);
+
+      router.replace("/sign-in");
     } catch (error) {
       console.error("Sign out error:", error);
     }
@@ -138,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setFirstLoginChallenge,
     clearFirstLoginChallenge: () => setFirstLoginChallenge(null),
     signIn,
+    signInWithGoogle,
     completeFirstLogin,
     signOut,
     restoreToken,

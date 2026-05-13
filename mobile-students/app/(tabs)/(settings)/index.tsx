@@ -86,8 +86,8 @@ const LanguageSelection: React.FC<{
 
 
 export default function SettingsScreen() {
+  const { signOut, user } = useAuth();
   const router = useRouter();
-  const { signOut } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
@@ -170,7 +170,7 @@ export default function SettingsScreen() {
                     Telefon raqam
                   </ThemedText>
                   <ThemedText style={styles.profileText}>
-                    +{mockStudentData.phone_number}
+                    {user?.email ?? ''}
                   </ThemedText>
                 </View>
               </View>

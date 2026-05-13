@@ -26,6 +26,7 @@ interface Config {
 
     // Cognito
     COGNITO_DOMAIN: string;
+    STUDENT_COGNITO_DOMAIN?: string;
     USE_MOCK_COGNITO: boolean;
 
     // Parent Pool
@@ -109,6 +110,7 @@ export const config: Config = {
 
     // Cognito
     COGNITO_DOMAIN: getEnv('COGNITO_DOMAIN'),
+    STUDENT_COGNITO_DOMAIN: process.env.STUDENT_COGNITO_DOMAIN,
     USE_MOCK_COGNITO: getEnvAsBool('USE_MOCK_COGNITO', false),
 
     // Parent Pool
@@ -144,6 +146,7 @@ export function getConfigSummary(): Record<string, string | number | boolean> {
         SERVICE_REGION: config.SERVICE_REGION,
         BUCKET_NAME: config.BUCKET_NAME,
         COGNITO_DOMAIN: config.COGNITO_DOMAIN,
+        STUDENT_COGNITO_DOMAIN: config.STUDENT_COGNITO_DOMAIN ?? '***',
         USE_MOCK_COGNITO: config.USE_MOCK_COGNITO,
         DB_HOST: config.DB_HOST,
         DB_NAME: config.DB_NAME,
