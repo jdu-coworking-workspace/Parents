@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -21,7 +22,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function SetPasswordScreen() {
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const {
@@ -49,10 +50,52 @@ export default function SetPasswordScreen() {
   const palette = {
     inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
     inputBorder: colorScheme === "dark" ? "#374151" : "#D1D5DB",
+    cardBg: colorScheme === "dark" ? "#101417" : "#FFFFFF",
+    cardBorder: colorScheme === "dark" ? "#26323A" : "#E5E7EB",
     primary: "#2563EB",
     muted: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    mutedSoft: colorScheme === "dark" ? "#6B7280" : "#9CA3AF",
     error: "#DC2626",
+    success: "#059669",
+    warning: "#D97706",
+    danger: "#DC2626",
   };
+
+  const passwordRules = [
+    {
+      label: "Kamida 8 ta belgi",
+      passed: newPassword.length >= 8,
+    },
+    {
+      label: "Kamida 1 ta raqam",
+      passed: /\d/.test(newPassword),
+    },
+    {
+      label: "Kamida 1 ta katta harf",
+      passed: /[A-Z]/.test(newPassword),
+    },
+    {
+      label: "Kamida 1 ta kichik harf",
+      passed: /[a-z]/.test(newPassword),
+    },
+    {
+      label: "Kamida 1 ta maxsus belgi",
+      passed: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;'`~]/.test(newPassword),
+      examples: '(!@#%&/\\,><\'|;_~`+=^$.()[]{}?")',
+    },
+  ];
+
+  const passwordScore = passwordRules.filter((rule) => rule.passed).length;
+  const passwordStrength =
+    passwordScore <= 1
+      ? { label: "Juda zaif", color: palette.danger }
+      : passwordScore <= 3
+        ? { label: "Zaif", color: palette.warning }
+        : passwordScore <= 4
+          ? { label: "O'rtacha", color: palette.warning }
+          : { label: "Kuchli", color: palette.success };
+
+  const passwordBarWidth = (passwordScore / passwordRules.length);
 
   const handlePasswordSetup = async () => {
     if (!firstLoginChallenge) {
@@ -65,8 +108,8 @@ export default function SetPasswordScreen() {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setError("Passwordlar mos kelmadi");
+    if (passwordScore < passwordRules.length) {
+      setError("Password kuch talablari to'liq bajarilmadi");
       return;
     }
 
@@ -109,45 +152,117 @@ export default function SetPasswordScreen() {
 
               <View style={styles.inputBlock}>
                 <ThemedText style={styles.label}>
-                  {"O'zingizning passwordingiz"}
+                  {"Yangi password yaratish"}
                 </ThemedText>
-                <TextInput
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  placeholder="Yangi password kiriting"
-                  placeholderTextColor={palette.muted}
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: palette.inputBg,
-                      borderColor: palette.inputBorder,
-                    },
-                  ]}
-                  secureTextEntry
-                  editable={!isLoading}
-                />
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="Yangi password kiriting"
+                    placeholderTextColor={palette.muted}
+                    style={[
+                      styles.input,
+                      {
+                        color: Colors[colorScheme].text,
+                        backgroundColor: palette.inputBg,
+                        borderColor: palette.inputBorder,
+                      },
+                    ]}
+                    secureTextEntry={!showPassword}
+                    editable={!isLoading}
+                  />
+                  <Pressable
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color={palette.muted}
+                    />
+                  </Pressable>
+                </View>
               </View>
 
-              <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>
-                  {"Password tasdig'i"}
-                </ThemedText>
-                <TextInput
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Passwordni qayta kiriting"
-                  placeholderTextColor={palette.muted}
+              {newPassword.length > 0 ? (
+                <View
                   style={[
-                    styles.input,
+                    styles.validationCard,
                     {
-                      backgroundColor: palette.inputBg,
-                      borderColor: palette.inputBorder,
+                      backgroundColor: palette.cardBg,
+                      borderColor: palette.cardBorder,
                     },
                   ]}
-                  secureTextEntry
-                  editable={!isLoading}
-                />
-              </View>
+                >
+                  <ThemedText style={styles.validationTitle}>
+                    Parol kuchi
+                  </ThemedText>
+
+                  <View style={styles.strengthRow}>
+                    <View style={styles.strengthBarTrack}>
+                      <View
+                        style={[
+                          styles.strengthBarFill,
+                          {
+                            flex: passwordBarWidth,
+                            backgroundColor: passwordStrength.color,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <ThemedText
+                      style={[
+                        styles.strengthLabel,
+                        { color: passwordStrength.color },
+                      ]}
+                    >
+                      {passwordStrength.label}
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.rulesList}>
+                    {passwordRules.map((rule) => {
+                      const iconColor = rule.passed
+                        ? palette.success
+                        : palette.danger;
+                      return (
+                        <View key={rule.label} style={styles.ruleRow}>
+                          <Ionicons
+                            name={rule.passed ? "checkmark-circle" : "close-circle"}
+                            size={20}
+                            color={iconColor}
+                            style={styles.ruleIcon}
+                          />
+                          <View style={styles.ruleTextWrap}>
+                            <ThemedText
+                              style={[
+                                styles.ruleText,
+                                {
+                                  color: rule.passed
+                                    ? Colors[colorScheme].text
+                                    : palette.danger,
+                                },
+                              ]}
+                            >
+                              {rule.label}
+                            </ThemedText>
+                            {rule.examples ? (
+                              <ThemedText
+                                style={[
+                                  styles.ruleHint,
+                                  { color: palette.mutedSoft },
+                                ]}
+                              >
+                                {rule.examples}
+                              </ThemedText>
+                            ) : null}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
 
               {error ? (
                 <ThemedText
@@ -215,6 +330,72 @@ const styles = StyleSheet.create({
   inputBlock: {
     marginBottom: 16,
   },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 14,
+    padding: 12,
+  },
+  validationCard: {
+    marginTop: 4,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  validationTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  strengthRow: {
+    marginBottom: 14,
+  },
+  strengthBarTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "#E5E7EB",
+    flexDirection: "row",
+  },
+  strengthBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    flex: 0,
+  },
+  strengthLabel: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  rulesList: {
+    gap: 10,
+  },
+  ruleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  ruleIcon: {
+    marginTop: 1,
+    marginRight: 10,
+  },
+  ruleTextWrap: {
+    flex: 1,
+  },
+  ruleText: {
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 22,
+  },
+  ruleHint: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   label: {
     fontSize: 14,
     fontWeight: "500",
@@ -226,6 +407,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     fontSize: 16,
+    flex: 1,
   },
   primaryButton: {
     marginTop: 24,
