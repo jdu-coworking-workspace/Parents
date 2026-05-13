@@ -7,6 +7,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
+import { RootSiblingParent } from 'react-native-root-siblings';
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider } from "@/contexts/auth-context";
 
@@ -19,6 +20,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
+    <RootSiblingParent>
     <AuthProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack>
@@ -29,5 +31,6 @@ export default function RootLayout() {
         <StatusBar style="auto" />
       </ThemeProvider>
     </AuthProvider>
+    </RootSiblingParent>
   );
 }
