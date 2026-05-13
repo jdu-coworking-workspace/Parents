@@ -17,8 +17,8 @@ import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { FontSizeSlider, SampleText } from '@/components/FontSizeSlider';
 
-// Mock data for student
 const mockStudentData = {
   given_name: 'Sunnatilla',
   family_name: 'Sobitjonov',
@@ -26,22 +26,10 @@ const mockStudentData = {
 };
 
 const languageData = [
-  {
-    language: "O'zbekcha",
-    flag: '🇺🇿',
-  },
-  {
-    language: 'Русский',
-    flag: '🇷🇺',
-  },
-  {
-    language: '日本語',
-    flag: '🇯🇵',
-  },
-  {
-    language: 'English',
-    flag: '🇬🇧',
-  },
+  { language: "O'zbekcha", flag: '🇺🇿' },
+  { language: 'Русский', flag: '🇷🇺' },
+  { language: '日本語', flag: '🇯🇵' },
+  { language: 'English', flag: '🇬🇧' },
 ];
 
 const RadioCircle = ({ selected }: { selected: boolean }) => (
@@ -70,35 +58,32 @@ const RadioCircle = ({ selected }: { selected: boolean }) => (
   </View>
 );
 
-interface LanguageSelectionProps {
+const LanguageSelection: React.FC<{
   language: string;
   selectedLanguage: string;
   onSelect: (language: string) => void;
   flag: string;
-}
-
-const LanguageSelection: React.FC<
-  LanguageSelectionProps & { isDark: boolean }
-> = ({ language, selectedLanguage, onSelect, flag, isDark }) => {
+  isDark: boolean;
+}> = ({ language, selectedLanguage, onSelect, flag, isDark }) => {
   const selected = selectedLanguage === language;
   return (
     <TouchableOpacity
-      key={language}
       style={[
-        styles.container1,
+        styles.langItem,
         selected && { backgroundColor: isDark ? '#226fc9' : '#EAF2FF' },
       ]}
       onPress={() => onSelect(language)}
       activeOpacity={0.8}
     >
       <View style={styles.row}>
-        <ThemedText style={styles.flag}>{flag}</ThemedText>
+        <Text style={styles.flag}>{flag}</Text>
         <ThemedText style={{ fontSize: 16 }}>{language}</ThemedText>
       </View>
       <RadioCircle selected={selected} />
     </TouchableOpacity>
   );
 };
+
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -107,7 +92,8 @@ export default function SettingsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('O\'zbekcha');
+  const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState("O'zbekcha");
   const [isLightModeOn, setIsLightModeOn] = useState(true);
 
   const handleLanguageSelect = (language: string) => {
@@ -115,20 +101,14 @@ export default function SettingsScreen() {
     setIsLanguageOpen(false);
   };
 
-  const handlePresentModal = useCallback(() => {
-    setIsLanguageOpen(true);
-  }, []);
-
   const handleToggleLight = useCallback(() => {
     setIsLightModeOn(!isLightModeOn);
   }, [isLightModeOn]);
 
-  // Compute display name
   const displayName = useMemo(() => {
     const given = (mockStudentData.given_name ?? '').trim();
     const family = (mockStudentData.family_name ?? '').trim();
-    const combined = [given, family].filter(Boolean).join(' ');
-    return combined || '';
+    return [given, family].filter(Boolean).join(' ') || '';
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -136,10 +116,7 @@ export default function SettingsScreen() {
       'Chiqish',
       'Siz rostdan ham tizimdan chiqmoqchisiz?',
       [
-        {
-          text: 'Bekor qilish',
-          style: 'cancel',
-        },
+        { text: 'Bekor qilish', style: 'cancel' },
         {
           text: 'Chiqish',
           style: 'destructive',
@@ -168,40 +145,28 @@ export default function SettingsScreen() {
               {displayName ? (
                 <View style={styles.row}>
                   <Ionicons
-                    name='person-outline'
+                    name="person-outline"
                     size={22}
                     color={colors.icon}
                     style={styles.infoIcon}
                   />
                   <View>
-                    <ThemedText
-                      style={[
-                        styles.profileInitial,
-                        { color: colors.icon },
-                      ]}
-                    >
+                    <ThemedText style={[styles.profileInitial, { color: colors.icon }]}>
                       Ism
                     </ThemedText>
-                    <ThemedText style={styles.profileText}>
-                      {displayName}
-                    </ThemedText>
+                    <ThemedText style={styles.profileText}>{displayName}</ThemedText>
                   </View>
                 </View>
               ) : null}
               <View style={styles.row}>
                 <Ionicons
-                  name='call-outline'
+                  name="call-outline"
                   size={22}
                   color={colors.icon}
                   style={styles.infoIcon}
                 />
                 <View>
-                  <ThemedText
-                    style={[
-                      styles.profileInitial,
-                      { color: colors.icon },
-                    ]}
-                  >
+                  <ThemedText style={[styles.profileInitial, { color: colors.icon }]}>
                     Telefon raqam
                   </ThemedText>
                   <ThemedText style={styles.profileText}>
@@ -213,46 +178,40 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.infoCard}>
-            <ThemedText style={styles.sectionTitle}>
-              Sozlamalar
-            </ThemedText>
-            <Pressable onPress={handlePresentModal} style={styles.row}>
+            <ThemedText style={styles.sectionTitle}>Sozlamalar</ThemedText>
+
+            <Pressable onPress={() => setIsLanguageOpen(true)} style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color='#fff' name='language-outline' size={20} />
+                <Ionicons color="#fff" name="language-outline" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Ilova tili
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>Ilova tili</ThemedText>
               <View style={styles.rowSpacer} />
-              <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
+              <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
+
             <Pressable style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color='#fff' name='lock-closed-outline' size={20} />
+                <Ionicons color="#fff" name="lock-closed-outline" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Paroli o'zgartirish
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>Parolni o'zgartirish</ThemedText>
               <View style={styles.rowSpacer} />
-              <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
+              <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
-            <Pressable style={styles.row}>
+
+            <Pressable style={styles.row} onPress={() => setIsFontSizeOpen(true)}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color='#fff' name='text' size={20} />
+                <Ionicons color="#fff" name="text" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Matn o'lchami
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>Matn o'lchami</ThemedText>
               <View style={styles.rowSpacer} />
-              <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
+              <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
+
             <Pressable style={styles.row} onPress={handleToggleLight}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color='#fff' name='sunny-outline' size={20} />
+                <Ionicons color="#fff" name="sunny-outline" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Yorug' rejim
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>Yorug' rejim</ThemedText>
               <View style={styles.rowSpacer} />
               <View style={[styles.toggleSwitch, { backgroundColor: isLightModeOn ? '#3B82F6' : '#E5E7EB' }]}>
                 <View style={[
@@ -267,58 +226,27 @@ export default function SettingsScreen() {
           </View>
 
           <View style={{ marginTop: 40, marginBottom: 20 }}>
-            <Pressable
-              style={styles.submitButton}
-              onPress={handleLogout}
-            >
-              <Ionicons name='log-out-outline' size={30} color='#FF4444' />
+            <Pressable style={styles.submitButton} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={30} color="#FF4444" />
               <Text style={styles.logoutText}>Chiqish</Text>
             </Pressable>
           </View>
         </View>
       </ScrollView>
 
+      {/* Til tanlash Modal */}
       <Modal
         visible={isLanguageOpen}
         transparent
-        animationType='fade'
+        animationType="fade"
         onRequestClose={() => setIsLanguageOpen(false)}
       >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.35)',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Pressable
-            onPress={() => setIsLanguageOpen(false)}
-            style={{ flex: 1 }}
-          />
-          <View
-            style={[
-              {
-                backgroundColor: colors.background,
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                paddingTop: 8,
-                paddingBottom: 30,
-                paddingHorizontal: 15,
-              },
-            ]}
-          >
-            <ThemedText
-              style={{
-                marginTop: 18,
-                marginBottom: 18,
-                fontSize: 18,
-                alignSelf: 'flex-start',
-              }}
-            >
-              Til
-            </ThemedText>
+        <View style={styles.modalOverlay}>
+          <Pressable onPress={() => setIsLanguageOpen(false)} style={{ flex: 1 }} />
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <ThemedText style={styles.modalTitle}>Til</ThemedText>
             <ThemedView style={{ width: '100%' }}>
-              {languageData.map(l => (
+              {languageData.map((l) => (
                 <LanguageSelection
                   key={l.language}
                   language={l.language}
@@ -329,6 +257,22 @@ export default function SettingsScreen() {
                 />
               ))}
             </ThemedView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Matn o'lchami Modal - FAQAT UI */}
+      <Modal
+        visible={isFontSizeOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsFontSizeOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable onPress={() => setIsFontSizeOpen(false)} style={{ flex: 1 }} />
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <SampleText />
+            <FontSizeSlider />
           </View>
         </View>
       </Modal>
@@ -388,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     position: 'relative',
   },
-  container1: {
+  langItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -445,5 +389,65 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: 8,
+    paddingBottom: 30,
+    paddingHorizontal: 15,
+  },
+  modalTitle: {
+    marginTop: 18,
+    marginBottom: 18,
+    fontSize: 18,
+    alignSelf: 'flex-start',
+  },
+  // Font Size Slider stillari
+  sliderContainer: {
+    width: 300,
+    alignSelf: 'center',
+    paddingVertical: 15,
+  },
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+  },
+  smallLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginRight: 12,
+  },
+  largeLabel: {
+    fontSize: 24,
+    color: '#8E8E93',
+    marginLeft: 12,
+  },
+  sliderWrapper: {
+    flex: 1,
+    height: 40,
+    justifyContent: 'center',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sampleContainer: {
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 20,
+    backgroundColor: '#F2F2F7',
+  },
+  sampleText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#000',
   },
 });
