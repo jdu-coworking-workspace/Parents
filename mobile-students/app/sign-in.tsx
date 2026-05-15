@@ -25,11 +25,16 @@ export default function SignInScreen() {
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const {
     signIn,
+    signInWithGoogle,
+    completeFirstLogin,
     setFirstLoginChallenge,
     isSignedIn,
     isLoading: isAuthLoading,
@@ -42,6 +47,7 @@ export default function SignInScreen() {
   }, [isAuthLoading, isSignedIn, router]);
 
   const colorScheme = useColorScheme() ?? "light";
+  const passwordPlaceholder = "Email yoki shaxsiy password";
 
   const palette = {
     inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
@@ -103,7 +109,7 @@ export default function SignInScreen() {
           email: email.trim().toLowerCase(),
           tempPassword: password,
         });
-        router.push("/new-psswd");
+        router.push("/new-psswd" as any);
         return;
       }
 
@@ -113,9 +119,64 @@ export default function SignInScreen() {
     }
   };
 
-  //   const handleGoogleLogin = () => {
-  //   router.replace('/(tabs)/(home)');
-  // };
+  const handlePasswordSetup = async () => {
+    if (!password.trim()) {
+      setError("Temporary password kiriting");
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setError("O'zingizning passwordingizni kiriting");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwordlar mos kelmadi");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      await completeFirstLogin(
+        email.trim().toLowerCase(),
+        password,
+        newPassword,
+      );
+
+      router.replace("/(tabs)/(home)");
+    } catch (e: any) {
+      setError(e?.message || "Password saqlashda xatolik yuz berdi");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      setInfo("");
+
+      await signInWithGoogle();
+      router.replace("/(tabs)/(home)");
+    } catch (e: any) {
+      const message =
+        e?.message === "user_not_found"
+          ? "Your email address was not found in the system. Please contact your school administrator."
+          : e?.message === "oauth_error"
+            ? "Google authentication failed. Please try again."
+            : e?.message === "callback_error"
+              ? "Google callback processing failed. Please try again."
+              : e?.message === "oauth_missing_params"
+                ? "Google authentication could not be completed. Missing required login data. Please try again."
+                : "Google login failed. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -142,9 +203,11 @@ export default function SignInScreen() {
                   {
                     backgroundColor: palette.inputBg,
                     borderColor: palette.inputBorder,
+                    opacity: isLoading ? 0.75 : 1,
                   },
                 ]}
-                // onPress={handleGoogleLogin}
+                onPress={handleGoogleLogin}
+                disabled={isLoading || isAuthLoading}
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
                 <ThemedText
@@ -181,6 +244,7 @@ export default function SignInScreen() {
                   style={[
                     styles.input,
                     {
+                      color: Colors[colorScheme].text,
                       backgroundColor: palette.inputBg,
                       borderColor: palette.inputBorder,
                     },
@@ -195,21 +259,35 @@ export default function SignInScreen() {
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
                   <ThemedText style={styles.label}>Password</ThemedText>
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Emailga kelgan yoki shaxsiy password"
-                    placeholderTextColor={palette.muted}
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: palette.inputBg,
-                        borderColor: palette.inputBorder,
-                      },
-                    ]}
-                    secureTextEntry
-                    editable={step === "password" && !isLoading}
-                  />
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder={passwordPlaceholder}
+                      placeholderTextColor={palette.muted}
+                      style={[
+                        styles.input,
+                        styles.passwordInput,
+                        {
+                          color: palette.muted,
+                          backgroundColor: palette.inputBg,
+                          borderColor: palette.inputBorder,
+                        },
+                      ]}
+                      secureTextEntry={!showPassword}
+                      editable={step === "password" && !isLoading}
+                    />
+                    <Pressable
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={20}
+                        color={palette.muted}
+                      />
+                    </Pressable>
+                  </View>
                 </View>
               ) : null}
 
@@ -235,9 +313,7 @@ export default function SignInScreen() {
                   { backgroundColor: palette.primary },
                 ]}
                 onPress={
-                  step === "email"
-                    ? handleEmailNext
-                    : handlePasswordSubmit
+                  step === "email" ? handleEmailNext : handlePasswordSubmit
                 }
                 disabled={isLoading}
               >
@@ -300,6 +376,16 @@ const styles = StyleSheet.create({
   inputBlock: {
     marginBottom: 16,
   },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 14,
+    padding: 12,
+  },
   label: {
     fontSize: 14,
     fontWeight: "500",
@@ -310,7 +396,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 14,
+    paddingVertical: Platform.OS === "android" ? 10 : 0,
+    textAlignVertical: "center",
+    includeFontPadding: false,
     fontSize: 16,
+    flex: 1,
+  },
+  passwordInput: {
+    paddingRight: 56,
   },
   primaryButton: {
     marginTop: 24,

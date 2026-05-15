@@ -1,5 +1,7 @@
 {
   "zod": {
+    "email": "メールアドレス",
+    "password": "パスワード",
     "errors": {
       "invalid_type": "{expected}が必要ですが、{received}が受け取られました",
       "invalid_type_received_undefined": "必須",
