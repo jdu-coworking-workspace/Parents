@@ -191,7 +191,7 @@ export default function SettingsScreen() {
               ) : null}
               <View style={styles.row}>
                 <Ionicons
-                  name='call-outline'
+                  name='mail-outline'
                   size={22}
                   color={colors.icon}
                   style={styles.infoIcon}
