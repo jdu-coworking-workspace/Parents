@@ -20,18 +20,12 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "channel": "preview",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://k74uz0viqb.execute-api.ap-northeast-1.amazonaws.com/api/mobile"
-      }
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "environment": "production",
-      "channel": "production",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://k74uz0viqb.execute-api.ap-northeast-1.amazonaws.com/api/mobile"
-      }
+      "channel": "production"
     }
   },
   "submit": {
