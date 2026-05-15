@@ -43,6 +43,9 @@ module.exports = ({ config }) => {
     scheme: variantConfig.scheme,
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
+    updates: {
+      url: 'https://u.expo.dev/70c8e8fd-516f-437d-b2ed-9867ee7fca17',
+    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: variantConfig.iosBundleId,
