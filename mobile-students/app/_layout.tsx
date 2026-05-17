@@ -7,19 +7,21 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
+import { RootSiblingParent } from 'react-native-root-siblings';
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ThemeModeProvider } from "@/contexts/theme-context";
 
 export const unstable_settings = {
   initialRouteName: "sign-in",
   anchor: "sign-in",
 };
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
 
   return (
-    <AuthProvider>
+    <RootSiblingParent>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />
@@ -28,6 +30,16 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
-    </AuthProvider>
+    </RootSiblingParent>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeModeProvider>
+      <AuthProvider>
+        <RootLayoutContent />
+      </AuthProvider>
+    </ThemeModeProvider>
   );
 }

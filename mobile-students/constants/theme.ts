@@ -27,6 +27,15 @@ export const Colors = {
   },
 };
 
+export const colors = {
+  /** Green — success states, confirmations, met requirements */
+  success: '#059669',
+  /** Red — errors, destructive actions, unmet requirements */
+  error: '#DC2626',
+  /** Blue — primary actions, buttons, links */
+  primary: '#4285F4',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

@@ -1,7 +1,8 @@
 {
   "cli": {
     "version": ">= 18.7.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "requireCommit": true
   },
   "build": {
     "development": {
@@ -10,21 +11,21 @@
       "environment": "development",
       "channel": "development"
     },
+    "ios-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
+    },
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "channel": "preview",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://k74uz0viqb.execute-api.ap-northeast-1.amazonaws.com/api/mobile"
-      }
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "environment": "production",
-      "channel": "production",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://k74uz0viqb.execute-api.ap-northeast-1.amazonaws.com/api/mobile"
-      }
+      "channel": "production"
     }
   },
   "submit": {

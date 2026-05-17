@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/contexts/auth-context';
+import { useThemeModeContext } from '@/contexts/theme-context';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -88,6 +89,7 @@ const LanguageSelection: React.FC<{
 export default function SettingsScreen() {
   const { signOut, user } = useAuth();
   const router = useRouter();
+  const { toggleTheme, currentColorScheme } = useThemeModeContext();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
@@ -102,8 +104,8 @@ export default function SettingsScreen() {
   };
 
   const handleToggleLight = useCallback(() => {
-    setIsLightModeOn(!isLightModeOn);
-  }, [isLightModeOn]);
+    toggleTheme();
+  }, [toggleTheme]);
 
   const displayName = useMemo(() => {
     const given = (mockStudentData.given_name ?? '').trim();
@@ -160,7 +162,7 @@ export default function SettingsScreen() {
               ) : null}
               <View style={styles.row}>
                 <Ionicons
-                  name="call-outline"
+                  name='mail-outline'
                   size={22}
                   color={colors.icon}
                   style={styles.infoIcon}
@@ -209,16 +211,18 @@ export default function SettingsScreen() {
 
             <Pressable style={styles.row} onPress={handleToggleLight}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color="#fff" name="sunny-outline" size={20} />
+                <Ionicons color='#fff' name={currentColorScheme === 'dark' ? 'moon' : 'sunny-outline'} size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>Yorug' rejim</ThemedText>
+              <ThemedText style={styles.rowLabel}>
+                {currentColorScheme === 'dark' ? 'Qorong\'u rejim' : 'Yorug\' rejim'}
+              </ThemedText>
               <View style={styles.rowSpacer} />
-              <View style={[styles.toggleSwitch, { backgroundColor: isLightModeOn ? '#3B82F6' : '#E5E7EB' }]}>
+              <View style={[styles.toggleSwitch, { backgroundColor: currentColorScheme === 'dark' ? '#3B82F6' : '#E5E7EB' }]}>
                 <View style={[
                   styles.toggleDot,
                   {
-                    backgroundColor: isLightModeOn ? '#fff' : '#999',
-                    alignSelf: isLightModeOn ? 'flex-end' : 'flex-start',
+                    backgroundColor: currentColorScheme === 'dark' ? '#fff' : '#999',
+                    alignSelf: currentColorScheme === 'dark' ? 'flex-end' : 'flex-start',
                   }
                 ]} />
               </View>
