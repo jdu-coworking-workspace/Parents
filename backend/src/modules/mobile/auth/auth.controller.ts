@@ -435,6 +435,7 @@ class MobileAuthModuleController implements IController {
                 return res
                     .status(200)
                     .json({
+                        message_key: 'registrationCodeSent',
                         message:
                             'If this phone number is registered, you will receive a verification code',
                     })
@@ -568,6 +569,7 @@ class MobileAuthModuleController implements IController {
             });
 
             return res.status(200).json({
+                message_key: 'verificationCodeVerified',
                 message: 'Verification code verified successfully',
                 reset_token: result.resetToken,
             }).end();
@@ -665,6 +667,7 @@ class MobileAuthModuleController implements IController {
             return res
                 .status(200)
                 .json({
+                    message_key: 'deviceTokenUpdated',
                     message: 'Device token updated successfully',
                 })
                 .end();
@@ -690,6 +693,7 @@ class MobileAuthModuleController implements IController {
             return res
                 .status(200)
                 .json({
+                    message_key: 'passwordChangedSuccess',
                     message: 'Password changed successfully',
                 })
                 .end();
@@ -773,6 +777,13 @@ class MobileAuthModuleController implements IController {
                 })
                 .end();
         } catch (e: any) {
+            if (e?.status === 401) {
+                // Add message_key for login failures so client can translate
+                return res.status(401).json({
+                    error: e.message,
+                    message_key: 'invalidUsernameOrPassword',
+                }).end();
+            }
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);
         }
@@ -829,6 +840,7 @@ class MobileAuthModuleController implements IController {
             return res
                 .status(200)
                 .json({
+                    message_key: 'temporaryPasswordIfRegistered',
                     message:
                         'If the email is registered, a temporary password has been sent.',
                 })
@@ -896,6 +908,13 @@ class MobileAuthModuleController implements IController {
                 })
                 .end();
         } catch (e: any) {
+            if (e?.status === 401) {
+                // Add message_key for login failures so client can translate
+                return res.status(401).json({
+                    error: e.message,
+                    message_key: 'invalidUsernameOrPassword',
+                }).end();
+            }
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);
         }

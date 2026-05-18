@@ -1,6 +1,9 @@
+import React, { useContext } from 'react';
 import { Stack } from 'expo-router';
+import { I18nContext } from '@/contexts/i18n-context';
 
 export default function SettingsLayout() {
+  const { t } = useContext(I18nContext);
 
   return (
     <Stack>
@@ -8,7 +11,7 @@ export default function SettingsLayout() {
         name="index"
         options={{
           headerShown: true,
-          title: 'Sozlamalar',
+          title: t('settingsHeader'),
           headerStyle: {
             backgroundColor: '#1A4AAC',
           },

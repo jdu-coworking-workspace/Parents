@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useContext } from 'react';
 import {
   Alert,
   Modal,
@@ -12,6 +12,7 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
+import { I18nContext } from '@/contexts/i18n-context';
 import { useAuth } from '@/contexts/auth-context';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
@@ -26,22 +27,10 @@ const mockStudentData = {
 };
 
 const languageData = [
-  {
-    language: "O'zbekcha",
-    flag: '🇺🇿',
-  },
-  {
-    language: 'Русский',
-    flag: '🇷🇺',
-  },
-  {
-    language: '日本語',
-    flag: '🇯🇵',
-  },
-  {
-    language: 'English',
-    flag: '🇬🇧',
-  },
+  { code: 'uz', label: "O'zbekcha", flag: '🇺🇿' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'en', label: 'English', flag: '🇬🇧' },
 ];
 
 const RadioCircle = ({ selected }: { selected: boolean }) => (
@@ -106,13 +95,21 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
+  const { language: currentLang, setLanguage, t } = useContext(I18nContext);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('O\'zbekcha');
+  const initialLabel = languageData.find(l => l.code === currentLang)?.label ?? "O'zbekcha";
+  const [selectedLanguage, setSelectedLanguage] = useState(initialLabel);
   const [isLightModeOn, setIsLightModeOn] = useState(true);
 
-  const handleLanguageSelect = (language: string) => {
-    setSelectedLanguage(language);
+  const handleLanguageSelect = async (label: string, code: string) => {
+    setSelectedLanguage(label);
     setIsLanguageOpen(false);
+    // update global language
+    try {
+      await setLanguage(code as any);
+    } catch (e) {
+      // ignore
+    }
   };
 
   const handlePresentModal = useCallback(() => {
@@ -133,15 +130,15 @@ export default function SettingsScreen() {
 
   const handleLogout = useCallback(() => {
     Alert.alert(
-      'Chiqish',
-      'Siz rostdan ham tizimdan chiqmoqchisiz?',
+      t('confirmLogout'),
+      t('logoutMessage'),
       [
         {
-          text: 'Bekor qilish',
+          text: t('cancel'),
           style: 'cancel',
         },
         {
-          text: 'Chiqish',
+          text: t('logout'),
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -150,7 +147,7 @@ export default function SettingsScreen() {
         },
       ]
     );
-  }, [signOut, router]);
+  }, [signOut, router, t]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -159,11 +156,9 @@ export default function SettingsScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}> 
           <View style={styles.infoCard}>
-            <ThemedText style={styles.sectionTitle}>
-              Shaxsiy ma'lumotlar
-            </ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('personalInfo')}</ThemedText>
             <View style={styles.infoRow}>
               {displayName ? (
                 <View style={styles.row}>
@@ -174,20 +169,12 @@ export default function SettingsScreen() {
                     style={styles.infoIcon}
                   />
                   <View>
-                    <ThemedText
-                      style={[
-                        styles.profileInitial,
-                        { color: colors.icon },
-                      ]}
-                    >
-                      Ism
-                    </ThemedText>
-                    <ThemedText style={styles.profileText}>
-                      {displayName}
-                    </ThemedText>
+                    <ThemedText style={[styles.profileInitial, { color: colors.icon }]}>{t('firstName')}</ThemedText>
+                    <ThemedText style={styles.profileText}>{displayName}</ThemedText>
                   </View>
                 </View>
               ) : null}
+
               <View style={styles.row}>
                 <Ionicons
                   name='call-outline'
@@ -196,63 +183,47 @@ export default function SettingsScreen() {
                   style={styles.infoIcon}
                 />
                 <View>
-                  <ThemedText
-                    style={[
-                      styles.profileInitial,
-                      { color: colors.icon },
-                    ]}
-                  >
-                    Email
-                  </ThemedText>
-                  <ThemedText style={styles.profileText}>
-                    {user?.email ?? ''}
-                  </ThemedText>
+                  <ThemedText style={[styles.profileInitial, { color: colors.icon }]}>{t('emailaddress')}</ThemedText>
+                  <ThemedText style={styles.profileText}>{user?.email ?? ''}</ThemedText>
                 </View>
               </View>
             </View>
           </View>
 
           <View style={styles.infoCard}>
-            <ThemedText style={styles.sectionTitle}>
-              Sozlamalar
-            </ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('settings')}</ThemedText>
             <Pressable onPress={handlePresentModal} style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='language-outline' size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Ilova tili
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('language')}</ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
             </Pressable>
+
             <Pressable style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='lock-closed-outline' size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Paroli o'zgartirish
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('changePassword')}</ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
             </Pressable>
+
             <Pressable style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='text' size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Matn o'lchami
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('textSize')}</ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
             </Pressable>
+
             <Pressable style={styles.row} onPress={handleToggleLight}>
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='sunny-outline' size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
-                Yorug' rejim
-              </ThemedText>
+              <ThemedText style={styles.rowLabel}>{isLightModeOn ? t('lightMode') : t('darkMode')}</ThemedText>
               <View style={styles.rowSpacer} />
               <View style={[styles.toggleSwitch, { backgroundColor: isLightModeOn ? '#3B82F6' : '#E5E7EB' }]}>
                 <View style={[
@@ -267,12 +238,9 @@ export default function SettingsScreen() {
           </View>
 
           <View style={{ marginTop: 40, marginBottom: 20 }}>
-            <Pressable
-              style={styles.submitButton}
-              onPress={handleLogout}
-            >
+            <Pressable style={styles.submitButton} onPress={handleLogout}>
               <Ionicons name='log-out-outline' size={30} color='#FF4444' />
-              <Text style={styles.logoutText}>Chiqish</Text>
+              <Text style={styles.logoutText}>{t('logout')}</Text>
             </Pressable>
           </View>
         </View>
@@ -315,15 +283,15 @@ export default function SettingsScreen() {
                 alignSelf: 'flex-start',
               }}
             >
-              Til
+              {t('language')}
             </ThemedText>
             <ThemedView style={{ width: '100%' }}>
               {languageData.map(l => (
                 <LanguageSelection
-                  key={l.language}
-                  language={l.language}
+                  key={l.code}
+                  language={l.label}
                   selectedLanguage={selectedLanguage}
-                  onSelect={handleLanguageSelect}
+                  onSelect={(label: string) => handleLanguageSelect(label, l.code)}
                   flag={l.flag}
                   isDark={isDark}
                 />

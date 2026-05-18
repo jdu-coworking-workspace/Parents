@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useRouter } from "expo-router";
 import {
   Keyboard,
@@ -20,6 +20,7 @@ import { ThemedView } from "@/components/themed-view";
 import { initiateStudentLogin } from "@/services/student-auth";
 import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
+import { I18nContext } from '@/contexts/i18n-context';
 
 export default function SignInScreen() {
   const [step, setStep] = useState<"email" | "password">("email");
@@ -40,6 +41,7 @@ export default function SignInScreen() {
     isLoading: isAuthLoading,
   } = useAuth();
   const router = useRouter();
+  const { t } = useContext(I18nContext);
   useEffect(() => {
     if (!isAuthLoading && isSignedIn) {
       router.replace("/(tabs)/(home)");
@@ -47,7 +49,7 @@ export default function SignInScreen() {
   }, [isAuthLoading, isSignedIn, router]);
 
   const colorScheme = useColorScheme() ?? "light";
-  const passwordPlaceholder = "Email yoki shaxsiy password";
+  const passwordPlaceholder = t('enterPassword');
 
   const palette = {
     inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
@@ -60,7 +62,7 @@ export default function SignInScreen() {
 
   const handleEmailNext = async () => {
     if (!email.trim()) {
-      setError("Email kiriting");
+      setError(t('emailRequired'));
       return;
     }
 
@@ -70,19 +72,17 @@ export default function SignInScreen() {
       setInfo("");
 
       const response = await initiateStudentLogin(email.trim().toLowerCase());
-      setInfo(response.message || "Emailga temporary password yuborildi.");
+      // Prefer server-provided message_key for localization, fall back to server message or default
+      const serverText = response.message_key ? t(response.message_key as any) : response.message;
+      setInfo(serverText || t('temporaryPasswordSent'));
       setStep("password");
       setPassword("");
     } catch (e: any) {
       // Check if it's a 404 error (email not found in system)
       if (e?.status === 404) {
-        setError(
-          "Your email address was not found in the system. Please contact your school administrator.",
-        );
+        setError(t('emailNotFoundAdmin'));
       } else {
-        setError(
-          e?.message || "An error occurred while verifying the email address.",
-        );
+        setError(e?.message || t('verifyEmailError'));
       }
     } finally {
       setIsLoading(false);
@@ -91,7 +91,7 @@ export default function SignInScreen() {
 
   const handlePasswordSubmit = async () => {
     if (!password.trim()) {
-      setError("Password kiriting");
+      setError(t('passwordRequired'));
       return;
     }
 
@@ -113,7 +113,7 @@ export default function SignInScreen() {
         return;
       }
 
-      setError(e?.message || "Login xatoligi");
+      setError(e?.message_key ? t(e.message_key as any) : (e?.message || t('loginFailed')));
     } finally {
       setIsLoading(false);
     }
@@ -121,17 +121,17 @@ export default function SignInScreen() {
 
   const handlePasswordSetup = async () => {
     if (!password.trim()) {
-      setError("Temporary password kiriting");
+      setError(t('enterTemporaryPassword'));
       return;
     }
 
     if (!newPassword.trim()) {
-      setError("O'zingizning passwordingizni kiriting");
+      setError(t('enterNewPassword'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwordlar mos kelmadi");
+      setError(t('passwordsDoNotMatch'));
       return;
     }
 
@@ -147,7 +147,7 @@ export default function SignInScreen() {
 
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
-      setError(e?.message || "Password saqlashda xatolik yuz berdi");
+      setError(e?.message || t('savePasswordFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -164,14 +164,14 @@ export default function SignInScreen() {
     } catch (e: any) {
       const message =
         e?.message === "user_not_found"
-          ? "Your email address was not found in the system. Please contact your school administrator."
+          ? t('emailNotFoundAdmin')
           : e?.message === "oauth_error"
-            ? "Google authentication failed. Please try again."
+            ? t('googleAuthFailed')
             : e?.message === "callback_error"
-              ? "Google callback processing failed. Please try again."
+              ? t('googleCallbackFailed')
               : e?.message === "oauth_missing_params"
-                ? "Google authentication could not be completed. Missing required login data. Please try again."
-                : "Google login failed. Please try again.";
+                ? t('oauthMissingParams')
+                : t('googleLoginFailed');
       setError(message);
     } finally {
       setIsLoading(false);
@@ -192,9 +192,7 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.title}>
-                  Welcome,{"\n"}Student
-                </ThemedText>
+                <ThemedText style={styles.title}>{t('welcomeStudent')}</ThemedText>
               </View>
 
               <Pressable
@@ -216,7 +214,7 @@ export default function SignInScreen() {
                     { color: Colors[colorScheme].text },
                   ]}
                 >
-                  Sign in with Google
+                  {t('signInWithGoogle')}
                 </ThemedText>
               </Pressable>
 
@@ -235,11 +233,11 @@ export default function SignInScreen() {
               </View>
 
               <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>Gmail</ThemedText>
+                <ThemedText style={styles.label}>{t('email')}</ThemedText>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="student@gmail.com"
+                  placeholder={t('enterEmail')}
                   placeholderTextColor={palette.muted}
                   style={[
                     styles.input,
@@ -258,7 +256,7 @@ export default function SignInScreen() {
 
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
-                  <ThemedText style={styles.label}>Password</ThemedText>
+                  <ThemedText style={styles.label}>{t('password')}</ThemedText>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       value={password}
@@ -319,10 +317,10 @@ export default function SignInScreen() {
               >
                 <ThemedText style={styles.primaryButtonText}>
                   {isLoading
-                    ? "Loading..."
-                    : step === "email"
-                      ? "Next"
-                      : "Sign in"}
+                    ? t('loading')
+                    : step === 'email'
+                      ? t('next')
+                      : t('signIn')}
                 </ThemedText>
               </Pressable>
 
@@ -338,9 +336,7 @@ export default function SignInScreen() {
                   }}
                   disabled={isLoading}
                 >
-                  <ThemedText style={{ color: Colors[colorScheme].text }}>
-                    Back
-                  </ThemedText>
+                  <ThemedText style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
                 </Pressable>
               ) : null}
             </ScrollView>
