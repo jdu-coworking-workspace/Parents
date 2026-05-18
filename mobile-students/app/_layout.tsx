@@ -10,6 +10,7 @@ import "react-native-reanimated";
 import { RootSiblingParent } from 'react-native-root-siblings';
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider } from "@/contexts/auth-context";
+import { I18nProvider } from "@/contexts/i18n-context";
 import { ThemeModeProvider } from "@/contexts/theme-context";
 
 export const unstable_settings = {
@@ -22,6 +23,7 @@ function RootLayoutContent() {
 
   return (
     <RootSiblingParent>
+     <I18nProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />
@@ -30,6 +32,7 @@ function RootLayoutContent() {
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
+      </I18nProvider>
     </RootSiblingParent>
   );
 }

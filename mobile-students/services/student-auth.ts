@@ -2,7 +2,8 @@ import api, { API_BASE_URL } from '@/services/api-client';
 import type { StudentUser } from '@/types/auth';
 
 type LoginInitiateResponse = {
-    message: string;
+    message?: string;
+    message_key?: string;
 };
 
 export type StudentLoginResponse = {
