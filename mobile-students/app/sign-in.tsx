@@ -21,6 +21,7 @@ import { initiateStudentLogin } from "@/services/student-auth";
 import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 import { I18nContext } from '@/contexts/i18n-context';
+import { showSuccessToast, showErrorToast } from "@/utils/toast";
 
 export default function SignInScreen() {
   const [step, setStep] = useState<"email" | "password">("email");
@@ -101,6 +102,7 @@ export default function SignInScreen() {
       setInfo("");
 
       await signIn(email.trim().toLowerCase(), password);
+      showSuccessToast("Muvaffaqiyatli kirdingiz");
 
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
@@ -160,6 +162,7 @@ export default function SignInScreen() {
       setInfo("");
 
       await signInWithGoogle();
+      showSuccessToast("Muvaffaqiyatli kirdingiz");
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
       const message =
