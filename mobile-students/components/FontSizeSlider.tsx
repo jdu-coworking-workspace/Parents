@@ -1,88 +1,105 @@
-import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import Slider from '@react-native-community/slider';
+import React, { useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import Slider from "@react-native-community/slider";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
-const FONT_SIZES = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2];
+export const SampleText = () => {
+  const colorScheme = useColorScheme() ?? "light";
+  const isDark = colorScheme === "dark";
 
-export const FontSizeSlider = () => {
   return (
-    <View style={styles.container}>
-      <View style={styles.sliderRow}>
-        <Text style={styles.smallLabel}>A</Text>
-
-        <View style={styles.sliderWrapper}>
-          <Slider
-            style={styles.slider}
-            value={3}
-            minimumValue={0}
-            maximumValue={FONT_SIZES.length - 1}
-            step={1}
-            onValueChange={() => {}}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#D0D0D0"
-            thumbTintColor="#007AFF"
-          />
-        </View>
-
-        <Text style={styles.largeLabel}>A</Text>
-      </View>
+    <View
+      style={[
+        styles.sampleContainer,
+        // Rasmdagi kabi orqa fon qorong'u rejimda to'q kulrang bo'ladi
+        { backgroundColor: isDark ? "#3A3A3C" : "#F2F2F7" },
+      ]}
+    >
+      <Text
+        style={[
+          styles.sampleText,
+          // Matn rangi rejimga qarab o'zgaradi
+          { color: isDark ? "#FFFFFF" : "#000000" },
+        ]}
+      >
+        O'zingizga qulay bo'lgan matn hajmini tanlang — o'qish yanada qulay
+        bo'ladi.
+      </Text>
     </View>
   );
 };
 
-export const SampleText = () => {
+export const FontSizeSlider = () => {
+  const colorScheme = useColorScheme() ?? "light";
+  const isDark = colorScheme === "dark";
+  const [fontSize, setFontSize] = useState(16);
+
   return (
-    <View style={sampleTextStyles.container}>
-      <Text style={sampleTextStyles.text}>
-       O'zingizga qulay bo'lgan matn hajmini tanlang — o'qish yanada qulay bo'ladi.
+    <View style={styles.sliderRow}>
+      <Text
+        style={[styles.smallLabel, { color: isDark ? "#9CA3AF" : "#8E8E93" }]}
+      >
+        A
+      </Text>
+
+      <View style={styles.sliderWrapper}>
+        <Slider
+          style={styles.slider}
+          minimumValue={12}
+          maximumValue={24}
+          step={2}
+          value={fontSize}
+          onValueChange={setFontSize}
+          // Moviy rang
+          minimumTrackTintColor="#3887FE"
+          // Qolgan qismi dark modeda to'q kulrang bo'ladi
+          maximumTrackTintColor={isDark ? "#4B4B4D" : "#D1D1D6"}
+          thumbTintColor="#3887FE"
+        />
+      </View>
+
+      <Text
+        style={[styles.largeLabel, { color: isDark ? "#9CA3AF" : "#8E8E93" }]}
+      >
+        A
       </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    width: 300,
-    alignSelf: 'center',
-    paddingVertical: 15,
+  sampleContainer: {
+    padding: 10,
+    marginTop: 10,
+    borderRadius: 12,
+    marginBottom: 35, // Matn va slider orasidagi ochiq joy
+  },
+  sampleText: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
   },
   sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-  },
-  smallLabel: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginRight: 12,
-  },
-  largeLabel: {
-    fontSize: 24,
-    color: '#8E8E93',
-    marginLeft: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   sliderWrapper: {
     flex: 1,
-    height: 40,
-    justifyContent: 'center',
+    marginHorizontal: 15,
   },
   slider: {
-    width: '100%',
+    width: "100%",
     height: 40,
   },
-});
-
-const sampleTextStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    padding: 15,
-    borderRadius: 12,
-    marginTop: 20,
-    backgroundColor: '#F2F2F7',
-  },
-  text: {
+  smallLabel: {
     fontSize: 16,
-    textAlign: 'center',
-    color: '#000',
+    fontWeight: "500",
+  },
+  largeLabel: {
+    fontSize: 24, // Katta "A" harfi uchun
+    fontWeight: "500",
   },
 });

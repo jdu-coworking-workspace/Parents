@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
@@ -8,29 +8,29 @@ import {
   TouchableOpacity,
   View,
   Text,
-} from 'react-native';
+} from "react-native";
 
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/themed-text';
-import { useAuth } from '@/contexts/auth-context';
-import { useThemeModeContext } from '@/contexts/theme-context';
-import { ThemedView } from '@/components/themed-view';
-import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { FontSizeSlider, SampleText } from '@/components/FontSizeSlider';
+import { Ionicons } from "@expo/vector-icons";
+import { ThemedText } from "@/components/themed-text";
+import { useAuth } from "@/contexts/auth-context";
+import { useThemeModeContext } from "@/contexts/theme-context";
+import { ThemedView } from "@/components/themed-view";
+import { useRouter } from "expo-router";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/constants/theme";
+import { FontSizeSlider, SampleText } from "@/components/FontSizeSlider";
 
 const mockStudentData = {
-  given_name: 'Sunnatilla',
-  family_name: 'Sobitjonov',
-  phone_number: '998974551319',
+  given_name: "Sunnatilla",
+  family_name: "Sobitjonov",
+  phone_number: "998974551319",
 };
 
 const languageData = [
-  { language: "O'zbekcha", flag: '🇺🇿' },
-  { language: 'Русский', flag: '🇷🇺' },
-  { language: '日本語', flag: '🇯🇵' },
-  { language: 'English', flag: '🇬🇧' },
+  { language: "O'zbekcha", flag: "🇺🇿" },
+  { language: "Русский", flag: "🇷🇺" },
+  { language: "日本語", flag: "🇯🇵" },
+  { language: "English", flag: "🇬🇧" },
 ];
 
 const RadioCircle = ({ selected }: { selected: boolean }) => (
@@ -40,10 +40,10 @@ const RadioCircle = ({ selected }: { selected: boolean }) => (
       width: 22,
       borderRadius: 11,
       borderWidth: 2,
-      borderColor: selected ? '#3887FE' : '#C6C6C6',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'transparent',
+      borderColor: selected ? "#3887FE" : "#C6C6C6",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "transparent",
     }}
   >
     {selected ? (
@@ -52,7 +52,7 @@ const RadioCircle = ({ selected }: { selected: boolean }) => (
           height: 12,
           width: 12,
           borderRadius: 6,
-          backgroundColor: '#3887FE',
+          backgroundColor: "#3887FE",
         }}
       />
     ) : null}
@@ -71,7 +71,7 @@ const LanguageSelection: React.FC<{
     <TouchableOpacity
       style={[
         styles.langItem,
-        selected && { backgroundColor: isDark ? '#226fc9' : '#EAF2FF' },
+        selected && { backgroundColor: isDark ? "#226fc9" : "#EAF2FF" },
       ]}
       onPress={() => onSelect(language)}
       activeOpacity={0.8}
@@ -85,14 +85,13 @@ const LanguageSelection: React.FC<{
   );
 };
 
-
 export default function SettingsScreen() {
   const { signOut, user } = useAuth();
   const router = useRouter();
   const { toggleTheme, currentColorScheme } = useThemeModeContext();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("O'zbekcha");
@@ -108,27 +107,23 @@ export default function SettingsScreen() {
   }, [toggleTheme]);
 
   const displayName = useMemo(() => {
-    const given = (mockStudentData.given_name ?? '').trim();
-    const family = (mockStudentData.family_name ?? '').trim();
-    return [given, family].filter(Boolean).join(' ') || '';
+    const given = (mockStudentData.given_name ?? "").trim();
+    const family = (mockStudentData.family_name ?? "").trim();
+    return [given, family].filter(Boolean).join(" ") || "";
   }, []);
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
-      'Chiqish',
-      'Siz rostdan ham tizimdan chiqmoqchisiz?',
-      [
-        { text: 'Bekor qilish', style: 'cancel' },
-        {
-          text: 'Chiqish',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/sign-in');
-          },
+    Alert.alert("Chiqish", "Siz rostdan ham tizimdan chiqmoqchisiz?", [
+      { text: "Bekor qilish", style: "cancel" },
+      {
+        text: "Chiqish",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          router.replace("/sign-in");
         },
-      ]
-    );
+      },
+    ]);
   }, [signOut, router]);
 
   return (
@@ -138,7 +133,9 @@ export default function SettingsScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
           <View style={styles.infoCard}>
             <ThemedText style={styles.sectionTitle}>
               Shaxsiy ma'lumotlar
@@ -153,26 +150,32 @@ export default function SettingsScreen() {
                     style={styles.infoIcon}
                   />
                   <View>
-                    <ThemedText style={[styles.profileInitial, { color: colors.icon }]}>
+                    <ThemedText
+                      style={[styles.profileInitial, { color: colors.icon }]}
+                    >
                       Ism
                     </ThemedText>
-                    <ThemedText style={styles.profileText}>{displayName}</ThemedText>
+                    <ThemedText style={styles.profileText}>
+                      {displayName}
+                    </ThemedText>
                   </View>
                 </View>
               ) : null}
               <View style={styles.row}>
                 <Ionicons
-                  name='mail-outline'
+                  name="mail-outline"
                   size={22}
                   color={colors.icon}
                   style={styles.infoIcon}
                 />
                 <View>
-                  <ThemedText style={[styles.profileInitial, { color: colors.icon }]}>
+                  <ThemedText
+                    style={[styles.profileInitial, { color: colors.icon }]}
+                  >
                     Telefon raqam
                   </ThemedText>
                   <ThemedText style={styles.profileText}>
-                    {user?.email ?? ''}
+                    {user?.email ?? ""}
                   </ThemedText>
                 </View>
               </View>
@@ -182,8 +185,11 @@ export default function SettingsScreen() {
           <View style={styles.infoCard}>
             <ThemedText style={styles.sectionTitle}>Sozlamalar</ThemedText>
 
-            <Pressable onPress={() => setIsLanguageOpen(true)} style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
+            <Pressable
+              onPress={() => setIsLanguageOpen(true)}
+              style={styles.row}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
                 <Ionicons color="#fff" name="language-outline" size={20} />
               </View>
               <ThemedText style={styles.rowLabel}>Ilova tili</ThemedText>
@@ -192,16 +198,21 @@ export default function SettingsScreen() {
             </Pressable>
 
             <Pressable style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
+              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
                 <Ionicons color="#fff" name="lock-closed-outline" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>Parolni o'zgartirish</ThemedText>
+              <ThemedText style={styles.rowLabel}>
+                Parolni o'zgartirish
+              </ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
 
-            <Pressable style={styles.row} onPress={() => setIsFontSizeOpen(true)}>
-              <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
+            <Pressable
+              style={styles.row}
+              onPress={() => setIsFontSizeOpen(true)}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
                 <Ionicons color="#fff" name="text" size={20} />
               </View>
               <ThemedText style={styles.rowLabel}>Matn o'lchami</ThemedText>
@@ -210,21 +221,43 @@ export default function SettingsScreen() {
             </Pressable>
 
             <Pressable style={styles.row} onPress={handleToggleLight}>
-              <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color='#fff' name={currentColorScheme === 'dark' ? 'moon' : 'sunny-outline'} size={20} />
+              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
+                <Ionicons
+                  color="#fff"
+                  name={
+                    currentColorScheme === "dark" ? "moon" : "sunny-outline"
+                  }
+                  size={20}
+                />
               </View>
               <ThemedText style={styles.rowLabel}>
-                {currentColorScheme === 'dark' ? 'Qorong\'u rejim' : 'Yorug\' rejim'}
+                {currentColorScheme === "dark"
+                  ? "Qorong'u rejim"
+                  : "Yorug' rejim"}
               </ThemedText>
               <View style={styles.rowSpacer} />
-              <View style={[styles.toggleSwitch, { backgroundColor: currentColorScheme === 'dark' ? '#3B82F6' : '#E5E7EB' }]}>
-                <View style={[
-                  styles.toggleDot,
+              <View
+                style={[
+                  styles.toggleSwitch,
                   {
-                    backgroundColor: currentColorScheme === 'dark' ? '#fff' : '#999',
-                    alignSelf: currentColorScheme === 'dark' ? 'flex-end' : 'flex-start',
-                  }
-                ]} />
+                    backgroundColor:
+                      currentColorScheme === "dark" ? "#3B82F6" : "#E5E7EB",
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleDot,
+                    {
+                      backgroundColor:
+                        currentColorScheme === "dark" ? "#fff" : "#999",
+                      alignSelf:
+                        currentColorScheme === "dark"
+                          ? "flex-end"
+                          : "flex-start",
+                    },
+                  ]}
+                />
               </View>
             </Pressable>
           </View>
@@ -246,10 +279,18 @@ export default function SettingsScreen() {
         onRequestClose={() => setIsLanguageOpen(false)}
       >
         <View style={styles.modalOverlay}>
-          <Pressable onPress={() => setIsLanguageOpen(false)} style={{ flex: 1 }} />
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+          <Pressable
+            onPress={() => setIsLanguageOpen(false)}
+            style={{ flex: 1 }}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background },
+            ]}
+          >
             <ThemedText style={styles.modalTitle}>Til</ThemedText>
-            <ThemedView style={{ width: '100%' }}>
+            <ThemedView style={{ width: "100%" }}>
               {languageData.map((l) => (
                 <LanguageSelection
                   key={l.language}
@@ -273,8 +314,16 @@ export default function SettingsScreen() {
         onRequestClose={() => setIsFontSizeOpen(false)}
       >
         <View style={styles.modalOverlay}>
-          <Pressable onPress={() => setIsFontSizeOpen(false)} style={{ flex: 1 }} />
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+          <Pressable
+            onPress={() => setIsFontSizeOpen(false)}
+            style={{ flex: 1 }}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background },
+            ]}
+          >
             <SampleText />
             <FontSizeSlider />
           </View>
@@ -295,35 +344,35 @@ const styles = StyleSheet.create({
   submitButton: {
     padding: 10,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 25,
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#FF4444',
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
+    borderColor: "#FF4444",
+    backgroundColor: "transparent",
+    flexDirection: "row",
     gap: 12,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 20,
   },
   infoRow: {
     gap: 20,
-    width: '90%',
+    width: "90%",
   },
   infoIcon: {
     marginRight: 15,
   },
   profileText: {
     fontSize: 16,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   profileInitial: {
     fontSize: 12,
-    color: '#999',
+    color: "#999",
     marginBottom: 2,
   },
   infoCard: {
@@ -331,18 +380,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 15,
     borderWidth: 1,
-    borderColor: '#bec0c2',
+    borderColor: "#bec0c2",
     borderRadius: 20,
-    alignItems: 'flex-start',
-    position: 'relative',
+    alignItems: "flex-start",
+    position: "relative",
   },
   langItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderRadius: 4,
-    width: '100%',
-    backgroundColor: 'transparent',
+    width: "100%",
+    backgroundColor: "transparent",
     paddingVertical: 7,
     paddingHorizontal: 16,
   },
@@ -351,9 +400,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
     minHeight: 50,
     borderRadius: 8,
     marginHorizontal: 5,
@@ -363,13 +412,13 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 3,
     marginRight: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   rowLabel: {
     fontSize: 17,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   rowSpacer: {
     flexGrow: 1,
@@ -378,15 +427,15 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     marginLeft: 0,
-    fontWeight: 'bold',
-    color: '#FF4444',
+    fontWeight: "bold",
+    color: "#FF4444",
     fontSize: 16,
   },
   toggleSwitch: {
     width: 50,
     height: 28,
     borderRadius: 14,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 2,
   },
   toggleDot: {
@@ -396,8 +445,8 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
   },
   modalContent: {
     borderTopLeftRadius: 16,
@@ -410,48 +459,48 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginBottom: 18,
     fontSize: 18,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   // Font Size Slider stillari
   sliderContainer: {
     width: 300,
-    alignSelf: 'center',
+    alignSelf: "center",
     paddingVertical: 15,
   },
   sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 15,
   },
   smallLabel: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: "#8E8E93",
     marginRight: 12,
   },
   largeLabel: {
     fontSize: 24,
-    color: '#8E8E93',
+    color: "#8E8E93",
     marginLeft: 12,
   },
   sliderWrapper: {
     flex: 1,
     height: 40,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   slider: {
-    width: '100%',
+    width: "100%",
     height: 40,
   },
   sampleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 15,
     borderRadius: 12,
     marginTop: 20,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: "#F2F2F7",
   },
   sampleText: {
     fontSize: 16,
-    textAlign: 'center',
-    color: '#000',
+    textAlign: "center",
+    color: "#000",
   },
 });
