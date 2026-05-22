@@ -58,12 +58,15 @@ function usePasswordPalette(colorScheme: "light" | "dark") {
     text: Colors[colorScheme].text,
     background: Colors[colorScheme].background,
     primary: BrandColors[colorScheme],
-    inputBg: colorScheme === "dark" ? "#151718" : "#F8F9FA",
-    inputBorder: colorScheme === "dark" ? "#374151" : "#D1D5DB",
+    // Use pure white background for inputs in light mode
+    inputBg: colorScheme === "dark" ? "#151718" : "#FFFFFF",
+    // In dark mode make the input border and muted/icon color white
+    inputBorder: colorScheme === "dark" ? "#FFFFFF" : "#D1D5DB",
     cardBg: colorScheme === "dark" ? "#101417" : "#FFFFFF",
     cardBorder: colorScheme === "dark" ? "#26323A" : "#E5E7EB",
-    muted: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    mutedSoft: colorScheme === "dark" ? "#6B7280" : "#9CA3AF",
+    // Use white for icon/placeholder muted color in dark mode
+    muted: colorScheme === "dark" ? "#FFFFFF" : "#6B7280",
+    mutedSoft: colorScheme === "dark" ? "#E5E7EB" : "#9CA3AF",
     successBg: colorScheme === "dark" ? "#052E24" : "#ECFDF5",
     errorBg: colorScheme === "dark" ? "#3B1010" : "#FEF2F2",
     successBorder: colorScheme === "dark" ? "#065F46" : "#BBF7D0",
