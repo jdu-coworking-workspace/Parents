@@ -390,7 +390,7 @@ const translations = {
     welcomeStudent: 'ようこそ、学生',
     signInWithGoogle: 'Googleでログイン',
     next: '次へ',
-    signIn: 'サインイン',
+    signIn: 'ログイン',
     back: '戻る',
     copy: 'コピー',
     emailRequired: 'メールアドレスを入力してください。',
