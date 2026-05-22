@@ -103,6 +103,11 @@ class MobileAuthModuleController implements IController {
             this.authLimiter,
             this.studentRefreshToken
         );
+        this.router.post(
+            '/student/change-password',
+            this.authLimiter,
+            this.studentChangePassword
+        );
         this.router.post('/refresh-token', this.authLimiter, this.refreshToken);
         this.router.post(
             '/change-temp-password',
@@ -689,6 +694,67 @@ class MobileAuthModuleController implements IController {
                 previous_password,
                 new_password
             );
+
+            return res
+                .status(200)
+                .json({
+                    message_key: 'passwordChangedSuccess',
+                    message: 'Password changed successfully',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentChangePassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const authHeader = req.headers['authorization'];
+            if (!authHeader || !/^Bearer .+$/.test(authHeader)) {
+                return res
+                    .status(401)
+                    .json({
+                        message: 'Access token is missing or invalid.',
+                    })
+                    .end();
+            }
+
+            const token = authHeader.split(' ')[1];
+            const { previous_password, new_password } = req.body;
+
+            if (!previous_password || !new_password) {
+                return res
+                    .status(400)
+                    .json({
+                        message: 'Current password and new password are required',
+                    })
+                    .end();
+            }
+
+            await this.studentCognitoClient.accessToken(token);
+
+            try {
+                await this.studentCognitoClient.changePassword(
+                    token,
+                    previous_password,
+                    new_password
+                );
+            } catch (e: any) {
+                if (e?.status === 401) {
+                    throw new ApiError(
+                        400,
+                        'invalidCurrentPassword',
+                        'invalidCurrentPassword'
+                    );
+                }
+
+                throw e;
+            }
 
             return res
                 .status(200)
