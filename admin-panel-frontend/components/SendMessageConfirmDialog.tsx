@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
-import { Users, UserRound } from "lucide-react";
-import ReactLinkify from "react-linkify";
 import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
+  DialogTitle,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -16,8 +16,40 @@ import { Button } from "@/components/ui/button";
 import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
+import localImageLoader from "@/lib/localImageLoader";
 
 type PreviewAudienceTab = "student" | "parent";
+
+const GROUP_RECIPIENTS_ICON = "/assets/group-recipients-icon.png";
+const PARENTS_ICON = "/assets/parents-icon.png";
+
+function LocalAssetIcon({
+  src,
+  className,
+}: {
+  src: string;
+  className?: string;
+}) {
+  return (
+    <Image
+      loader={localImageLoader}
+      src={src}
+      alt=""
+      width={56}
+      height={56}
+      className={cn("object-contain", className)}
+      aria-hidden
+    />
+  );
+}
+
+function GroupRecipientsIcon({ className }: { className?: string }) {
+  return <LocalAssetIcon src={GROUP_RECIPIENTS_ICON} className={className} />;
+}
+
+function ParentsIcon({ className }: { className?: string }) {
+  return <LocalAssetIcon src={PARENTS_ICON} className={className} />;
+}
 
 function getInitials(givenName?: string, familyName?: string) {
   const initials = `${givenName?.charAt(0) ?? ""}${familyName?.charAt(0) ?? ""}`;
@@ -77,30 +109,36 @@ export default function SendMessageConfirmDialog({
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-4xl gap-0 overflow-hidden p-0 sm:rounded-2xl">
-        <div className="flex flex-col sm:flex-row">
+        <DialogTitle className="sr-only">{t("confirmPostTitle")}</DialogTitle>
+        <DialogDescription className="sr-only">
+          {t("confirmAndSend")}
+        </DialogDescription>
+        <div className="flex min-h-[420px] flex-col sm:flex-row">
           {/* Left: post summary */}
-          <div className="flex flex-1 flex-col items-center border-b border-border px-8 py-10 sm:border-b-0 sm:border-r">
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border-2 border-foreground/80">
-              <Users className="h-8 w-8 stroke-[1.5]" />
-            </div>
+          <div className="flex w-full min-w-0 flex-col items-center px-8 py-10 sm:w-1/2">
+            <GroupRecipientsIcon className="mb-5 h-16 w-16" />
             <h2 className="text-center text-2xl font-bold tracking-tight">
               {t("confirmPostTitle")}
             </h2>
-            {title ? (
-              <p className="mt-2 text-center text-sm text-muted-foreground">
-                {title}
-              </p>
-            ) : null}
-            {priorityLabel ? (
-              <span className="mt-4 inline-flex rounded-md bg-[#3d3d3d] px-4 py-1.5 text-sm font-medium text-white">
-                {t("priority")}: {priorityLabel}
-              </span>
-            ) : null}
-            <div className="mt-6 w-full max-w-sm rounded-lg border border-border bg-muted/50 px-5 py-4 text-left text-sm leading-relaxed text-foreground">
-              <p className="whitespace-pre-wrap break-words">
-                <span className="font-medium">{messagePrefix}</span>{" "}
-                <ReactLinkify>{description}</ReactLinkify>
-              </p>
+            <div className="mt-4 w-full max-w-sm space-y-3 self-start">
+              {title ? (
+                <p className="text-lg font-medium text-foreground">{title}</p>
+              ) : null}
+              {priorityLabel ? (
+                <span className="flex w-1/2 items-center justify-center rounded-lg bg-[#3d3d3d] px-4 py-3.5 text-base font-semibold text-white">
+                  {t("priority")}: {priorityLabel}
+                </span>
+              ) : null}
+              <textarea
+                readOnly
+                rows={5}
+                value={
+                  description
+                    ? `${messagePrefix} ${description}`
+                    : messagePrefix
+                }
+                className="w-full resize-none rounded-lg border-2 border-border bg-muted/50 px-4 py-3.5 text-base leading-relaxed text-foreground outline-none"
+              />
             </div>
             {(imagePreview || imagePath) && (
               <div className="mt-4 w-full max-w-sm">
@@ -131,20 +169,21 @@ export default function SendMessageConfirmDialog({
           </div>
 
           {/* Right: recipients */}
-          <div className="flex flex-1 flex-col px-8 py-10">
+          <div className="flex w-full min-w-0 flex-col px-8 py-10 sm:w-1/2">
+            <div className="flex flex-col sm:-ml-px sm:border-l-2 sm:border-foreground sm:pl-8">
             <div className="flex gap-0 overflow-hidden rounded-xl border border-border">
               <button
                 type="button"
                 aria-pressed={previewTab === "student"}
                 onClick={() => setPreviewTab("student")}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-2 px-4 py-5 text-xs font-semibold uppercase tracking-wide transition-colors",
+                  "flex flex-1 flex-col items-center gap-3 px-4 py-8 text-sm font-semibold uppercase tracking-wide transition-colors",
                   previewTab === "student"
-                    ? "bg-[#3d3d3d] text-white"
+                    ? "bg-[#727b8c] text-white"
                     : "bg-muted/40 text-foreground hover:bg-muted/60"
                 )}
               >
-                <Users className="h-7 w-7 stroke-[1.5]" />
+                <GroupRecipientsIcon className="h-11 w-11" />
                 {t("students")}
               </button>
               <button
@@ -152,13 +191,13 @@ export default function SendMessageConfirmDialog({
                 aria-pressed={previewTab === "parent"}
                 onClick={() => setPreviewTab("parent")}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-2 border-l border-border px-4 py-5 text-xs font-semibold uppercase tracking-wide transition-colors",
+                  "flex flex-1 flex-col items-center gap-3 border-l border-border px-4 py-8 text-sm font-semibold uppercase tracking-wide transition-colors",
                   previewTab === "parent"
-                    ? "bg-[#3d3d3d] text-white"
+                    ? "bg-[#727b8c] text-white"
                     : "bg-muted/40 text-foreground hover:bg-muted/60"
                 )}
               >
-                <UserRound className="h-7 w-7 stroke-[1.5]" />
+                <ParentsIcon className="h-11 w-11" />
                 {t("confirmParentsTab")}
               </button>
             </div>
@@ -172,12 +211,10 @@ export default function SendMessageConfirmDialog({
             <p className="mt-6 text-sm font-semibold">
               {selectedGroups.length > 0 && selectedStudents.length > 0
                 ? t("confirmSelectedRecipients")
-                : selectedGroups.length > 0
-                  ? t("confirmSelectedGroups")
-                  : t("confirmSelectedStudents")}
+                : t("confirmSelectedStudents")}
             </p>
 
-            <div className="mt-3 max-h-56 flex-1 overflow-y-auto rounded-lg bg-muted/40 p-3">
+            <div className="mt-3 max-h-72 flex-1 overflow-y-auto rounded-lg bg-[#f0f0f0] p-3">
               <ul className="flex flex-col gap-2">
                 {selectedGroups.map((group) => (
                   <li key={`group-${group.id}`}>
@@ -205,10 +242,11 @@ export default function SendMessageConfirmDialog({
                 </p>
               )}
             </div>
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="gap-3 border-t border-border bg-background px-8 py-5 sm:justify-end">
+        <DialogFooter className="gap-3 bg-background px-8 py-5 sm:justify-end">
           <DialogClose asChild>
             <Button
               type="button"
