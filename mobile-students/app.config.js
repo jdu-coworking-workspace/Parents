@@ -49,6 +49,9 @@ module.exports = ({ config }) => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: variantConfig.iosBundleId,
+      ...(process.env.GOOGLE_SERVICES_PLIST && {
+        googleServicesFile: process.env.GOOGLE_SERVICES_PLIST,
+      }),
       infoPlist: {
         CFBundleAllowMixedLocalizations: true,
         ITSAppUsesNonExemptEncryption: false,
@@ -82,6 +85,8 @@ module.exports = ({ config }) => {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: variantConfig.androidPackage,
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       statusBar: {
         barStyle: "light-content",
         backgroundColor: "#3B81F6",
@@ -118,6 +123,13 @@ module.exports = ({ config }) => {
           dark: {
             backgroundColor: "#000000",
           },
+        },
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/icon.png",
+          color: "#000000",
         },
       ],
       "expo-secure-store",

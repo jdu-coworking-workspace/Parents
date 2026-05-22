@@ -54,6 +54,7 @@ CREATE TABLE
     `student_number` varchar(255) NOT NULL,
     `cohort` int DEFAULT NULL,
     `school_id` int NOT NULL,
+    `arn` text,
     PRIMARY KEY (`id`),
     UNIQUE KEY `cognito_sub_id` (`cognito_sub_id`),
     UNIQUE KEY `email` (`email`),

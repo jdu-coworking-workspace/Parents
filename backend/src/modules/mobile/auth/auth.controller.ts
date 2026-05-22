@@ -126,6 +126,12 @@ class MobileAuthModuleController implements IController {
             verifyToken,
             this.deviceToken
         );
+        this.router.post(
+            '/student/device-token',
+            this.authLimiter,
+            verifyToken,
+            this.studentDeviceToken
+        );
 
         // Apply rate limiting to forgot password endpoints
         this.router.post(
@@ -665,6 +671,40 @@ class MobileAuthModuleController implements IController {
             }
 
             await DB.execute(`UPDATE Parent SET arn = :arn WHERE id = :id;`, {
+                id: req.user.id,
+                arn: normalizedToken,
+            });
+
+            return res
+                .status(200)
+                .json({
+                    message_key: 'deviceTokenUpdated',
+                    message: 'Device token updated successfully',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentDeviceToken = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { token } = req.body;
+            const normalizedToken = this.normalizeToken(token);
+
+            if (
+                normalizedToken == null ||
+                normalizedToken === '[object Object]'
+            ) {
+                throw new ApiError(401, 'Invalid Device Token');
+            }
+
+            await DB.execute(`UPDATE Student SET arn = :arn WHERE id = :id;`, {
                 id: req.user.id,
                 arn: normalizedToken,
             });
