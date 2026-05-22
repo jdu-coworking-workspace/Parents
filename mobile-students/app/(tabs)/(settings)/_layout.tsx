@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
-import { Stack } from 'expo-router';
-import { I18nContext } from '@/contexts/i18n-context';
+import React, { useContext } from "react";
+import { Stack } from "expo-router";
+import { I18nContext } from "@/contexts/i18n-context";
 
 export default function SettingsLayout() {
   const { t } = useContext(I18nContext);
@@ -11,18 +11,18 @@ export default function SettingsLayout() {
         name="index"
         options={{
           headerShown: true,
-          title: t('settingsHeader'),
+          title: t("settingsHeader"),
           headerStyle: {
-            backgroundColor: '#1A4AAC',
+            backgroundColor: "#1A4AAC",
           },
-          headerTintColor: '#fff',
+          headerTintColor: "#fff",
           headerTitleStyle: {
-            fontWeight: 'bold',
+            fontWeight: "bold",
             fontSize: 18,
-            color: '#fff',
+            color: "#fff",
           },
           headerShadowVisible: false,
-          headerTitleAlign: 'center',
+          headerTitleAlign: "center",
         }}
       />
     </Stack>
