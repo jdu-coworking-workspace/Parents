@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 684-change-password
     paths:
       - "backend/**"
 
