@@ -14,24 +14,14 @@ class MobileAuthModuleController implements IController {
     public router: Router = express.Router();
     public cognitoClient: any;
     public studentCognitoClient: any;
-<<<<<<< 664-push-notification-for-students
-    private forgotPasswordVerifiedPhones = new Map<
-        string,
-        {
-            token: string;
-            expiresAt: number;
-        }
-    >();
-=======
     private studentOAuthAttempts = new Map<string, {
         codeVerifier: string;
         expiresAt: number;
     }>();
     private forgotPasswordVerifiedPhones = new Map<string, {
         token: string;
-        expiresAt: number
+        expiresAt: number;
     }>();
->>>>>>> main
 
     // Add general rate limiting for all auth endpoints
     private authLimiter = rateLimit({

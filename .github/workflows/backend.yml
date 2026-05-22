@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 664-push-notification-for-students
     paths:
       - "backend/**"
 
