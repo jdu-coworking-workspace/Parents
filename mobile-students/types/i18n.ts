@@ -38,6 +38,7 @@ export type TranslationKeys = {
   home: string;
   form: string;
   settings: string;
+  settingsHeader: string;
   register: string;
   alreadyaccount: string;
   justlogin: string;
@@ -65,6 +66,7 @@ export type TranslationKeys = {
   logout: string;
   passwordChangedSuccess: string;
   changePassword: string;
+  updateAccountPassword: string;
   changePasswordText: string;
   savePassword: string;
   enterOldPassword: string;

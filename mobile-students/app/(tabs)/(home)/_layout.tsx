@@ -1,10 +1,15 @@
 import React, { useContext } from 'react';
 import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
+import { BrandColors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function HomeLayout() {
   const { t } = useContext(I18nContext);
+  const colorScheme = useColorScheme() ?? 'light';
+  const headerColor = BrandColors[colorScheme];
+
   return (
     <Stack>
       <Stack.Screen
@@ -25,7 +30,7 @@ export default function HomeLayout() {
             headerTitleAlign: 'center',
             headerShadowVisible: false,
             headerStyle: {
-              backgroundColor: '#1A4AAC',
+              backgroundColor: headerColor,
             },
             headerTintColor: '#fff',
             headerTitleStyle: {
@@ -47,7 +52,7 @@ export default function HomeLayout() {
           headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
           headerStyle: {
-            backgroundColor: '#1A4AAC',
+            backgroundColor: headerColor,
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
