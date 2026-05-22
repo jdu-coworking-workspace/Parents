@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useRouter } from "expo-router";
 import {
   Keyboard,
@@ -19,6 +19,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { I18nContext } from '@/contexts/i18n-context';
 
 export default function SetPasswordScreen() {
   const [newPassword, setNewPassword] = useState("");
@@ -34,6 +35,7 @@ export default function SetPasswordScreen() {
   } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
+  const { t } = useContext(I18nContext);
 
   useEffect(() => {
     if (!isAuthLoading && isSignedIn) {
@@ -62,38 +64,25 @@ export default function SetPasswordScreen() {
   };
 
   const passwordRules = [
+    { key: 'minLength', passed: newPassword.length >= 8 },
+    { key: 'hasNumber', passed: /\d/.test(newPassword) },
+    { key: 'hasUppercase', passed: /[A-Z]/.test(newPassword) },
+    { key: 'hasLowercase', passed: /[a-z]/.test(newPassword) },
     {
-      label: "Kamida 8 ta belgi",
-      passed: newPassword.length >= 8,
-    },
-    {
-      label: "Kamida 1 ta raqam",
-      passed: /\d/.test(newPassword),
-    },
-    {
-      label: "Kamida 1 ta katta harf",
-      passed: /[A-Z]/.test(newPassword),
-    },
-    {
-      label: "Kamida 1 ta kichik harf",
-      passed: /[a-z]/.test(newPassword),
-    },
-    {
-      label: "Kamida 1 ta maxsus belgi",
+      key: 'hasSpecialChar',
       passed: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;'`~]/.test(newPassword),
-      examples: '(!@#%&/\\,><\'|;_~`+=^$.()[]{}?")',
     },
   ];
 
   const passwordScore = passwordRules.filter((rule) => rule.passed).length;
   const passwordStrength =
     passwordScore <= 1
-      ? { label: "Juda zaif", color: palette.danger }
+      ? { label: t('weak'), color: palette.danger }
       : passwordScore <= 3
-        ? { label: "Zaif", color: palette.warning }
+        ? { label: t('weak'), color: palette.warning }
         : passwordScore <= 4
-          ? { label: "O'rtacha", color: palette.warning }
-          : { label: "Kuchli", color: palette.success };
+          ? { label: t('medium'), color: palette.warning }
+          : { label: t('strong'), color: palette.success };
 
   const passwordBarWidth = (passwordScore / passwordRules.length);
 
@@ -104,12 +93,12 @@ export default function SetPasswordScreen() {
     }
 
     if (!newPassword.trim()) {
-      setError("O'zingizning passwordingizni kiriting");
+      setError(t('enterNewPassword'));
       return;
     }
 
     if (passwordScore < passwordRules.length) {
-      setError("Password kuch talablari to'liq bajarilmadi");
+      setError(t('passwordRequirementsNotMet'));
       return;
     }
 
@@ -125,7 +114,7 @@ export default function SetPasswordScreen() {
 
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
-      setError(e?.message || "Password saqlashda xatolik yuz berdi");
+      setError(e?.message || t('savePasswordFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -145,15 +134,11 @@ export default function SetPasswordScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.title}>
-                  Create{"\n"}Password
-                </ThemedText>
+                <ThemedText style={styles.title}>{t('createNewPassword')}</ThemedText>
               </View>
 
               <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>
-                  {"Yangi password yaratish"}
-                </ThemedText>
+                <ThemedText style={styles.label}>{t('enterNewPasswordText')}</ThemedText>
                 <View style={styles.passwordContainer}>
                   <TextInput
                     value={newPassword}
@@ -194,9 +179,7 @@ export default function SetPasswordScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={styles.validationTitle}>
-                    Parol kuchi
-                  </ThemedText>
+                  <ThemedText style={styles.validationTitle}>{t('passwordStrength')}</ThemedText>
 
                   <View style={styles.strengthRow}>
                     <View style={styles.strengthBarTrack}>
@@ -244,7 +227,7 @@ export default function SetPasswordScreen() {
                                 },
                               ]}
                             >
-                              {rule.label}
+                              {t(rule.key as any)}
                             </ThemedText>
                             {rule.examples ? (
                               <ThemedText
@@ -280,9 +263,7 @@ export default function SetPasswordScreen() {
                 onPress={handlePasswordSetup}
                 disabled={isLoading}
               >
-                <ThemedText style={styles.primaryButtonText}>
-                  {isLoading ? "Loading..." : "Save"}
-                </ThemedText>
+                <ThemedText style={styles.primaryButtonText}>{isLoading ? t('loading') : t('saveNewPassword')}</ThemedText>
               </Pressable>
 
               <Pressable
@@ -293,9 +274,7 @@ export default function SetPasswordScreen() {
                 }}
                 disabled={isLoading}
               >
-                <ThemedText style={{ color: Colors[colorScheme].text }}>
-                  Back
-                </ThemedText>
+                <ThemedText style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
               </Pressable>
             </ScrollView>
           </KeyboardAvoidingView>

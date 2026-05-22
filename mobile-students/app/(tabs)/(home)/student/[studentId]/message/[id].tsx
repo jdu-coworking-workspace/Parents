@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useContext } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { I18nContext } from '@/contexts/i18n-context';
 
 function normalizeParam(value?: string | string[]) {
   if (Array.isArray(value)) {
@@ -58,6 +59,7 @@ function getPriorityBadgeColor(priority: string) {
 export default function MessageDetailScreen() {
   const colorScheme = useColorScheme() ?? 'dark';
   const isDark = colorScheme === 'dark';
+  const { t } = useContext(I18nContext);
 
   const params = useLocalSearchParams<{
     title?: string | string[];
@@ -73,6 +75,12 @@ export default function MessageDetailScreen() {
 
   const formattedDate = useMemo(() => formatDateTime(sentAt), [sentAt]);
 
+  const getPriorityLabelLocal = (priority: string) => {
+    if (priority === 'high') return t('critical');
+    if (priority === 'medium') return t('important');
+    return t('ordinary');
+  };
+
   const handleCopy = async () => {
     await Clipboard.setStringAsync(preview);
   };
@@ -83,7 +91,7 @@ export default function MessageDetailScreen() {
         <View style={styles.titleRow}>
           <ThemedText style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>{title}</ThemedText>
           <View style={[styles.badge, { backgroundColor: getPriorityBadgeColor(priority) }]}>
-            <ThemedText style={styles.badgeText}>{getPriorityLabel(priority)}</ThemedText>
+            <ThemedText style={styles.badgeText}>{getPriorityLabelLocal(priority)}</ThemedText>
           </View>
         </View>
 
@@ -94,7 +102,7 @@ export default function MessageDetailScreen() {
 
           <Pressable onPress={handleCopy} style={styles.copyButton}>
             <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-            <ThemedText style={styles.copyText}>Copy</ThemedText>
+            <ThemedText style={styles.copyText}>{t('copy')}</ThemedText>
           </Pressable>
         </View>
       </View>

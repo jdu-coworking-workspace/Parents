@@ -1,7 +1,10 @@
+import React, { useContext } from 'react';
 import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
+import { I18nContext } from '@/contexts/i18n-context';
 
 export default function HomeLayout() {
+  const { t } = useContext(I18nContext);
   return (
     <Stack>
       <Stack.Screen
@@ -39,7 +42,7 @@ export default function HomeLayout() {
       <Stack.Screen
         name="student/[studentId]/message/[id]"
         options={{
-          headerTitle: "Batafsil ko'rish",
+          headerTitle: t('detailedView'),
           headerTitleAlign: 'center',
           headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,

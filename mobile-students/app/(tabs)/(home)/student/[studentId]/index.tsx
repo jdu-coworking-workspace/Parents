@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useContext } from 'react';
 import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { I18nContext } from '@/contexts/i18n-context';
 
 type MessageItem = {
   id: number;
@@ -74,14 +75,10 @@ function formatDateTime(value: string) {
   return `${day}.${month}.${year}   ${timePart}`;
 }
 
-function getImportanceLabel(priority: MessageItem['priority']) {
-  const mapping: Record<MessageItem['priority'], string> = {
-    high: 'majburiy',
-    medium: 'muhim',
-    low: 'oddiy',
-  };
-
-  return mapping[priority];
+function getImportanceLabel(priority: MessageItem['priority'], t: (k: any) => string) {
+  if (priority === 'high') return t('critical');
+  if (priority === 'medium') return t('important');
+  return t('ordinary');
 }
 
 function getImportanceBadgeStyle(priority: MessageItem['priority'], isRead: boolean) {
@@ -112,6 +109,7 @@ export default function StudentMessagesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const backgroundColor = Colors[colorScheme].background;
   const [visibleCount, setVisibleCount] = useState(3);
+  const { t } = useContext(I18nContext);
   const { studentId } = useLocalSearchParams<{
     studentId?: string;
     givenName?: string;
@@ -164,7 +162,7 @@ export default function StudentMessagesScreen() {
                 <ThemedText style={[styles.title, isRead && styles.readOpacity]}>{message.title}</ThemedText>
                 <View style={styles.headerRight}>
                   <ThemedText style={getImportanceBadgeStyle(message.priority, isRead)}>
-                    {getImportanceLabel(message.priority)}
+                    {getImportanceLabel(message.priority, t)}
                   </ThemedText>
                 </View>
               </View>
@@ -210,7 +208,7 @@ export default function StudentMessagesScreen() {
                   }
                 >
                   <ThemedText style={[styles.readMoreText, { color: colorScheme === 'dark' ? '#0A84FF' : '#2089dc' }]}>
-                    Davom etish
+                    {t('continueReading')}
                   </ThemedText>
                   <Ionicons
                     name='chevron-forward'
@@ -226,7 +224,7 @@ export default function StudentMessagesScreen() {
 
         {canLoadMore && (
           <Pressable style={styles.loadMoreButton} onPress={() => setVisibleCount(prev => prev + 3)}>
-            <ThemedText style={styles.loadMoreText}>Ko'proq xabarlar</ThemedText>
+            <ThemedText style={styles.loadMoreText}>{t('loadMoreMessages')}</ThemedText>
           </Pressable>
         )}
       </ScrollView>
