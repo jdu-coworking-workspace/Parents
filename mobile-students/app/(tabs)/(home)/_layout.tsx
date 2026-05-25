@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
-import { Stack } from 'expo-router';
-import { Platform } from 'react-native';
+import { Stack, useFocusEffect } from 'expo-router';
+import { Platform, BackHandler } from 'react-native';
 import { BrandColors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -9,6 +9,22 @@ export default function HomeLayout() {
   const { t } = useContext(I18nContext);
   const colorScheme = useColorScheme() ?? 'light';
   const headerColor = BrandColors[colorScheme];
+
+  // Handle back button on home tab to exit app instead of navigate
+  useFocusEffect(
+    React.useCallback(() => {
+      if (Platform.OS !== 'android') return;
+
+      const backAction = () => {
+        BackHandler.exitApp();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+      return () => subscription.remove();
+    }, [])
+  );
 
   return (
     <Stack>
