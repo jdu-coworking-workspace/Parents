@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 698-authentication
     paths:
       - "backend/**"
 

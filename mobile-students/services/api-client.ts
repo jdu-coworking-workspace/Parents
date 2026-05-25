@@ -1,4 +1,4 @@
-import { getAccessToken } from '@/services/secure-store';
+import { clearSession, getAccessToken, loadSession, saveSession } from '@/services/secure-store';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/mobile';
 
@@ -95,6 +95,43 @@ const getAuthToken = async (): Promise<string | null> => {
     }
 };
 
+const refreshSessionIfNeeded = async (): Promise<boolean> => {
+    try {
+        const session = await loadSession();
+
+        if (!session?.refreshToken) {
+            return false;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/student/refresh-token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                refresh_token: session.refreshToken,
+            }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data?.access_token) {
+            return false;
+        }
+
+        await saveSession({
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token ?? session.refreshToken,
+            user: session.user,
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Failed to refresh session:', error);
+        return false;
+    }
+};
+
 const buildHeaders = async (
     customHeaders?: Record<string, string>,
     requiresAuth = true
@@ -137,8 +174,10 @@ export async function request<TResponse>(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    let shouldRetryAfterRefresh = false;
+
     try {
-        const response = await fetch(url, {
+        let response = await fetch(url, {
             method,
             headers,
             body: body ? JSON.stringify(body) : undefined,
@@ -149,6 +188,56 @@ export async function request<TResponse>(
 
         if (response.status === 401) {
             if (requiresAuth) {
+                shouldRetryAfterRefresh = await refreshSessionIfNeeded();
+
+                if (shouldRetryAfterRefresh) {
+                    const refreshedHeaders = await buildHeaders(
+                        customHeaders,
+                        requiresAuth
+                    );
+
+                    response = await fetch(url, {
+                        method,
+                        headers: refreshedHeaders,
+                        body: body ? JSON.stringify(body) : undefined,
+                        signal: controller.signal,
+                    });
+
+                    const refreshedData = await response.json().catch(() => ({}));
+
+                    if (response.status === 401) {
+                        await clearSession().catch(() => undefined);
+                        onUnauthorized?.();
+                        throw new UnauthorizedError(
+                            refreshedData.error || refreshedData.message || 'Unauthorized'
+                        );
+                    }
+
+                    if (response.status === 403) {
+                        await clearSession().catch(() => undefined);
+                        onForbidden?.();
+                        throw new ForbiddenError(
+                            refreshedData.error || refreshedData.message || 'Forbidden'
+                        );
+                    }
+
+                    if (!response.ok) {
+                        throw new ApiError(
+                            refreshedData.error || refreshedData.message || 'Request failed',
+                            response.status,
+                            undefined,
+                            refreshedData
+                        );
+                    }
+
+                    return {
+                        data: refreshedData,
+                        status: response.status,
+                        ok: true,
+                    };
+                }
+
+                await clearSession().catch(() => undefined);
                 onUnauthorized?.();
                 throw new UnauthorizedError();
             }
@@ -163,6 +252,7 @@ export async function request<TResponse>(
 
         if (response.status === 403) {
             if (requiresAuth) {
+                await clearSession().catch(() => undefined);
                 onForbidden?.();
                 throw new ForbiddenError();
             }

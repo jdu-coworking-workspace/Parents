@@ -2,7 +2,8 @@ import express, { NextFunction, Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { createHash, randomBytes } from 'crypto';
 
-import { verifyToken, ExtendedRequest } from '../../../middlewares/mobileAuth';
+import { verifyToken as verifyParentToken } from '../../../middlewares/mobileAuth';
+import { verifyStudentToken, ExtendedRequest } from '../../../middlewares/studentAuth';
 import { Parent, Student } from '../../../utils/cognito-client';
 import DB from '../../../utils/db-client';
 import { IController } from '../../../utils/icontroller';
@@ -16,6 +17,10 @@ class MobileAuthModuleController implements IController {
     public studentCognitoClient: any;
     private studentOAuthAttempts = new Map<string, {
         codeVerifier: string;
+        expiresAt: number;
+    }>();
+    private studentGoogleExchangeCodes = new Map<string, {
+        payload: any;
         expiresAt: number;
     }>();
     private forgotPasswordVerifiedPhones = new Map<string, {
@@ -88,6 +93,11 @@ class MobileAuthModuleController implements IController {
             this.studentGoogleCallback
         );
         this.router.post(
+            '/student/google/exchange',
+            this.authLimiter,
+            this.studentGoogleExchange
+        );
+        this.router.post(
             '/student/login-initiate',
             this.studentLoginInitiateLimiter,
             this.studentLoginInitiate
@@ -108,6 +118,12 @@ class MobileAuthModuleController implements IController {
             this.authLimiter,
             this.studentChangePassword
         );
+        this.router.get('/student/me', verifyStudentToken, this.studentMe);
+        this.router.post(
+            '/student/set-password',
+            verifyStudentToken,
+            this.studentSetPassword
+        );
         this.router.post('/refresh-token', this.authLimiter, this.refreshToken);
         this.router.post(
             '/change-temp-password',
@@ -117,13 +133,13 @@ class MobileAuthModuleController implements IController {
         this.router.post(
             '/change-password',
             this.authLimiter,
-            verifyToken,
+            verifyParentToken,
             this.changePassword
         );
         this.router.post(
             '/device-token',
             this.authLimiter,
-            verifyToken,
+            verifyParentToken,
             this.deviceToken
         );
 
@@ -159,6 +175,69 @@ class MobileAuthModuleController implements IController {
 
         const queryString = searchParams.toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    }
+
+    private generateStudentExchangeCode(): string {
+        return randomBytes(32).toString('base64url');
+    }
+
+    private storeStudentGoogleExchangeCode(code: string, payload: any): void {
+        this.studentGoogleExchangeCodes.set(code, {
+            payload,
+            expiresAt: Date.now() + 5 * 60 * 1000,
+        });
+    }
+
+    private consumeStudentGoogleExchangeCode(code: string): any | null {
+        const entry = this.studentGoogleExchangeCodes.get(code);
+
+        if (!entry) {
+            return null;
+        }
+
+        this.studentGoogleExchangeCodes.delete(code);
+
+        if (entry.expiresAt <= Date.now()) {
+            return null;
+        }
+
+        return entry.payload;
+    }
+
+    private async buildStudentPasswordState(
+        email: string,
+        hasPassword: boolean
+    ) {
+        const cognito_status = await this.studentCognitoClient.getUserStatus(
+            email
+        );
+
+        return {
+            has_password: hasPassword,
+            cognito_status,
+        };
+    }
+
+    private async buildStudentSessionResponse(
+        student: any,
+        authData: { accessToken: string; refreshToken?: string }
+    ) {
+        return {
+            access_token: authData.accessToken,
+            refresh_token: authData.refreshToken ?? null,
+            user: {
+                id: student.id,
+                email: student.email,
+                phone_number: student.phone_number,
+                given_name: student.given_name,
+                family_name: student.family_name,
+            },
+            school_name: student.school_name,
+            password_state: await this.buildStudentPasswordState(
+                student.email,
+                Boolean(student.has_password)
+            ),
+        };
     }
 
     private generateOAuthState(): string {
@@ -310,6 +389,7 @@ class MobileAuthModuleController implements IController {
                 `SELECT
                     st.id,
                     st.email,
+                    st.has_password,
                     st.phone_number,
                     st.given_name,
                     st.family_name,
@@ -346,19 +426,16 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
+            const exchangeCode = this.generateStudentExchangeCode();
+            const payload = await this.buildStudentSessionResponse(student, {
+                accessToken: tokenResponse.access_token,
+                refreshToken: tokenResponse.refresh_token,
+            });
+
+            this.storeStudentGoogleExchangeCode(exchangeCode, payload);
+
             const url = this.buildStudentSignInUrl({
-                access_token: tokenResponse.access_token,
-                ...(tokenResponse.refresh_token
-                    ? { refresh_token: tokenResponse.refresh_token }
-                    : {}),
-                user: JSON.stringify({
-                    id: student.id,
-                    email: student.email,
-                    phone_number: student.phone_number,
-                    given_name: student.given_name,
-                    family_name: student.family_name,
-                }),
-                school_name: student.school_name ?? '',
+                exchange_code: exchangeCode,
             });
 
             return res.redirect(url);
@@ -368,6 +445,31 @@ class MobileAuthModuleController implements IController {
                 error: 'callback_error',
             });
             return res.redirect(url);
+        }
+    };
+
+    studentGoogleExchange = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { exchange_code } = req.body;
+
+            if (!exchange_code) {
+                throw new ApiError(400, 'Exchange code is required');
+            }
+
+            const payload = this.consumeStudentGoogleExchangeCode(exchange_code);
+
+            if (!payload) {
+                throw new ApiError(400, 'Invalid or expired exchange code');
+            }
+
+            return res.status(200).json(payload).end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
         }
     };
 
@@ -929,6 +1031,7 @@ class MobileAuthModuleController implements IController {
                 `SELECT
                     st.id,
                     st.email,
+                    st.has_password,
                     st.phone_number,
                     st.given_name,
                     st.family_name,
@@ -958,21 +1061,12 @@ class MobileAuthModuleController implements IController {
 
             const student = students[0];
 
-            return res
-                .status(200)
-                .json({
-                    access_token: authData.accessToken,
-                    refresh_token: authData.refreshToken,
-                    user: {
-                        id: student.id,
-                        email: student.email,
-                        phone_number: student.phone_number,
-                        given_name: student.given_name,
-                        family_name: student.family_name,
-                    },
-                    school_name: student.school_name,
-                })
-                .end();
+            const response = await this.buildStudentSessionResponse(
+                student,
+                authData
+            );
+
+            return res.status(200).json(response).end();
         } catch (e: any) {
             if (e?.status === 401) {
                 // Add message_key for login failures so client can translate
@@ -1005,6 +1099,7 @@ class MobileAuthModuleController implements IController {
                 `SELECT
                     st.id,
                     st.email,
+                    st.has_password,
                     st.phone_number,
                     st.given_name,
                     st.family_name,
@@ -1030,24 +1125,21 @@ class MobileAuthModuleController implements IController {
                 authData.accessToken
             );
             await this.syncStudentCognitoSub(email, authUser.sub_id);
+            await DB.execute(
+                `UPDATE Student
+                 SET has_password = TRUE
+                 WHERE email = :email`,
+                { email }
+            );
 
             const student = students[0];
 
-            return res
-                .status(200)
-                .json({
-                    access_token: authData.accessToken,
-                    refresh_token: authData.refreshToken,
-                    user: {
-                        id: student.id,
-                        email: student.email,
-                        phone_number: student.phone_number,
-                        given_name: student.given_name,
-                        family_name: student.family_name,
-                    },
-                    school_name: student.school_name,
-                })
-                .end();
+            const response = await this.buildStudentSessionResponse(
+                student,
+                authData
+            );
+
+            return res.status(200).json(response).end();
         } catch (e: any) {
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);
@@ -1069,6 +1161,97 @@ class MobileAuthModuleController implements IController {
                 cognito_sub_id: cognitoSubId,
             }
         );
+    };
+
+    studentMe = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const student = req.user;
+
+            const passwordState = await this.buildStudentPasswordState(
+                student.email,
+                Boolean(student.has_password)
+            );
+
+            return res.status(200).json({
+                user: {
+                    id: student.id,
+                    email: student.email,
+                    phone_number: student.phone_number,
+                    given_name: student.given_name,
+                    family_name: student.family_name,
+                },
+                school_name: student.school_name ?? '',
+                password_state: passwordState,
+            }).end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentSetPassword = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { new_password, confirm_password } = req.body;
+
+            if (!new_password || !confirm_password) {
+                throw new ApiError(400, 'new_password and confirm_password are required');
+            }
+
+            if (new_password !== confirm_password) {
+                throw new ApiError(400, 'passwordsDoNotMatch');
+            }
+
+            if (
+                new_password.length < 8 ||
+                !/[A-Z]/.test(new_password) ||
+                !/[a-z]/.test(new_password) ||
+                !/\d/.test(new_password) ||
+                !/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;'`~]/.test(new_password)
+            ) {
+                throw new ApiError(400, 'passwordRequirementsNotMet');
+            }
+
+            await this.studentCognitoClient.setPermanentPassword(
+                req.user.email,
+                new_password
+            );
+
+            await DB.execute(
+                `UPDATE Student
+                 SET has_password = TRUE
+                 WHERE id = :id`,
+                { id: req.user.id }
+            );
+
+            const passwordState = await this.buildStudentPasswordState(
+                req.user.email,
+                true
+            );
+
+            return res.status(200).json({
+                message: 'Password set successfully',
+                password_state: passwordState,
+                user: {
+                    id: req.user.id,
+                    email: req.user.email,
+                    phone_number: req.user.phone_number,
+                    given_name: req.user.given_name,
+                    family_name: req.user.family_name,
+                },
+                school_name: req.user.school_name ?? '',
+            }).end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
     };
 
     studentRefreshToken = async (

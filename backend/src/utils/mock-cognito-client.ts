@@ -4,6 +4,7 @@ interface User {
     email: string;
     phone_number?: string;
     password: string;
+    hasPassword?: boolean;
     tempPassword?: string;
     accessToken?: string;
     refreshToken?: string;
@@ -99,6 +100,7 @@ export class MockCognitoClient {
         }
 
         user.password = newPassword;
+        user.hasPassword = true;
         delete user.tempPassword;
         user.accessToken = 'mockAccessToken';
         user.refreshToken = 'mockRefreshToken';
@@ -124,6 +126,7 @@ export class MockCognitoClient {
         }
 
         user.password = newPassword;
+        user.hasPassword = true;
         delete user.tempPassword;
         mockDatabase.set(identifier, user);
 
@@ -274,6 +277,41 @@ export class MockCognitoClient {
         return {
             accessToken: foundUser.accessToken,
         };
+    }
+
+    static async getUserStatus(identifier: string) {
+        const user = mockDatabase.get(identifier);
+
+        if (!user) {
+            return 'UNKNOWN';
+        }
+
+        if (user.tempPassword && !user.hasPassword) {
+            return 'FORCE_CHANGE_PASSWORD';
+        }
+
+        if (user.hasPassword) {
+            return 'CONFIRMED';
+        }
+
+        return 'EXTERNAL_PROVIDER';
+    }
+
+    static async setPermanentPassword(identifier: string, newPassword: string) {
+        const user = mockDatabase.get(identifier);
+
+        if (!user) {
+            const error = new Error('User not found') as Error & {
+                status?: number;
+            };
+            error.status = 404;
+            throw error;
+        }
+
+        user.password = newPassword;
+        user.hasPassword = true;
+        delete user.tempPassword;
+        mockDatabase.set(identifier, user);
     }
 
     static async accessToken(accessToken: string) {

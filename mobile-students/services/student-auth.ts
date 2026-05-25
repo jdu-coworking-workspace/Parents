@@ -1,5 +1,5 @@
 import api, { API_BASE_URL } from '@/services/api-client';
-import type { StudentUser } from '@/types/auth';
+import type { PasswordState, StudentUser } from '@/types/auth';
 
 type LoginInitiateResponse = {
     message?: string;
@@ -11,20 +11,17 @@ export type StudentLoginResponse = {
     refresh_token: string | null;
     user: StudentUser;
     school_name: string;
+    password_state: PasswordState;
 };
 
-type GoogleStudentLoginResponse = {
-    access_token: string;
-    refresh_token: string | null;
+export type StudentProfileResponse = {
     user: StudentUser;
     school_name: string;
+    password_state: PasswordState;
 };
 
 type GoogleCallbackQuery = {
-    access_token?: string;
-    refresh_token?: string;
-    user?: string;
-    school_name?: string;
+    exchange_code?: string;
     error?: string;
 };
 
@@ -36,7 +33,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     return response.data;
 }
 
-function parseGoogleCallbackUrl(url: string): GoogleStudentLoginResponse {
+async function getJson<T>(path: string): Promise<T> {
+    const response = await api.get<T>(path);
+    return response.data as T;
+}
+
+async function exchangeGoogleCallbackUrl(url: string): Promise<StudentLoginResponse> {
     const parsedUrl = new URL(url);
     const params = Object.fromEntries(
         parsedUrl.searchParams.entries()
@@ -46,27 +48,28 @@ function parseGoogleCallbackUrl(url: string): GoogleStudentLoginResponse {
         throw new Error(params.error);
     }
 
-    if (!params.access_token || !params.user) {
+    if (!params.exchange_code) {
         throw new Error('oauth_missing_params');
     }
 
-    return {
-        access_token: params.access_token,
-        refresh_token: params.refresh_token ?? null,
-        user: JSON.parse(decodeURIComponent(params.user)) as StudentUser,
-        school_name: params.school_name ? decodeURIComponent(params.school_name) : '',
-    };
+    return await postJson<StudentLoginResponse>('/student/google/exchange', {
+        exchange_code: params.exchange_code,
+    });
 }
 
 export function getStudentGoogleLoginUrl(): string {
     return `${API_BASE_URL}/student/google`;
 }
 
-export function parseStudentGoogleCallbackUrl(url: string): StudentLoginResponse {
-    return parseGoogleCallbackUrl(url);
+export async function parseStudentGoogleCallbackUrl(
+    url: string
+): Promise<StudentLoginResponse> {
+    return await exchangeGoogleCallbackUrl(url);
 }
 
-export async function initiateStudentLogin(email: string): Promise<LoginInitiateResponse> {
+export async function initiateStudentLogin(
+    email: string
+): Promise<LoginInitiateResponse> {
     return postJson<LoginInitiateResponse>('/student/login-initiate', {
         email,
     });
@@ -85,6 +88,10 @@ export async function loginStudent(
     refreshToken = payload.refresh_token;
 
     return payload;
+}
+
+export async function getStudentProfile(): Promise<StudentProfileResponse> {
+    return await getJson<StudentProfileResponse>('/student/me');
 }
 
 export async function changeStudentTemporaryPassword(
@@ -107,6 +114,27 @@ export async function changeStudentTemporaryPassword(
     return payload;
 }
 
+export async function setStudentPassword(
+    newPassword: string,
+    confirmPassword: string
+): Promise<StudentProfileResponse> {
+    const response = await api.post<
+        StudentProfileResponse,
+        { new_password: string; confirm_password: string }
+    >(
+        '/student/set-password',
+        {
+            new_password: newPassword,
+            confirm_password: confirmPassword,
+        },
+        {
+            suppressErrorLog: true,
+        }
+    );
+
+    return response.data;
+}
+
 export async function changeStudentPassword(
     previousPassword: string,
     newPassword: string
@@ -114,12 +142,16 @@ export async function changeStudentPassword(
     const response = await api.post<
         { message?: string; message_key?: string },
         { previous_password: string; new_password: string }
-    >('/student/change-password', {
-        previous_password: previousPassword,
-        new_password: newPassword,
-    }, {
-        suppressErrorLog: true,
-    });
+    >(
+        '/student/change-password',
+        {
+            previous_password: previousPassword,
+            new_password: newPassword,
+        },
+        {
+            suppressErrorLog: true,
+        }
+    );
 
     return response.data;
 }

@@ -47,6 +47,7 @@ CREATE TABLE
   `Student` (
     `id` int NOT NULL AUTO_INCREMENT,
     `cognito_sub_id` varchar(255) DEFAULT NULL,
+    `has_password` boolean NOT NULL DEFAULT 0,
     `email` varchar(255) NOT NULL,
     `phone_number` varchar(255) NOT NULL,
     `given_name` varchar(255) NOT NULL,

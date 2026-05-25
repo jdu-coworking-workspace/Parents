@@ -302,6 +302,57 @@ class CognitoClient {
         }
     }
 
+    async getUserStatus(username: string): Promise<string> {
+        try {
+            const getUserParams: AdminGetUserCommandInput = {
+                UserPoolId: this.pool_id,
+                Username: username,
+            };
+
+            const getUserCommand = new AdminGetUserCommand(getUserParams);
+            const userResult = await this.client.send(getUserCommand);
+
+            return userResult.UserStatus ?? 'UNKNOWN';
+        } catch (error: any) {
+            console.error('Failed to read Cognito user status for %s:', username, error);
+            return 'UNKNOWN';
+        }
+    }
+
+    async setPermanentPassword(username: string, newPassword: string): Promise<void> {
+        const params: AdminSetUserPasswordCommandInput = {
+            UserPoolId: this.pool_id,
+            Username: username,
+            Password: newPassword,
+            Permanent: true,
+        };
+
+        try {
+            const command = new AdminSetUserPasswordCommand(params);
+            await this.client.send(command);
+        } catch (e: any) {
+            if (e.name === 'InvalidPasswordException') {
+                throw {
+                    status: 400,
+                    message:
+                        'Password must contain at least 8 characters, 1 number, 1 special character, 1 uppercase, 1 lowercase',
+                };
+            }
+
+            if (e.name === 'UserNotFoundException') {
+                throw {
+                    status: 404,
+                    message: 'User not found',
+                };
+            }
+
+            throw {
+                status: 500,
+                message: 'Internal server error',
+            };
+        }
+    }
+
     async changeTempPassword(
         identifier: string,
         tempPassword: string,

@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   changeStudentTemporaryPassword,
+  getStudentProfile,
   loginStudent,
   getStudentGoogleLoginUrl,
   parseStudentGoogleCallbackUrl,
@@ -12,7 +13,8 @@ import {
   loadSession,
   saveSession,
 } from "@/services/secure-store";
-import type { StudentUser } from "@/types/auth";
+import { setAuthCallbacks } from "@/services/api-client";
+import type { PasswordState, StudentUser } from "@/types/auth";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,6 +22,7 @@ interface AuthContextType {
   user: StudentUser | null;
   accessToken: string | null;
   refreshToken: string | null;
+  passwordState: PasswordState | null;
   isLoading: boolean;
   isSignedIn: boolean;
   firstLoginChallenge: FirstLoginChallenge | null;
@@ -34,6 +37,7 @@ interface AuthContextType {
   ) => Promise<void>;
   signOut: () => Promise<void>;
   restoreToken: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 type FirstLoginChallenge = {
@@ -47,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<StudentUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [passwordState, setPasswordState] = useState<PasswordState | null>(null);
   const [firstLoginChallenge, setFirstLoginChallenge] =
     useState<FirstLoginChallenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     access_token: string;
     refresh_token?: string | null;
     user: StudentUser;
+    password_state?: PasswordState;
   }) => {
     await saveSession({
       accessToken: response.access_token,
@@ -65,7 +71,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(response.access_token);
     setRefreshToken(response.refresh_token ?? null);
     setUser(response.user);
+    setPasswordState(response.password_state ?? null);
     setFirstLoginChallenge(null);
+  };
+
+  const refreshProfile = async (token?: string | null) => {
+    const effectiveToken = token ?? accessToken;
+
+    if (!effectiveToken) {
+      return;
+    }
+
+    const profile = await getStudentProfile();
+    setUser(profile.user);
+    setPasswordState(profile.password_state);
   };
 
   // Restore token on app startup
@@ -78,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAccessToken(session.accessToken);
         setRefreshToken(session.refreshToken);
         setUser(session.user);
+        await refreshProfile(session.accessToken);
       }
     } catch (error) {
       console.error("Error restoring token:", error);
@@ -114,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Google login cancelled");
     }
 
-    const response = parseStudentGoogleCallbackUrl(result.url);
+    const response = await parseStudentGoogleCallbackUrl(result.url);
     await persistSession(response);
   };
 
@@ -143,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
+      setPasswordState(null);
 
       router.replace("/sign-in");
     } catch (error) {
@@ -150,10 +171,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  useEffect(() => {
+    setAuthCallbacks({
+      onUnauthorized: () => {
+        void signOut();
+      },
+    });
+  }, [signOut]);
+
   const value: AuthContextType = {
     user,
     accessToken,
     refreshToken,
+    passwordState,
     isLoading,
     isSignedIn: !!accessToken && !!user,
     firstLoginChallenge,
@@ -164,6 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     completeFirstLogin,
     signOut,
     restoreToken,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

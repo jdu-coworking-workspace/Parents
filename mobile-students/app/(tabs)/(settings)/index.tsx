@@ -91,7 +91,7 @@ const LanguageSelection: React.FC<
 };
 
 export default function SettingsScreen() {
-  const { signOut, user } = useAuth();
+  const { signOut, user, passwordState, isLoading } = useAuth();
   const router = useRouter();
   const { toggleTheme, currentColorScheme } = useThemeModeContext();
   const colorScheme = useColorScheme() ?? 'light';
@@ -130,6 +130,23 @@ export default function SettingsScreen() {
     const combined = [given, family].filter(Boolean).join(' ');
     return combined || '';
   }, [user]);
+
+  const passwordActionLabel = isLoading
+    ? t('loading')
+    : passwordState?.has_password === false
+      ? 'Set Password'
+      : t('changePassword');
+
+  const handlePasswordAction = useCallback(() => {
+    if (passwordState?.has_password === false) {
+      router.push('/(tabs)/(settings)/set-password' as any);
+      return;
+    }
+
+    router.push('/(tabs)/(settings)/change-password' as any);
+  }, [passwordState, router]);
+
+  const passwordActionDisabled = isLoading;
 
   const handleLogout = useCallback(() => {
     Alert.alert(
@@ -206,12 +223,13 @@ export default function SettingsScreen() {
 
             <Pressable
               style={styles.row}
-              onPress={() => router.push('/(tabs)/(settings)/change-password' as any)}
+              onPress={handlePasswordAction}
+              disabled={passwordActionDisabled}
             >
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='lock-closed-outline' size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>{t('changePassword')}</ThemedText>
+              <ThemedText style={styles.rowLabel}>{passwordActionLabel}</ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
             </Pressable>

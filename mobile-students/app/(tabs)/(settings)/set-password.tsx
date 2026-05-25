@@ -16,62 +16,28 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Colors, colors as semanticColors } from "@/constants/theme";
+import {
+  BrandColors,
+  Colors,
+  colors as semanticColors,
+} from "@/constants/theme";
 import { I18nContext } from "@/contexts/i18n-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { changeStudentPassword } from "@/services/student-auth";
+import { setStudentPassword } from "@/services/student-auth";
 import { ApiError } from "@/services/api-client";
 import { showSuccessToast } from "@/utils/toast";
 import type { TranslationKeys } from "@/types/i18n";
 
-type PasswordFieldKey = "current" | "new" | "confirm";
-type FeedbackTone = "success" | "error";
-type PasswordRuleKey =
-  | "minLength"
-  | "hasNumber"
-  | "hasUppercase"
-  | "hasLowercase"
-  | "hasSpecialChar";
-
-type PasswordFieldProps = {
-  label: string;
-  placeholder: string;
-  value: string;
-  isVisible: boolean;
-  error?: string;
-  palette: ReturnType<typeof usePasswordPalette>;
-  onChangeText: (value: string) => void;
-  onToggleVisibility: () => void;
-};
-
-type SaveButtonProps = {
-  disabled?: boolean;
-  isLoading?: boolean;
-  label: string;
-  loadingLabel: string;
-  palette: ReturnType<typeof usePasswordPalette>;
-  onPress: () => void;
-};
-
 function usePasswordPalette(colorScheme: "light" | "dark") {
   return {
     text: Colors[colorScheme].text,
-    background: Colors[colorScheme].background,
     primary: BrandColors[colorScheme],
-    // Use pure white background for inputs in light mode
     inputBg: colorScheme === "dark" ? "#151718" : "#FFFFFF",
-    // In dark mode make the input border and muted/icon color white
     inputBorder: colorScheme === "dark" ? "#FFFFFF" : "#D1D5DB",
     cardBg: colorScheme === "dark" ? "#101417" : "#FFFFFF",
     cardBorder: colorScheme === "dark" ? "#26323A" : "#E5E7EB",
-    // Keep helper text and icons readable without turning bright white in dark mode
-    muted: colorScheme === "dark" ? "#6B7280" : "#6B7280",
-    inputIcon: colorScheme === "dark" ? "#FFFFFF" : "#6B7280",
-    inputText: colorScheme === "dark" ? "#D1D5DB" : "#111827",
-    placeholderText: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    subtitleText: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    mutedSoft: colorScheme === "dark" ? "#E5E7EB" : "#9CA3AF",
+    muted: colorScheme === "dark" ? "#FFFFFF" : "#6B7280",
     successBg: colorScheme === "dark" ? "#052E24" : "#ECFDF5",
     errorBg: colorScheme === "dark" ? "#3B1010" : "#FEF2F2",
     successBorder: colorScheme === "dark" ? "#065F46" : "#BBF7D0",
@@ -79,14 +45,14 @@ function usePasswordPalette(colorScheme: "light" | "dark") {
   };
 }
 
-function getPasswordRules(password: string): { key: PasswordRuleKey; passed: boolean }[] {
+function getPasswordRules(password: string) {
   return [
-    { key: "minLength", passed: password.length >= 8 },
-    { key: "hasNumber", passed: /\d/.test(password) },
-    { key: "hasUppercase", passed: /[A-Z]/.test(password) },
-    { key: "hasLowercase", passed: /[a-z]/.test(password) },
+    { key: "minLength" as const, passed: password.length >= 8 },
+    { key: "hasNumber" as const, passed: /\d/.test(password) },
+    { key: "hasUppercase" as const, passed: /[A-Z]/.test(password) },
+    { key: "hasLowercase" as const, passed: /[a-z]/.test(password) },
     {
-      key: "hasSpecialChar",
+      key: "hasSpecialChar" as const,
       passed: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;'`~]/.test(password),
     },
   ];
@@ -101,7 +67,16 @@ function PasswordField({
   palette,
   onChangeText,
   onToggleVisibility,
-}: PasswordFieldProps) {
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  isVisible: boolean;
+  error?: string;
+  palette: ReturnType<typeof usePasswordPalette>;
+  onChangeText: (value: string) => void;
+  onToggleVisibility: () => void;
+}) {
   return (
     <View style={styles.fieldBlock}>
       <ThemedText style={styles.label}>{label}</ThemedText>
@@ -109,14 +84,14 @@ function PasswordField({
         <Ionicons
           name="lock-closed-outline"
           size={20}
-          color={palette.inputIcon}
+          color={palette.muted}
           style={styles.leftIcon}
         />
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={palette.placeholderText}
+          placeholderTextColor={palette.muted}
           secureTextEntry={!isVisible}
           autoCapitalize="none"
           autoCorrect={false}
@@ -124,7 +99,7 @@ function PasswordField({
           style={[
             styles.input,
             {
-              color: palette.inputText,
+              color: palette.text,
               backgroundColor: palette.inputBg,
               borderColor: error ? semanticColors.error : palette.inputBorder,
             },
@@ -140,7 +115,7 @@ function PasswordField({
           <Ionicons
             name={isVisible ? "eye-off" : "eye"}
             size={20}
-            color={palette.inputIcon}
+            color={palette.muted}
           />
         </Pressable>
       </View>
@@ -152,49 +127,8 @@ function PasswordField({
             color={semanticColors.error}
           />
           <ThemedText style={styles.fieldErrorText}>{error}</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.subtitleText }]}> 
-            {t("updateAccountPassword")}
-          </ThemedText>
         </View>
       ) : null}
-    </View>
-  );
-}
-
-function FeedbackBanner({
-  message,
-  tone,
-  palette,
-}: {
-  message: string;
-  tone: FeedbackTone;
-  palette: ReturnType<typeof usePasswordPalette>;
-}) {
-  const isSuccess = tone === "success";
-
-  return (
-    <View
-      style={[
-        styles.feedbackBanner,
-        {
-          backgroundColor: isSuccess ? palette.successBg : palette.errorBg,
-          borderColor: isSuccess ? palette.successBorder : palette.errorBorder,
-        },
-      ]}
-    >
-      <Ionicons
-        name={isSuccess ? "checkmark-circle-outline" : "alert-circle-outline"}
-        size={18}
-        color={isSuccess ? semanticColors.success : semanticColors.error}
-      />
-      <ThemedText
-        style={[
-          styles.feedbackText,
-          { color: isSuccess ? semanticColors.success : semanticColors.error },
-        ]}
-      >
-        {message}
-      </ThemedText>
     </View>
   );
 }
@@ -267,7 +201,9 @@ function PasswordValidationCard({
                 style={[
                   styles.ruleText,
                   {
-                    color: rule.passed ? semanticColors.success : semanticColors.error,
+                    color: rule.passed
+                      ? semanticColors.success
+                      : semanticColors.error,
                   },
                 ]}
               >
@@ -281,123 +217,67 @@ function PasswordValidationCard({
   );
 }
 
-function SaveButton({
-  disabled = false,
-  isLoading = false,
-  label,
-  loadingLabel,
-  palette,
-  onPress,
-}: SaveButtonProps) {
-  return (
-    <Pressable
-      disabled={disabled || isLoading}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.primaryButton,
-        { backgroundColor: palette.primary },
-        (disabled || isLoading) && styles.primaryButtonDisabled,
-        pressed && !disabled && !isLoading && styles.primaryButtonPressed,
-      ]}
-    >
-      {isLoading ? (
-        <ActivityIndicator
-          color="#FFFFFF"
-          size="small"
-          style={styles.buttonLoader}
-        />
-      ) : null}
-      <ThemedText style={styles.primaryButtonText}>
-        {isLoading ? loadingLabel : label}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
-export default function ChangePasswordScreen() {
+export default function SetPasswordScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const palette = usePasswordPalette(colorScheme);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useContext(I18nContext);
-  const { passwordState } = useAuth();
-  const [passwords, setPasswords] = useState<Record<PasswordFieldKey, string>>({
-    current: "",
+  const { passwordState, refreshProfile } = useAuth();
+  const [passwords, setPasswords] = useState({
     new: "",
     confirm: "",
   });
-  const [visibleFields, setVisibleFields] = useState<
-    Record<PasswordFieldKey, boolean>
-  >({
-    current: false,
+  const [visibleFields, setVisibleFields] = useState({
     new: false,
     confirm: false,
   });
-  const [feedback, setFeedback] = useState<{
-    tone: FeedbackTone;
-    message: string;
-  } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<PasswordFieldKey, string>>
+    Partial<Record<"new" | "confirm", string>>
   >({});
   const [isSaving, setIsSaving] = useState(false);
-  const isSaveDisabled = isSaving;
 
   useEffect(() => {
-    if (passwordState && !passwordState.has_password) {
-      router.replace('/(tabs)/(settings)/set-password');
+    if (passwordState?.has_password) {
+      router.replace("/(tabs)/(settings)/change-password");
     }
   }, [passwordState, router]);
 
-  const handlePasswordChange = (key: PasswordFieldKey, value: string) => {
+  const handlePasswordChange = (key: "new" | "confirm", value: string) => {
     setPasswords((current) => ({ ...current, [key]: value }));
-    setFeedback(null);
     setFieldErrors((current) => {
       const next = { ...current };
-
       delete next[key];
+
+      if (
+        key === "confirm" &&
+        value.length > 0 &&
+        passwords.new.length > 0 &&
+        passwords.new !== value
+      ) {
+        next.confirm = t("passwordsDoNotMatch");
+      }
 
       if (key === "new") {
         delete next.confirm;
-      }
-
-      if (
-        (key === "confirm" || key === "new") &&
-        value.length > 0 &&
-        passwords.new.length > 0
-      ) {
-        const newPassword = key === "new" ? value : passwords.new;
-        const confirmPassword = key === "confirm" ? value : passwords.confirm;
-
-        if (confirmPassword.length > 0 && newPassword !== confirmPassword) {
-          next.confirm = t("passwordsDoNotMatch");
-        }
       }
 
       return next;
     });
   };
 
-  const handleToggleVisibility = (key: PasswordFieldKey) => {
+  const handleToggleVisibility = (key: "new" | "confirm") => {
     setVisibleFields((current) => ({ ...current, [key]: !current[key] }));
   };
 
   const validateForm = () => {
-    const nextErrors: Partial<Record<PasswordFieldKey, string>> = {};
+    const nextErrors: Partial<Record<"new" | "confirm", string>> = {};
     const newPasswordRules = getPasswordRules(passwords.new);
-
-    if (!passwords.current.trim()) {
-      nextErrors.current = t("enterOldPassword");
-    }
 
     if (!passwords.new.trim()) {
       nextErrors.new = t("enterNewPassword");
     } else if (newPasswordRules.some((rule) => !rule.passed)) {
       nextErrors.new = t("passwordRequirementsNotMet");
-    }
-
-    if (passwords.new.trim() && passwords.current.trim() === passwords.new.trim()) {
-      nextErrors.new = t("newPasswordMustBeDifferent");
     }
 
     if (!passwords.confirm.trim()) {
@@ -407,40 +287,29 @@ export default function ChangePasswordScreen() {
     }
 
     setFieldErrors(nextErrors);
-
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleSavePress = async () => {
     if (!validateForm()) {
-      setFeedback(null);
       return;
     }
 
     try {
       setIsSaving(true);
-      setFeedback(null);
       setFieldErrors({});
 
-      await changeStudentPassword(passwords.current, passwords.new);
-
-      setPasswords({ current: "", new: "", confirm: "" });
+      await setStudentPassword(passwords.new, passwords.confirm);
+      await refreshProfile();
+      setPasswords({ new: "", confirm: "" });
       router.back();
       setTimeout(() => {
-        showSuccessToast(t("passwordChangedSuccess"));
+        showSuccessToast(t("passwordCreatedSuccessfully"));
       }, 250);
     } catch (error: any) {
-      if (error instanceof ApiError && error.status === 401) {
-        setFieldErrors({ current: t("invalidCurrentPassword") });
-        return;
-      }
-
       if (error instanceof ApiError && error.status === 400) {
-        if (
-          error.message === "invalidCurrentPassword" ||
-          error.responseData?.code === "invalidCurrentPassword"
-        ) {
-          setFieldErrors({ current: t("invalidCurrentPassword") });
+        if (error.message === "passwordsDoNotMatch") {
+          setFieldErrors({ confirm: t("passwordsDoNotMatch") });
           return;
         }
 
@@ -448,10 +317,7 @@ export default function ChangePasswordScreen() {
         return;
       }
 
-      setFeedback({
-        tone: "error",
-        message: error?.message || t("savePasswordFailed"),
-      });
+      setFieldErrors({ new: error?.message || t("savePasswordFailed") });
     } finally {
       setIsSaving(false);
     }
@@ -467,9 +333,13 @@ export default function ChangePasswordScreen() {
         <ScrollView
           alwaysBounceVertical
           bounces
-          contentContainerStyle={styles.scrollContent}
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(24, insets.bottom + 16) },
+          ]}
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
           onScrollBeginDrag={Keyboard.dismiss}
@@ -479,23 +349,13 @@ export default function ChangePasswordScreen() {
           style={styles.scrollView}
         >
           <View style={styles.headerBlock}>
-            <ThemedText style={styles.title}>{t("changePassword")}</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.subtitleText }]}> 
-              {t("updateAccountPassword")}
+            <ThemedText style={styles.title}>Set Password</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+              Create a permanent password for your account.
             </ThemedText>
           </View>
 
           <View style={styles.formSection}>
-            <PasswordField
-              label={t("currentPassword")}
-              placeholder={t("enterOldPassword")}
-              value={passwords.current}
-              isVisible={visibleFields.current}
-              error={fieldErrors.current}
-              palette={palette}
-              onChangeText={(value) => handlePasswordChange("current", value)}
-              onToggleVisibility={() => handleToggleVisibility("current")}
-            />
             <PasswordField
               label={t("newPassword")}
               placeholder={t("enterNewPassword")}
@@ -506,6 +366,7 @@ export default function ChangePasswordScreen() {
               onChangeText={(value) => handlePasswordChange("new", value)}
               onToggleVisibility={() => handleToggleVisibility("new")}
             />
+
             {passwords.new.length > 0 ? (
               <PasswordValidationCard
                 palette={palette}
@@ -513,6 +374,7 @@ export default function ChangePasswordScreen() {
                 t={t}
               />
             ) : null}
+
             <PasswordField
               label={t("confirmPassword")}
               placeholder={t("enterConfirmPassword")}
@@ -525,32 +387,28 @@ export default function ChangePasswordScreen() {
             />
           </View>
 
-          {feedback ? (
-            <FeedbackBanner
-              message={feedback.message}
-              tone={feedback.tone}
-              palette={palette}
-            />
-          ) : null}
-        </ScrollView>
-        <View
-          style={[
-            styles.footer,
-            {
-              backgroundColor: palette.background,
-              paddingBottom: Math.max(insets.bottom, 12),
-            },
-          ]}
-        >
-          <SaveButton
-            label={t("savePassword")}
-            loadingLabel={t("loading")}
-            disabled={isSaveDisabled}
-            isLoading={isSaving}
-            palette={palette}
+          <Pressable
+            disabled={isSaving}
             onPress={handleSavePress}
-          />
-        </View>
+            style={({ pressed }) => [
+              styles.primaryButton,
+              { backgroundColor: palette.primary },
+              isSaving && styles.primaryButtonDisabled,
+              pressed && !isSaving && styles.primaryButtonPressed,
+            ]}
+          >
+            {isSaving ? (
+              <ActivityIndicator
+                color="#FFFFFF"
+                size="small"
+                style={styles.buttonLoader}
+              />
+            ) : null}
+            <ThemedText style={styles.primaryButtonText}>
+              {isSaving ? t("loading") : t("savePassword")}
+            </ThemedText>
+          </Pressable>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -565,21 +423,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 120,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   headerBlock: {
-    marginBottom: 22,
+    marginTop: 28,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: "700",
+    fontWeight: "600",
+    fontSize: 36,
+    lineHeight: 44,
     includeFontPadding: false,
   },
   subtitle: {
-    marginTop: 8,
+    marginTop: 10,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -589,21 +447,9 @@ const styles = StyleSheet.create({
   fieldBlock: {
     gap: 8,
   },
-  fieldErrorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  fieldErrorText: {
-    flex: 1,
-    color: "#DC2626",
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "500",
-  },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   passwordContainer: {
     flexDirection: "row",
@@ -611,32 +457,38 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   leftIcon: {
-    left: 14,
     position: "absolute",
+    left: 14,
     zIndex: 1,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 14,
+    padding: 12,
   },
   input: {
     height: 52,
     borderRadius: 12,
     borderWidth: 1,
-    flex: 1,
+    paddingHorizontal: 44,
     fontSize: 16,
-    paddingLeft: 46,
-    paddingRight: 56,
-    paddingVertical: Platform.OS === "android" ? 10 : 0,
-    textAlignVertical: "center",
-    includeFontPadding: false,
+    flex: 1,
   },
-  eyeIcon: {
-    position: "absolute",
-    right: 14,
-    padding: 8,
+  fieldErrorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  fieldErrorText: {
+    color: semanticColors.error,
+    fontSize: 13,
   },
   validationCard: {
-    marginTop: 18,
-    borderRadius: 12,
-    borderWidth: 1,
+    marginTop: 4,
+    marginBottom: 4,
     padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   validationTitle: {
     fontSize: 18,
@@ -644,7 +496,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   strengthRow: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   strengthBarTrack: {
     height: 8,
@@ -675,52 +527,32 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   ruleText: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "500",
     lineHeight: 22,
   },
-  feedbackBanner: {
-    marginTop: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  feedbackText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "500",
-  },
   primaryButton: {
-    minHeight: 54,
+    marginTop: 24,
+    marginBottom: 12,
+    padding: 16,
     borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 15,
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.65,
   },
   primaryButtonPressed: {
     opacity: 0.9,
   },
-  primaryButtonDisabled: {
-    opacity: 0.55,
-  },
   buttonLoader: {
-    marginRight: 8,
+    marginRight: 6,
   },
   primaryButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
   },
 });

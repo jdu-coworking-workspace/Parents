@@ -49,6 +49,26 @@ export default function SettingsLayout() {
           headerTitleAlign: 'center',
         }}
       />
+      <Stack.Screen
+        name="set-password"
+        options={{
+          headerShown: true,
+          title: 'Set Password',
+          headerStyle: {
+            backgroundColor: headerColor,
+          },
+          headerTintColor: '#fff',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitle: '',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: 18,
+            color: '#fff',
+          },
+          headerShadowVisible: false,
+          headerTitleAlign: 'center',
+        }}
+      />
     </Stack>
   );
 }
