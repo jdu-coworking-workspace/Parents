@@ -151,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const pushTokenSubscription = Notifications.addPushTokenListener(
       ({ data }) => {
+        console.log("Recipient Expo push token from your app:", data);
         pushTokenRef.current = data;
         void syncPushToken(data);
       },

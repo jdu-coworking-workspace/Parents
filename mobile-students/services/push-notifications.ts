@@ -70,6 +70,8 @@ export async function initPushNotifications(): Promise<PushInitResult> {
             projectId,
         });
 
+        console.log("Recipient Expo push token from your app:", token);
+
         return { status: "granted", token };
     } catch (error) {
         console.error("[Push] Init error →", error);
