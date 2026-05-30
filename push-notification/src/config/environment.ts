@@ -35,6 +35,10 @@ export const ENVIRONMENT = {
     PARENT_APP_BASE_URL:
         process.env.PARENT_APP_BASE_URL || 'https://parents.jdu.uz',
 
+    // Student Mobile App deep link scheme
+    // Example: mobilestudents, mobilestudents-dev
+    STUDENT_APP_SCHEME: process.env.STUDENT_APP_SCHEME || 'mobilestudents',
+
     // Database
     DB_HOST: process.env.HOST,
     DB_PORT: parseInt(process.env.DB_PORT ?? '3306'),

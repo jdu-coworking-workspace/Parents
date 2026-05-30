@@ -59,15 +59,15 @@ export type EventSource =
 
 export interface NotificationPost {
     id: string;
-    arn: string;
+    arn: string | null;
     title: string;
-    description: string;
+    description: string | null;
     family_name: string;
     given_name: string;
     student_id: string;
-    chat_id: string;
+    chat_id: string | null;
     language: string;
-    phone_number: string;
+    phone_number: string | null;
     priority: string;
     sms: boolean;
 }

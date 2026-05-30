@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-pinpoint';
 import { config } from 'dotenv';
 import DatabaseClient from '../db-client';
+import { buildStudentNotificationMessageUrl } from '../utils/student-app-links';
 
 config();
 
@@ -306,7 +307,7 @@ const testSpecificToken = async (token: string, customMessage?: any) => {
     const testMessage = customMessage || {
         title: `Debug Test - ${new Date().toLocaleTimeString()}`,
         body: `This is a debug notification sent from ${isLocal ? 'local' : 'Lambda'} environment`,
-        url: `jduapp://student/0/message/debug-${Date.now()}`,
+        url: buildStudentNotificationMessageUrl(0, `debug-${Date.now()}`),
         post_id: `debug-${Date.now()}`,
     };
 
@@ -349,7 +350,7 @@ const testWithDatabaseTokens = async (limit: number = 5) => {
             const testMessage = {
                 title: `Test ${index + 1} - Debug Notification`,
                 body: `Debug test from ${isLocal ? 'local' : 'Lambda'} at ${new Date().toLocaleTimeString()}`,
-                url: `jduapp://student/0/message/test-${index + 1}`,
+                url: buildStudentNotificationMessageUrl(0, `test-${index + 1}`),
                 post_id: `test-${index + 1}`,
             };
 

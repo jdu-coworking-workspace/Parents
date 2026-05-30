@@ -214,7 +214,7 @@ class NotificationTokenTester {
             const text = this.smsTemplateService.generateNotificationSms(
                 {
                     title: testPost.title,
-                    description: testPost.description,
+                    description: testPost.description ?? undefined,
                     studentName: studentName,
                     link: link,
                 },
