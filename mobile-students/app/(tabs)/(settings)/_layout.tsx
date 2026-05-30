@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
 import { Stack } from 'expo-router';
+import { BrandColors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';   
@@ -20,6 +21,26 @@ export default function SettingsLayout() {
             backgroundColor: headerBg,
           },
           headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: 18,
+            color: '#fff',
+          },
+          headerShadowVisible: false,
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen
+        name="change-password"
+        options={{
+          headerShown: true,
+          title: t('changePassword'),
+          headerStyle: {
+            backgroundColor: headerColor,
+          },
+          headerTintColor: '#fff',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitle: '',
           headerTitleStyle: {
             fontWeight: 'bold',
             fontSize: 18,

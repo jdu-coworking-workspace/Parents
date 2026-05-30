@@ -209,7 +209,7 @@ export default function SetPasswordScreen() {
                         ? palette.success
                         : palette.danger;
                       return (
-                        <View key={rule.label} style={styles.ruleRow}>
+                        <View key={rule.key} style={styles.ruleRow}>
                           <Ionicons
                             name={rule.passed ? "checkmark-circle" : "close-circle"}
                             size={20}
@@ -229,16 +229,6 @@ export default function SetPasswordScreen() {
                             >
                               {t(rule.key as any)}
                             </ThemedText>
-                            {rule.examples ? (
-                              <ThemedText
-                                style={[
-                                  styles.ruleHint,
-                                  { color: palette.mutedSoft },
-                                ]}
-                              >
-                                {rule.examples}
-                              </ThemedText>
-                            ) : null}
                           </View>
                         </View>
                       );

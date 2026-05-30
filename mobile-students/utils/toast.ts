@@ -33,6 +33,7 @@ const showToast = (
     duration: getToastDuration(duration),
     position,
     shadow: true,
+    opacity: 1,
     animation: true,
     hideOnPress: true,
     textColor: 'white',
