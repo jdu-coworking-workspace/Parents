@@ -36,7 +36,7 @@ export default function SettingsLayout() {
           headerShown: true,
           title: t('changePassword'),
           headerStyle: {
-            backgroundColor: headerColor,
+            backgroundColor: headerBg,
           },
           headerTintColor: '#fff',
           headerBackButtonDisplayMode: 'minimal',
