@@ -2,18 +2,19 @@ import { Tabs } from 'expo-router';
 import React, { useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors } from '@/constants/theme';
+import { BrandColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useContext(I18nContext);
+  const theme = colorScheme ?? 'light';
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: BrandColors[theme],
         headerShown: false,
       }}>
       <Tabs.Screen

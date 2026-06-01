@@ -107,6 +107,23 @@ export async function changeStudentTemporaryPassword(
     return payload;
 }
 
+export async function changeStudentPassword(
+    previousPassword: string,
+    newPassword: string
+): Promise<{ message?: string; message_key?: string }> {
+    const response = await api.post<
+        { message?: string; message_key?: string },
+        { previous_password: string; new_password: string }
+    >('/student/change-password', {
+        previous_password: previousPassword,
+        new_password: newPassword,
+    }, {
+        suppressErrorLog: true,
+    });
+
+    return response.data;
+}
+
 export async function loginStudentWithTemporaryPassword(
     email: string,
     password: string

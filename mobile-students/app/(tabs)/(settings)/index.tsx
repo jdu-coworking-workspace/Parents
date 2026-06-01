@@ -101,7 +101,8 @@ export default function SettingsScreen() {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const initialLabel = languageData.find(l => l.code === currentLang)?.label ?? "O'zbekcha";
   const [selectedLanguage, setSelectedLanguage] = useState(initialLabel);
-  const [isLightModeOn, setIsLightModeOn] = useState(true);
+  // derive label from current color scheme so it stays in sync
+  const isLightModeOn = currentColorScheme === 'light';
 
   const handleLanguageSelect = async (label: string, code: string) => {
     setSelectedLanguage(label);
@@ -203,7 +204,10 @@ export default function SettingsScreen() {
               <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
             </Pressable>
 
-            <Pressable style={styles.row}>
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push('/(tabs)/(settings)/change-password' as any)}
+            >
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='lock-closed-outline' size={20} />
               </View>

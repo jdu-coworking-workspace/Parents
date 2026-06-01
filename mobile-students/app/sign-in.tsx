@@ -10,6 +10,7 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -311,20 +312,18 @@ export default function SignInScreen() {
               <Pressable
                 style={[
                   styles.primaryButton,
-                  { backgroundColor: palette.primary },
+                  { backgroundColor: isLoading ? '#9CA3AF' : palette.primary },
                 ]}
-                onPress={
-                  step === "email" ? handleEmailNext : handlePasswordSubmit
-                }
+                onPress={step === 'email' ? handleEmailNext : handlePasswordSubmit}
                 disabled={isLoading}
-              >
-                <ThemedText style={styles.primaryButtonText}>
-                  {isLoading
-                    ? t('loading')
-                    : step === 'email'
-                      ? t('next')
-                      : t('signIn')}
-                </ThemedText>
+              >             
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.primaryButtonText}>
+                    {step === 'email' ? t('next') : t('signIn')}
+                  </ThemedText>
+                )}
               </Pressable>
 
               {step !== "email" ? (
