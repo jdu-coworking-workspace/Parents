@@ -6,6 +6,7 @@ import {
 } from 'expo-server-sdk';
 import { NotificationPost } from '../../types/events';
 import { getLocalizedText } from '../../utils/localization';
+import { buildStudentNotificationMessageUrl } from '../../utils/student-app-links';
 
 export class ExpoPushService {
     private expo: Expo;
@@ -47,12 +48,17 @@ export class ExpoPushService {
             const body = getLocalizedText(post.language, 'body', post);
 
             // Construct the push message (iOS-compatible, no Android-only fields)
+            const deepLink = buildStudentNotificationMessageUrl(
+                post.student_id,
+                post.id
+            );
+
             const message: ExpoPushMessage = {
                 to: post.arn,
                 title: title,
                 body: body,
                 data: {
-                    url: `jduapp://student/${post.student_id}/message/${post.id}`,
+                    url: deepLink,
                     post_id: post.id.toString(),
                     priority: post.priority,
                     student_name: `${post.given_name} ${post.family_name}`,
@@ -233,13 +239,17 @@ export class ExpoPushService {
         const messages: ExpoPushMessage[] = validPosts.map(post => {
             const title = getLocalizedText(post.language, 'title', post);
             const body = getLocalizedText(post.language, 'body', post);
+            const deepLink = buildStudentNotificationMessageUrl(
+                post.student_id,
+                post.id
+            );
 
             return {
                 to: post.arn!,
                 title: title,
                 body: body,
                 data: {
-                    url: `jduapp://student/${post.student_id}/message/${post.id}`,
+                    url: deepLink,
                     post_id: post.id.toString(),
                     priority: post.priority,
                     student_name: `${post.given_name} ${post.family_name}`,

@@ -8,6 +8,7 @@ import { ENVIRONMENT } from '../../config/environment';
 import { detectTokenType } from '../../utils/token-detection';
 import { NotificationPost } from '../../types/events';
 import { getLocalizedText } from '../../utils/localization';
+import { buildStudentNotificationMessageUrl } from '../../utils/student-app-links';
 
 export class PinpointService {
     private pinpointClient: PinpointClient;
@@ -35,8 +36,13 @@ export class PinpointService {
             const title = getLocalizedText(post.language, 'title', post);
             const body = getLocalizedText(post.language, 'body', post);
 
+            const deepLink = buildStudentNotificationMessageUrl(
+                post.student_id,
+                post.id
+            );
+
             const messageData = {
-                url: `jduapp://student/${post.student_id}/message/${post.id}`,
+                url: deepLink,
                 post_id: post.id.toString(),
                 priority: post.priority,
                 student_name: `${post.given_name} ${post.family_name}`,
@@ -92,7 +98,7 @@ export class PinpointService {
                                 priority: 'high',
                             },
                             data: {
-                                url: `jduapp://student/${post.student_id}/message/${post.id}`,
+                                url: deepLink,
                                 post_id: post.id.toString(),
                                 priority: post.priority,
                                 student_name: `${post.given_name} ${post.family_name}`,
