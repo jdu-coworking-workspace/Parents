@@ -390,9 +390,9 @@ const translations = {
     deviceTokenUpdated: 'デバイストークンが正常に更新されました',
     // mobile-students additional keys
     welcomeStudent: 'ようこそ、学生',
-    signInWithGoogle: 'Googleでサインイン',
+    signInWithGoogle: 'Googleでログイン',
     next: '次へ',
-    signIn: 'サインイン',
+    signIn: 'ログイン',
     back: '戻る',
     copy: 'コピー',
     emailRequired: 'メールアドレスを入力してください。',

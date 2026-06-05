@@ -4,12 +4,13 @@ import { Platform } from 'react-native';
 import { BrandColors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme'; 
 
 export default function HomeLayout() {
   const { t } = useContext(I18nContext);
   const colorScheme = useColorScheme() ?? 'light';
-  const headerColor = BrandColors[colorScheme];
-
+  const headerBg = Colors[colorScheme].tint;
+  
   return (
     <Stack>
       <Stack.Screen
@@ -30,7 +31,7 @@ export default function HomeLayout() {
             headerTitleAlign: 'center',
             headerShadowVisible: false,
             headerStyle: {
-              backgroundColor: headerColor,
+              backgroundColor: headerBg,
             },
             headerTintColor: '#fff',
             headerTitleStyle: {
@@ -52,7 +53,7 @@ export default function HomeLayout() {
           headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
           headerStyle: {
-            backgroundColor: headerColor,
+            backgroundColor: headerBg,
           },
           headerTintColor: '#fff',
           headerTitleStyle: {

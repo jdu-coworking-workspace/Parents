@@ -3,11 +3,12 @@ import { Stack } from 'expo-router';
 import { BrandColors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';   
 
 export default function SettingsLayout() {
   const { t } = useContext(I18nContext);
   const colorScheme = useColorScheme() ?? 'light';
-  const headerColor = BrandColors[colorScheme];
+  const headerBg = Colors[colorScheme].tint; 
 
   return (
     <Stack>
@@ -17,7 +18,7 @@ export default function SettingsLayout() {
           headerShown: true,
           title: t('settingsHeader'),
           headerStyle: {
-            backgroundColor: headerColor,
+            backgroundColor: headerBg,
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
@@ -35,7 +36,7 @@ export default function SettingsLayout() {
           headerShown: true,
           title: t('changePassword'),
           headerStyle: {
-            backgroundColor: headerColor,
+            backgroundColor: headerBg,
           },
           headerTintColor: '#fff',
           headerBackButtonDisplayMode: 'minimal',
