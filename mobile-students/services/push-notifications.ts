@@ -62,13 +62,21 @@ export async function initPushNotifications(): Promise<PushInitResult> {
             await Notifications.setBadgeCountAsync(0);
         }
 
-        const projectId =
-            Constants?.expoConfig?.extra?.eas?.projectId ??
-            Constants?.easConfig?.projectId;
+        let token: string;
 
-        const { data: token } = await Notifications.getExpoPushTokenAsync({
-            projectId,
-        });
+        if (Platform.OS === "android") {
+            const { data } = await Notifications.getDevicePushTokenAsync();
+            token = data;
+        } else {
+            const projectId =
+                Constants?.expoConfig?.extra?.eas?.projectId ??
+                Constants?.easConfig?.projectId;
+
+            const { data } = await Notifications.getExpoPushTokenAsync({
+                projectId,
+            });
+            token = data;
+        }
 
         console.log("Recipient Expo push token from your app:", token);
 
