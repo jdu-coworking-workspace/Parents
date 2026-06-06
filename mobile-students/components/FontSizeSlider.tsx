@@ -32,7 +32,16 @@ export const FontSizeSlider: React.FC<FontSizeSliderProps> = ({
       <View
         style={[styles.textContainer, { backgroundColor: cardBackgroundColor }]}
       >
-        <Text style={[styles.descriptionText, { color: textColor }]}>
+        <Text
+          style={[
+            styles.descriptionText,
+            {
+              color: textColor,
+              fontSize: 15 * fontSize,
+              lineHeight: 22 * fontSize,
+            },
+          ]}
+        >
           {t("sampleText")}
         </Text>
       </View>
@@ -45,7 +54,7 @@ export const FontSizeSlider: React.FC<FontSizeSliderProps> = ({
           style={styles.slider}
           minimumValue={1.0}
           maximumValue={2.2}
-          step={0.1} // Bu qanchalik silliq o'zgarishini belgilaydi
+          step={0.1}
           value={fontSize}
           onValueChange={handleValueChange}
           minimumTrackTintColor={activeColor}
@@ -82,6 +91,7 @@ const styles = StyleSheet.create({
   sliderRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 40,
     justifyContent: "space-between",
   },
   slider: {

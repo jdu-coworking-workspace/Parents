@@ -366,15 +366,6 @@ export default function SettingsScreen() {
               { backgroundColor: colors.background },
             ]}
           >
-            <View style={styles.fontSizeModalHeader}>
-              <ThemedText style={{ fontSize: 20, fontWeight: "700" }}>
-                {t("textSize")}
-              </ThemedText>
-              <TouchableOpacity onPress={() => setIsFontSizeOpen(false)}>
-                <Ionicons name="close" size={24} color={colors.icon} />
-              </TouchableOpacity>
-            </View>
-
             <FontSizeSlider
               onPreviewChange={setPreviewFontSize}
               textColor={colors.text}
