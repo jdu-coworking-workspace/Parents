@@ -1,6 +1,15 @@
-import React, { useCallback, useMemo, useState, useContext } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useContext,
+  useRef,
+  useEffect,
+} from "react";
 import {
   Alert,
+  Animated,
+  Dimensions,
   Modal,
   Pressable,
   ScrollView,
@@ -19,7 +28,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { FontSizeSlider } from "@/components/FontSizeSlider"; // To'g'rilangan import
+import { FontSizeSlider } from "@/components/FontSizeSlider";
 
 // Mock data for student
 const mockStudentData = {
@@ -106,6 +115,42 @@ export default function SettingsScreen() {
   const [isLightModeOn, setIsLightModeOn] = useState(true);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
   const [previewFontSize, setPreviewFontSize] = useState(1.4);
+
+  // --- Font Size Modal animatsiyasi ---
+  const screenHeight = Dimensions.get("window").height;
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isFontSizeOpen) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          damping: 20,
+          stiffness: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: screenHeight,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isFontSizeOpen]);
 
   const handleLanguageSelect = async (label: string, code: string) => {
     setSelectedLanguage(label);
@@ -352,18 +397,36 @@ export default function SettingsScreen() {
       <Modal
         visible={isFontSizeOpen}
         transparent
-        animationType="slide"
+        statusBarTranslucent
+        animationType="none"
         onRequestClose={() => setIsFontSizeOpen(false)}
       >
-        <View style={styles.fontSizeModalOverlay}>
-          <Pressable
-            onPress={() => setIsFontSizeOpen(false)}
-            style={{ flex: 1 }}
-          />
-          <View
+        <View style={{ flex: 1 }}>
+          {/* Qora fon - fade bilan silliq paydo bo'ladi */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(0,0,0,0.35)", opacity: fadeAnim },
+            ]}
+          >
+            <Pressable
+              onPress={() => setIsFontSizeOpen(false)}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+
+          {/* Kontent qutisi - pastdan silliq sirpanadi */}
+          <Animated.View
             style={[
               styles.fontSizeModalContent,
-              { backgroundColor: colors.background },
+              {
+                backgroundColor: colors.background,
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                transform: [{ translateY: slideAnim }],
+              },
             ]}
           >
             <FontSizeSlider
@@ -371,9 +434,9 @@ export default function SettingsScreen() {
               textColor={colors.text}
               activeColor="#4182EB"
               inactiveColor="#A1A1A1"
-              cardBackgroundColor={isDark ? "#2C2C2E" : "#F2F2F7"} // Dark/Light uchun karta foni
+              cardBackgroundColor={isDark ? "#2C2C2E" : "#F2F2F7"}
             />
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
