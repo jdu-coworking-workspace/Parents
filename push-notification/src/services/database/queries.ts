@@ -120,6 +120,32 @@ export class DatabaseQueries {
         );
     }
 
+    // Student push notifications (no SMS/Telegram)
+    async fetchStudentNotificationPosts(): Promise<NotificationPost[]> {
+        return await this.db.query(
+            `SELECT ps.id,
+                    st.arn,
+                    po.title,
+                    po.description,
+                    st.family_name,
+                    st.given_name,
+                    st.id as student_id,
+                    NULL as chat_id,
+                    'uz' as language,
+                    NULL as phone_number,
+                    po.priority,
+                    false as sms
+             FROM PostStudent AS ps
+                      INNER JOIN Student AS st ON ps.student_id = st.id
+                      INNER JOIN Post AS po ON ps.post_id = po.id
+             WHERE po.audience = 'students'
+               AND st.arn IS NOT NULL
+               AND st.arn != ''
+               AND ps.push = false
+               AND ps.viewed_at IS NULL LIMIT 25;`
+        );
+    }
+
     // Get SMS-only users (users without ARN but with phone numbers)
     async fetchSMSOnlyPosts(): Promise<NotificationPost[]> {
         return await this.db.query(
@@ -159,6 +185,13 @@ export class DatabaseQueries {
         if (!ids.length) return;
         await this.db.execute(
             `UPDATE PostParent SET push = true WHERE id IN (${ids.join(',')});`
+        );
+    }
+
+    async updateProcessedStudentPosts(ids: number[]): Promise<void> {
+        if (!ids.length) return;
+        await this.db.execute(
+            `UPDATE PostStudent SET push = true WHERE id IN (${ids.join(',')});`
         );
     }
 
