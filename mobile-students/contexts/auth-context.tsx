@@ -1,5 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { router } from "expo-router";
+import * as Notifications from "expo-notifications";
 import * as WebBrowser from "expo-web-browser";
 import {
   changeStudentTemporaryPassword,
@@ -12,6 +19,11 @@ import {
   loadSession,
   saveSession,
 } from "@/services/secure-store";
+import {
+  initPushNotifications,
+  sendPushTokenToBackend,
+  setupNotificationHandler,
+} from "@/services/push-notifications";
 import type { StudentUser } from "@/types/auth";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -50,6 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firstLoginChallenge, setFirstLoginChallenge] =
     useState<FirstLoginChallenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const pushTokenRef = useRef<string | null>(null);
+  const pushSetupStartedRef = useRef(false);
+  const lastUploadedPushTokenRef = useRef<string | null>(null);
+  const isAuthenticatedRef = useRef(false);
 
   const persistSession = async (response: {
     access_token: string;
@@ -90,6 +106,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     restoreToken();
   }, []);
+
+  useEffect(() => {
+    isAuthenticatedRef.current = !!accessToken && !!user;
+  }, [accessToken, user]);
+
+  const syncPushToken = async (token: string) => {
+    if (!isAuthenticatedRef.current) {
+      return;
+    }
+
+    if (lastUploadedPushTokenRef.current === token) {
+      return;
+    }
+
+    const success = await sendPushTokenToBackend(token);
+    if (success) {
+      lastUploadedPushTokenRef.current = token;
+    }
+  };
+
+  useEffect(() => {
+    if (pushSetupStartedRef.current) {
+      return;
+    }
+
+    pushSetupStartedRef.current = true;
+    setupNotificationHandler();
+
+    let isMounted = true;
+
+    (async () => {
+      const result = await initPushNotifications();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (result.status === "granted" && result.token) {
+        pushTokenRef.current = result.token;
+        await syncPushToken(result.token);
+      }
+    })();
+
+    const pushTokenSubscription = Notifications.addPushTokenListener(
+      ({ data }) => {
+        console.log("Recipient Expo push token from your app:", data);
+        pushTokenRef.current = data;
+        void syncPushToken(data);
+      },
+    );
+
+    return () => {
+      isMounted = false;
+      pushTokenSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!accessToken || !user || !pushTokenRef.current) {
+      return;
+    }
+
+    void syncPushToken(pushTokenRef.current);
+  }, [accessToken, user]);
 
   const signIn = async (email: string, password: string) => {
     try {

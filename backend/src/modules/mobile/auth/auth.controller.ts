@@ -126,6 +126,11 @@ class MobileAuthModuleController implements IController {
             verifyToken,
             this.deviceToken
         );
+        this.router.post(
+            '/student/device-token',
+            this.authLimiter,
+            this.studentDeviceToken
+        );
 
         // Apply rate limiting to forgot password endpoints
         this.router.post(
@@ -666,6 +671,76 @@ class MobileAuthModuleController implements IController {
 
             await DB.execute(`UPDATE Parent SET arn = :arn WHERE id = :id;`, {
                 id: req.user.id,
+                arn: normalizedToken,
+            });
+
+            return res
+                .status(200)
+                .json({
+                    message_key: 'deviceTokenUpdated',
+                    message: 'Device token updated successfully',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentDeviceToken = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const authHeader = req.headers['authorization'];
+
+            if (!authHeader || !/^Bearer .+$/.test(authHeader)) {
+                return res
+                    .status(401)
+                    .json({
+                        message: 'Access token is missing or invalid.',
+                    })
+                    .end();
+            }
+
+            const accessToken = authHeader.split(' ')[1];
+            const authUser = await this.studentCognitoClient.accessToken(
+                accessToken
+            );
+            const students = await DB.query(
+                `SELECT st.id
+                 FROM Student AS st
+                 WHERE st.email = :email
+                    OR st.cognito_sub_id = :cognito_sub_id
+                 LIMIT 1`,
+                {
+                    email: authUser.email,
+                    cognito_sub_id: authUser.sub_id,
+                }
+            );
+
+            if (students.length <= 0) {
+                return res
+                    .status(403)
+                    .json({
+                        message: 'Student account has not been registered',
+                    })
+                    .end();
+            }
+
+            const { token } = req.body;
+            const normalizedToken = this.normalizeToken(token);
+
+            if (
+                normalizedToken == null ||
+                normalizedToken === '[object Object]'
+            ) {
+                throw new ApiError(401, 'Invalid Device Token');
+            }
+
+            await DB.execute(`UPDATE Student SET arn = :arn WHERE id = :id;`, {
+                id: students[0].id,
                 arn: normalizedToken,
             });
 
