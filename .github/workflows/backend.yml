@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 695-expo-push-notification-setup
     paths:
       - "backend/**"
 
