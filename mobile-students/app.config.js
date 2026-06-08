@@ -134,7 +134,7 @@ module.exports = ({ config }) => {
       [
         "expo-notifications",
         {
-          icon: "./assets/images/icon.png",
+          icon: variantConfig.androidIcon,
           color: "#000000",
         },
       ],
