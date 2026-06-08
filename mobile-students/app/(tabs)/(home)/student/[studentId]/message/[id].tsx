@@ -59,6 +59,7 @@ function getPriorityBadgeColor(priority: string) {
 export default function MessageDetailScreen() {
   const colorScheme = useColorScheme() ?? 'dark';
   const isDark = colorScheme === 'dark';
+  const pageBackgroundColor = isDark ? '#111215' : '#fff';
   const { t } = useContext(I18nContext);
 
   const params = useLocalSearchParams<{
@@ -86,8 +87,8 @@ export default function MessageDetailScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: isDark ? '#111215' : '#F3F6FA' }]}>
-      <View style={[styles.card, { backgroundColor: isDark ? '#111215' : '#FFFFFF' }]}>
+    <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
+      <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
         <View style={styles.titleRow}>
           <ThemedText style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>{title}</ThemedText>
           <View style={[styles.badge, { backgroundColor: getPriorityBadgeColor(priority) }]}>

@@ -15,6 +15,7 @@ export interface RequestOptions {
     headers?: Record<string, string>;
     body?: any;
     requiresAuth?: boolean;
+    suppressErrorLog?: boolean;
     timeout?: number;
 }
 
@@ -23,6 +24,7 @@ interface RequestOptionsWithBody<TBody = unknown> {
     body?: TBody;
     headers?: Record<string, string>;
     requiresAuth?: boolean;
+    suppressErrorLog?: boolean;
     timeout?: number;
 }
 
@@ -121,6 +123,7 @@ export async function request<TResponse>(
         body,
         headers: customHeaders,
         requiresAuth = true,
+        suppressErrorLog = false,
         timeout = 30000, // 30 seconds default timeout
     } = options;
 
@@ -135,6 +138,14 @@ export async function request<TResponse>(
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
+        console.debug(`API Request: ${method} ${url}`, {
+             hasBody: body != null,
+             bodyKeys:
+                 body && typeof body === 'object' && !Array.isArray(body)
+                     ? Object.keys(body as Record<string, unknown>)
+                     : undefined,
+             headerNames: Object.keys(headers),
+         });
         const response = await fetch(url, {
             method,
             headers,
@@ -197,7 +208,12 @@ export async function request<TResponse>(
         if (error instanceof ApiError) {
             // Don't log expected status codes that are handled by calling code
             // 401: Unauthorized, 403: NEW_PASSWORD_REQUIRED, 404: Not found (email not in system)
-            if (error.status !== 401 && error.status !== 403 && error.status !== 404) {
+            if (
+                !suppressErrorLog &&
+                error.status !== 401 &&
+                error.status !== 403 &&
+                error.status !== 404
+            ) {
                 console.error('API Error:', error.message);
             }
             throw error;

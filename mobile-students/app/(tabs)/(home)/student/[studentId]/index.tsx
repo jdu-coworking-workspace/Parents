@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { BrandColors, Colors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 
 type MessageItem = {
@@ -150,7 +150,7 @@ export default function StudentMessagesScreen() {
                 {
                   backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
                   borderColor: !isRead
-                    ? '#1A4AAC'
+                    ? BrandColors[colorScheme]
                     : colorScheme === 'dark'
                       ? '#2C2C2E'
                       : '#E5E5EA',

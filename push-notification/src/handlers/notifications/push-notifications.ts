@@ -28,56 +28,83 @@ export class NotificationProcessor {
 
         try {
             console.time('db-fetch');
-            // Use the new method that gets both ARN and non-ARN users
-            const posts = await this.dbQueries.fetchAllNotificationPosts();
+            const [parentPosts, studentPosts] = await Promise.all([
+                this.dbQueries.fetchAllNotificationPosts(),
+                this.dbQueries.fetchStudentNotificationPosts(),
+            ]);
             console.timeEnd('db-fetch');
 
-            if (!posts.length) {
+            const totalPosts = parentPosts.length + studentPosts.length;
+
+            if (!totalPosts) {
                 console.log('📭 No notifications to process');
                 return { message: 'no notifications', count: 0, total: 0 };
             }
 
             // Separate posts into push-enabled and SMS-only
-            const pushPosts = posts.filter(
+            const pushPosts = parentPosts.filter(
                 post => post.arn && post.arn.trim() !== ''
             );
-            const smsOnlyPosts = posts.filter(
+            const smsOnlyPosts = parentPosts.filter(
                 post => (!post.arn || post.arn.trim() === '') && post.sms
             );
 
-            console.log(`📋 Processing ${posts.length} total notifications:`);
-            console.log(`   📱 ${pushPosts.length} with push tokens (ARN)`);
-            console.log(`   📧 ${smsOnlyPosts.length} SMS-only (no ARN)`);
+            console.log(`📋 Processing ${totalPosts} total notifications:`);
+            console.log(`   📱 ${pushPosts.length} parent push tokens (ARN)`);
+            console.log(
+                `   📧 ${smsOnlyPosts.length} parent SMS-only (no ARN)`
+            );
+            console.log(
+                `   🎓 ${studentPosts.length} student push notifications`
+            );
 
             console.time('send-notifications');
-            const results = await this.sendMixedNotifications(
+            const parentResults = await this.sendMixedNotifications(
                 pushPosts,
                 smsOnlyPosts
             );
+            const studentResults =
+                await this.sendStudentNotifications(studentPosts);
             console.timeEnd('send-notifications');
 
-            const successfulIds = results.successful.map(id =>
+            const successfulParentIds = parentResults.successful.map(id =>
+                parseInt(id, 10)
+            );
+            const successfulStudentIds = studentResults.successful.map(id =>
                 parseInt(id, 10)
             );
 
-            if (successfulIds.length) {
+            if (successfulParentIds.length) {
                 console.time('db-update');
-                await this.dbQueries.updateProcessedPosts(successfulIds);
+                await this.dbQueries.updateProcessedPosts(successfulParentIds);
                 console.timeEnd('db-update');
             }
 
+            if (successfulStudentIds.length) {
+                console.time('db-update-students');
+                await this.dbQueries.updateProcessedStudentPosts(
+                    successfulStudentIds
+                );
+                console.timeEnd('db-update-students');
+            }
+
+            const successfulTotal =
+                successfulParentIds.length + successfulStudentIds.length;
+
             console.log(
-                `✅ Successfully processed ${successfulIds.length}/${posts.length} notifications`
+                `✅ Successfully processed ${successfulTotal}/${totalPosts} notifications`
             );
-            console.log(`   📱 Push notifications: ${results.pushCount}`);
-            console.log(`   📧 SMS notifications: ${results.smsCount}`);
+            console.log(
+                `   📱 Push notifications: ${parentResults.pushCount + studentResults.pushCount}`
+            );
+            console.log(`   📧 SMS notifications: ${parentResults.smsCount}`);
 
             return {
                 message: 'success',
-                count: successfulIds.length,
-                total: posts.length,
-                push_count: results.pushCount,
-                sms_only_count: results.smsOnlyCount,
+                count: successfulTotal,
+                total: totalPosts,
+                push_count: parentResults.pushCount + studentResults.pushCount,
+                sms_only_count: parentResults.smsOnlyCount,
             };
         } catch (e) {
             console.error('❌ Error in processNotifications:', e);
@@ -209,6 +236,50 @@ export class NotificationProcessor {
         return results;
     }
 
+    private async sendStudentNotifications(
+        posts: NotificationPost[]
+    ): Promise<{ successful: string[]; pushCount: number }> {
+        const results = {
+            successful: [] as string[],
+            pushCount: 0,
+        };
+
+        if (!posts.length) {
+            return results;
+        }
+
+        console.log(
+            `🔄 Processing ${posts.length} student push notifications...`
+        );
+
+        const pushPromises = posts.map(async post => {
+            try {
+                const pushSuccess =
+                    await this.unifiedPushService.sendPushNotification(post);
+
+                if (pushSuccess) {
+                    results.pushCount++;
+                    console.log(`🎓 Push sent to student post ${post.id}`);
+                    return post.id;
+                }
+
+                return null;
+            } catch (error) {
+                console.error(
+                    `❌ Error processing student post ${post.id}:`,
+                    error
+                );
+                return null;
+            }
+        });
+
+        const pushResults = await Promise.all(pushPromises);
+        const successfulIds = pushResults.filter(id => id !== null) as string[];
+        results.successful.push(...successfulIds);
+
+        return results;
+    }
+
     private async sendSMS(post: NotificationPost): Promise<boolean> {
         if (!post.phone_number) {
             console.log(`❌ No phone number for post ${post.id}`);
@@ -228,7 +299,7 @@ export class NotificationProcessor {
             const text = this.smsTemplateService.generateNotificationSms(
                 {
                     title: post.title,
-                    description: post.description,
+                    description: post.description ?? undefined,
                     studentName: studentName,
                     link: link,
                 },

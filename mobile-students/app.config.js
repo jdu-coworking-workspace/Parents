@@ -11,18 +11,27 @@ const configByVariant = {
     name: "Student Notification (Dev)",
     androidPackage: "com.jduapp.studentnotification.dev",
     iosBundleId: "com.jduapp.studentnotification.dev",
+    icon: "./assets/images/icon-dev/ios-dev.png",
+    androidIcon: "./assets/images/icon-dev/android-dev.png",
+    splashIcon: "./assets/images/icon-dev/splash-icon-dev.png",
     scheme: "mobilestudents-dev",
   },
   preview: {
     name: "Student Notification (Preview)",
     androidPackage: "com.jduapp.studentnotification.preview",
     iosBundleId: "com.jduapp.studentnotification.preview",
+    icon: "./assets/images/icon-prev/ios-prev.png",
+    androidIcon: "./assets/images/icon-prev/android-prev.png",
+    splashIcon: "./assets/images/icon-prev/splash-icon-prev.png",
     scheme: "mobilestudents-preview",
   },
   production: {
     name: "Student Notification",
     androidPackage: "com.jduapp.studentnotification",
     iosBundleId: "com.jduapp.studentnotification",
+    icon: "./assets/images/icons/ios.png",
+    androidIcon: "./assets/images/icons/android.png",
+    splashIcon: "./assets/images/icons/splash-icon.png",
     scheme: "mobilestudents",
   },
 };
@@ -39,16 +48,17 @@ module.exports = ({ config }) => {
     slug: "student-notification",
     version: packageJson.version,
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: variantConfig.icon,
     scheme: variantConfig.scheme,
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     updates: {
-      url: 'https://u.expo.dev/70c8e8fd-516f-437d-b2ed-9867ee7fca17',
+      url: "https://u.expo.dev/70c8e8fd-516f-437d-b2ed-9867ee7fca17",
     },
     ios: {
       supportsTablet: true,
       bundleIdentifier: variantConfig.iosBundleId,
+      icon: variantConfig.icon,
       infoPlist: {
         CFBundleAllowMixedLocalizations: true,
         ITSAppUsesNonExemptEncryption: false,
@@ -75,13 +85,14 @@ module.exports = ({ config }) => {
     android: {
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
-        foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
-        monochromeImage: "./assets/images/android-icon-monochrome.png",
+        foregroundImage: variantConfig.androidIcon,
+        monochromeImage: variantConfig.androidIcon,
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: variantConfig.androidPackage,
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       statusBar: {
         barStyle: "light-content",
         backgroundColor: "#3B81F6",
@@ -111,13 +122,20 @@ module.exports = ({ config }) => {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: variantConfig.splashIcon,
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
           dark: {
             backgroundColor: "#000000",
           },
+        },
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: variantConfig.androidIcon,
+          color: "#000000",
         },
       ],
       "expo-secure-store",
@@ -136,4 +154,3 @@ module.exports = ({ config }) => {
     owner: "jduapp",
   };
 };
-

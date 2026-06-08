@@ -116,6 +116,7 @@ const translations = {
     logout: 'Logout',
     passwordChangedSuccess: 'Password changed successfully',
     changePassword: 'Change Password',
+    updateAccountPassword: 'Update your account password',
     changePasswordText:
       'Please enter your current password and create a new secure password',
     savePassword: 'Save Password',
@@ -348,6 +349,7 @@ const translations = {
     logout: 'ログアウト',
     passwordChangedSuccess: 'パスワードが正常に変更されました',
     changePassword: 'パスワードを変更',
+    updateAccountPassword: 'アカウントのパスワードを更新',
     changePasswordText: '現在のパスワードを入力し、新しい安全なパスワードを作成してください',
     savePassword: 'パスワードを保存',
     enterOldPassword: '現在のパスワードを入力',
@@ -388,9 +390,9 @@ const translations = {
     deviceTokenUpdated: 'デバイストークンが正常に更新されました',
     // mobile-students additional keys
     welcomeStudent: 'ようこそ、学生',
-    signInWithGoogle: 'Googleでサインイン',
+    signInWithGoogle: 'Googleでログイン',
     next: '次へ',
-    signIn: 'サインイン',
+    signIn: 'ログイン',
     back: '戻る',
     copy: 'コピー',
     emailRequired: 'メールアドレスを入力してください。',
@@ -517,6 +519,7 @@ const translations = {
     logout: 'Chiqish',
     passwordChangedSuccess: "Parol muvaffaqiyatli o'zgartirildi",
     changePassword: "Parolni o'zgartirish",
+    updateAccountPassword: 'Hisob parolingizni yangilang',
     changePasswordText:
       'Joriy parolingizni kiriting va yangi xavfsiz parol yarating',
     savePassword: 'Parolni saqlash',
@@ -796,6 +799,7 @@ const translations = {
     logout: 'Выйти',
     passwordChangedSuccess: 'Пароль успешно изменен',
     changePassword: 'Изменить пароль',
+    updateAccountPassword: 'Обновите пароль аккаунта',
     changePasswordText:
       'Введите текущий пароль и создайте новый безопасный пароль',
     savePassword: 'Сохранить пароль',

@@ -134,7 +134,7 @@ export default function SetPasswordScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.title}>{t('createNewPassword')}</ThemedText>
+                <ThemedText style={styles.title}>{t('createNewPasswordTitle')}</ThemedText>
               </View>
 
               <View style={styles.inputBlock}>
@@ -143,7 +143,7 @@ export default function SetPasswordScreen() {
                   <TextInput
                     value={newPassword}
                     onChangeText={setNewPassword}
-                    placeholder="Yangi password kiriting"
+                    placeholder={t('enterNewPassword')}
                     placeholderTextColor={palette.muted}
                     style={[
                       styles.input,
@@ -209,7 +209,7 @@ export default function SetPasswordScreen() {
                         ? palette.success
                         : palette.danger;
                       return (
-                        <View key={rule.label} style={styles.ruleRow}>
+                        <View key={rule.key} style={styles.ruleRow}>
                           <Ionicons
                             name={rule.passed ? "checkmark-circle" : "close-circle"}
                             size={20}
@@ -229,16 +229,6 @@ export default function SetPasswordScreen() {
                             >
                               {t(rule.key as any)}
                             </ThemedText>
-                            {rule.examples ? (
-                              <ThemedText
-                                style={[
-                                  styles.ruleHint,
-                                  { color: palette.mutedSoft },
-                                ]}
-                              >
-                                {rule.examples}
-                              </ThemedText>
-                            ) : null}
                           </View>
                         </View>
                       );
