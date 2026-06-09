@@ -283,11 +283,12 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: 24,
   },
   headerBlock: {
-    marginTop: 28,
-    marginBottom: 60,
+    marginTop: 0,
+    marginBottom: 0,
   },
   title: {
     fontWeight: "600",
