@@ -35,6 +35,13 @@ export class MobileStudentPostService {
     }
 
     async viewPost(params: { postStudentId: number; studentId: number }) {
+        if (!Number.isInteger(params.postStudentId) || params.postStudentId <= 0) {
+            throw {
+                status: 400,
+                message: 'Invalid post id',
+            };
+        }
+
         const post = await mobileStudentPostRepository.findPostStudentForView({
             postStudentId: params.postStudentId,
             studentId: params.studentId,
@@ -48,7 +55,7 @@ export class MobileStudentPostService {
         }
 
         if (!post[0].viewed_at) {
-            await mobileStudentPostRepository.markViewedByIds([params.postStudentId]);
+            await mobileStudentPostRepository.markViewedById(params.postStudentId);
         }
     }
 

@@ -9,6 +9,11 @@ import {
 import { mobilePostService } from './post.service';
 import { mobileStudentPostService } from './student-post.service';
 import { ApiError } from '../../../errors/ApiError';
+import {
+    isValidId,
+    parsePositiveInt,
+    parsePositiveIntArray,
+} from '../../../utils/validate';
 
 export class MobilePostModuleController implements IController {
     public router: Router = Router();
@@ -178,12 +183,14 @@ export class MobilePostModuleController implements IController {
     ) => {
         try {
             const { last_post_id, last_sent_at, read_post_ids } = req.body;
+            const safeLastPostId = parsePositiveInt(last_post_id) ?? 0;
+            const safeReadPostIds = parsePositiveIntArray(read_post_ids);
 
             const posts = await mobileStudentPostService.listPosts({
                 studentId: req.user.id,
-                lastPostId: last_post_id ?? 0,
+                lastPostId: safeLastPostId,
                 lastSentAt: last_sent_at,
-                readPostIds: read_post_ids,
+                readPostIds: safeReadPostIds,
             });
 
             return res
@@ -191,7 +198,7 @@ export class MobilePostModuleController implements IController {
                 .json({
                     posts,
                     message:
-                        read_post_ids && read_post_ids.length > 0
+                        safeReadPostIds.length > 0
                             ? 'Successfully viewed and fetched posts'
                             : 'Successfully fetched posts',
                 })
@@ -210,8 +217,17 @@ export class MobilePostModuleController implements IController {
         try {
             const { id: post_id } = req.params;
 
+            if (!isValidId(post_id)) {
+                throw new ApiError(400, 'Invalid post id');
+            }
+
+            const postStudentId = parsePositiveInt(post_id);
+            if (!postStudentId) {
+                throw new ApiError(400, 'Invalid post id');
+            }
+
             const post = await mobileStudentPostService.getPost({
-                postStudentId: post_id,
+                postStudentId: String(postStudentId),
                 studentId: req.user.id,
             });
 
@@ -220,7 +236,7 @@ export class MobilePostModuleController implements IController {
             }
 
             await mobileStudentPostService.viewPost({
-                postStudentId: Number(post_id),
+                postStudentId,
                 studentId: req.user.id,
             });
 
@@ -246,9 +262,14 @@ export class MobilePostModuleController implements IController {
     ) => {
         try {
             const { post_id } = req.body;
+            const postStudentId = parsePositiveInt(post_id);
+
+            if (!postStudentId) {
+                throw new ApiError(400, 'Invalid post id');
+            }
 
             await mobileStudentPostService.viewPost({
-                postStudentId: post_id,
+                postStudentId,
                 studentId: req.user.id,
             });
 
@@ -269,9 +290,14 @@ export class MobilePostModuleController implements IController {
     ) => {
         try {
             const { post_ids } = req.body;
+            const postStudentIds = parsePositiveIntArray(post_ids);
+
+            if (postStudentIds.length === 0) {
+                throw new ApiError(400, 'Invalid post ids');
+            }
 
             await mobileStudentPostService.viewExtended({
-                postStudentIds: post_ids,
+                postStudentIds,
                 studentId: req.user.id,
             });
 

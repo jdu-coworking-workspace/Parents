@@ -80,13 +80,26 @@ export class MobileStudentPostRepository {
     }
 
     async markViewedByIds(postStudentIds: number[]): Promise<void> {
-        if (postStudentIds.length === 0) return;
+        const sanitizedIds = postStudentIds.filter(
+            id => Number.isInteger(id) && id > 0
+        );
 
-        const postIdList = postStudentIds.join(',');
+        if (sanitizedIds.length === 0) return;
+
         await DB.execute(
             `UPDATE PostStudent
              SET viewed_at = NOW()
-             WHERE id IN (${postIdList});`
+             WHERE id IN (:post_ids)`,
+            { post_ids: sanitizedIds }
+        );
+    }
+
+    async markViewedById(postStudentId: number): Promise<void> {
+        await DB.execute(
+            `UPDATE PostStudent
+             SET viewed_at = NOW()
+             WHERE id = :id`,
+            { id: postStudentId }
         );
     }
 
