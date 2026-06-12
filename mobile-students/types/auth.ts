@@ -4,4 +4,5 @@ export interface StudentUser {
     phone_number: string;
     given_name: string;
     family_name: string;
+    hasPassword: boolean;
 }

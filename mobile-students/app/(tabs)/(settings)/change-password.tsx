@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -18,6 +18,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Colors, colors as semanticColors } from "@/constants/theme";
 import { I18nContext } from "@/contexts/i18n-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { changeStudentPassword } from "@/services/student-auth";
 import { ApiError } from "@/services/api-client";
@@ -312,6 +313,7 @@ export default function ChangePasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useContext(I18nContext);
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [passwords, setPasswords] = useState<Record<PasswordFieldKey, string>>({
     current: "",
     new: "",
@@ -333,6 +335,21 @@ export default function ChangePasswordScreen() {
   >({});
   const [isSaving, setIsSaving] = useState(false);
   const isSaveDisabled = isSaving;
+
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!user) {
+      router.replace("/sign-in");
+      return;
+    }
+
+    if (user.hasPassword !== true) {
+      router.replace("/(tabs)/(settings)" as any);
+    }
+  }, [isAuthLoading, router, user]);
 
   const handlePasswordChange = (key: PasswordFieldKey, value: string) => {
     setPasswords((current) => ({ ...current, [key]: value }));

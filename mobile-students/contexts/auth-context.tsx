@@ -72,6 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh_token?: string | null;
     user: StudentUser;
   }) => {
+    console.log({
+      email: response.user.email,
+      hasPassword: response.user.hasPassword,
+      user: response.user,
+    });
+
     await saveSession({
       accessToken: response.access_token,
       refreshToken: response.refresh_token ?? null,
@@ -189,6 +195,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const redirectUrl = "mobilestudents://sign-in";
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+
+    console.log('AUTH_RESPONSE', result);
 
     if (result.type !== "success" || !result.url) {
       throw new Error("Google login cancelled");

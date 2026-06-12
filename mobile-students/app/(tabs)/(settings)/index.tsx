@@ -264,19 +264,21 @@ export default function SettingsScreen() {
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
 
-            <Pressable
-              style={styles.row}
-              onPress={() => router.push('/(tabs)/(settings)/change-password' as any)}
-            >
-              <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
-                <Ionicons color='#fff' name='lock-closed-outline' size={20} />
-              </View>
-              <ThemedText style={styles.rowLabel}>
-                {t("changePassword")}
-              </ThemedText>
-              <View style={styles.rowSpacer} />
-              <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
-            </Pressable>
+            {user?.hasPassword === true ? (
+              <Pressable
+                style={styles.row}
+                onPress={() => router.push('/(tabs)/(settings)/change-password' as any)}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}> 
+                  <Ionicons color='#fff' name='lock-closed-outline' size={20} />
+                </View>
+                <ThemedText style={styles.rowLabel}>
+                  {t("changePassword")}
+                </ThemedText>
+                <View style={styles.rowSpacer} />
+                <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
+              </Pressable>
+            ) : null}
 
             <Pressable
               style={styles.row}

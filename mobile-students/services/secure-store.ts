@@ -36,8 +36,15 @@ export async function loadSession(): Promise<StoredSession | null> {
     }
 
     try {
-        const user = JSON.parse(userRaw) as StudentUser;
-        return { accessToken, refreshToken: refreshToken ?? null, user };
+        const user = JSON.parse(userRaw) as StudentUser & { hasPassword?: boolean };
+        return {
+            accessToken,
+            refreshToken: refreshToken ?? null,
+            user: {
+                ...user,
+                hasPassword: user.hasPassword === true,
+            },
+        };
     } catch {
         return null;
     }

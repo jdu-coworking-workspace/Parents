@@ -207,6 +207,10 @@ class MobileAuthModuleController implements IController {
         return config.STUDENT_COGNITO_DOMAIN || config.COGNITO_DOMAIN;
     }
 
+    private async getStudentHasPassword(email: string): Promise<boolean> {
+        return this.studentCognitoClient.hasPassword(email);
+    }
+
     private async getGoogleUserInfo(accessToken: string) {
         const cognitoDomain = this.getStudentCognitoDomain();
 
@@ -351,17 +355,33 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
+            const hasPassword = await this.getStudentHasPassword(student.email);
+
+            const cognitoTrace = await this.studentCognitoClient.inspectUser(
+                student.email
+            );
+
+            console.log({
+                email: student.email,
+                cognitoUserStatus: cognitoTrace.userStatus,
+                has_password: hasPassword,
+                cognitoUsername: cognitoTrace.cognitoUsername,
+                cognitoSub: cognitoTrace.cognitoSub,
+            });
+
             const url = this.buildStudentSignInUrl({
                 access_token: tokenResponse.access_token,
                 ...(tokenResponse.refresh_token
                     ? { refresh_token: tokenResponse.refresh_token }
                     : {}),
+                has_password: String(hasPassword),
                 user: JSON.stringify({
                     id: student.id,
                     email: student.email,
                     phone_number: student.phone_number,
                     given_name: student.given_name,
                     family_name: student.family_name,
+                    has_password: hasPassword,
                 }),
                 school_name: student.school_name ?? '',
             });
@@ -831,11 +851,15 @@ class MobileAuthModuleController implements IController {
                 throw e;
             }
 
+            const authUser = await this.studentCognitoClient.accessToken(token);
+            const hasPassword = await this.getStudentHasPassword(authUser.email);
+
             return res
                 .status(200)
                 .json({
                     message_key: 'passwordChangedSuccess',
                     message: 'Password changed successfully',
+                    has_password: hasPassword,
                 })
                 .end();
         } catch (e: any) {
@@ -957,6 +981,8 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
+            const hasPassword = await this.getStudentHasPassword(email);
+
             try {
                 await this.studentCognitoClient.resendTemporaryPassword(email);
             } catch (e: any) {
@@ -984,6 +1010,7 @@ class MobileAuthModuleController implements IController {
                     message_key: 'temporaryPasswordIfRegistered',
                     message:
                         'If the email is registered, a temporary password has been sent.',
+                    has_password: hasPassword,
                 })
                 .end();
         } catch (e: any) {
@@ -1032,18 +1059,33 @@ class MobileAuthModuleController implements IController {
             await this.syncStudentCognitoSub(email, authUser.sub_id);
 
             const student = students[0];
+            const hasPassword = await this.getStudentHasPassword(student.email);
+
+            const cognitoTrace = await this.studentCognitoClient.inspectUser(
+                student.email
+            );
+
+            console.log({
+                email: student.email,
+                cognitoUserStatus: cognitoTrace.userStatus,
+                has_password: hasPassword,
+                cognitoUsername: cognitoTrace.cognitoUsername,
+                cognitoSub: cognitoTrace.cognitoSub,
+            });
 
             return res
                 .status(200)
                 .json({
                     access_token: authData.accessToken,
                     refresh_token: authData.refreshToken,
+                    has_password: hasPassword,
                     user: {
                         id: student.id,
                         email: student.email,
                         phone_number: student.phone_number,
                         given_name: student.given_name,
                         family_name: student.family_name,
+                        has_password: hasPassword,
                     },
                     school_name: student.school_name,
                 })
@@ -1107,18 +1149,21 @@ class MobileAuthModuleController implements IController {
             await this.syncStudentCognitoSub(email, authUser.sub_id);
 
             const student = students[0];
+            const hasPassword = await this.getStudentHasPassword(student.email);
 
             return res
                 .status(200)
                 .json({
                     access_token: authData.accessToken,
                     refresh_token: authData.refreshToken,
+                    has_password: hasPassword,
                     user: {
                         id: student.id,
                         email: student.email,
                         phone_number: student.phone_number,
                         given_name: student.given_name,
                         family_name: student.family_name,
+                        has_password: hasPassword,
                     },
                     school_name: student.school_name,
                 })
@@ -1155,12 +1200,19 @@ class MobileAuthModuleController implements IController {
             const { refresh_token } = req.body;
             const authData =
                 await this.studentCognitoClient.refreshToken(refresh_token);
+            const authUser = await this.studentCognitoClient.accessToken(
+                authData.accessToken
+            );
+            const hasPassword = await this.getStudentHasPassword(
+                authUser.email
+            );
 
             return res
                 .status(200)
                 .json({
                     access_token: authData.accessToken,
                     refresh_token: refresh_token,
+                    has_password: hasPassword,
                 })
                 .end();
         } catch (e: any) {

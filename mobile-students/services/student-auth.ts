@@ -4,6 +4,24 @@ import type { StudentUser } from '@/types/auth';
 type LoginInitiateResponse = {
     message?: string;
     message_key?: string;
+    has_password?: boolean;
+};
+
+type BackendStudentUser = {
+    id: number;
+    email: string;
+    phone_number: string;
+    given_name: string;
+    family_name: string;
+    has_password?: boolean;
+};
+
+type BackendStudentAuthResponse = {
+    access_token: string;
+    refresh_token: string | null;
+    user: BackendStudentUser;
+    school_name: string;
+    has_password?: boolean;
 };
 
 export type StudentLoginResponse = {
@@ -11,6 +29,7 @@ export type StudentLoginResponse = {
     refresh_token: string | null;
     user: StudentUser;
     school_name: string;
+    has_password?: boolean;
 };
 
 type GoogleStudentLoginResponse = {
@@ -26,10 +45,34 @@ type GoogleCallbackQuery = {
     user?: string;
     school_name?: string;
     error?: string;
+    has_password?: string;
 };
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+
+function mapBackendStudentUser(user: BackendStudentUser, hasPasswordFallback?: boolean): StudentUser {
+    return {
+        id: user.id,
+        email: user.email,
+        phone_number: user.phone_number,
+        given_name: user.given_name,
+        family_name: user.family_name,
+        hasPassword: user.has_password === true || hasPasswordFallback === true,
+    };
+}
+
+function mapBackendStudentAuthResponse(
+    payload: BackendStudentAuthResponse
+): StudentLoginResponse {
+    return {
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+        user: mapBackendStudentUser(payload.user, payload.has_password),
+        school_name: payload.school_name,
+        has_password: payload.has_password,
+    };
+}
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
     const response = await api.post<T>(path, body, { requiresAuth: false });
@@ -50,10 +93,12 @@ function parseGoogleCallbackUrl(url: string): GoogleStudentLoginResponse {
         throw new Error('oauth_missing_params');
     }
 
+    const backendUser = JSON.parse(decodeURIComponent(params.user)) as BackendStudentUser;
+
     return {
         access_token: params.access_token,
         refresh_token: params.refresh_token ?? null,
-        user: JSON.parse(decodeURIComponent(params.user)) as StudentUser,
+        user: mapBackendStudentUser(backendUser, params.has_password === 'true'),
         school_name: params.school_name ? decodeURIComponent(params.school_name) : '',
     };
 }
@@ -76,15 +121,19 @@ export async function loginStudent(
     email: string,
     password: string
 ): Promise<StudentLoginResponse> {
-    const payload = await postJson<StudentLoginResponse>('/student/login', {
+    const payload = await postJson<BackendStudentAuthResponse>('/student/login', {
         email,
         password,
     });
 
-    accessToken = payload.access_token;
-    refreshToken = payload.refresh_token;
+    console.log('AUTH_RESPONSE', payload);
 
-    return payload;
+    const mapped = mapBackendStudentAuthResponse(payload);
+
+    accessToken = mapped.access_token;
+    refreshToken = mapped.refresh_token;
+
+    return mapped;
 }
 
 export async function changeStudentTemporaryPassword(
@@ -92,7 +141,7 @@ export async function changeStudentTemporaryPassword(
     tempPassword: string,
     newPassword: string
 ): Promise<StudentLoginResponse> {
-    const payload = await postJson<StudentLoginResponse>(
+    const payload = await postJson<BackendStudentAuthResponse>(
         '/student/change-temp-password',
         {
             email,
@@ -101,18 +150,22 @@ export async function changeStudentTemporaryPassword(
         }
     );
 
-    accessToken = payload.access_token;
-    refreshToken = payload.refresh_token;
+    console.log('AUTH_RESPONSE', payload);
 
-    return payload;
+    const mapped = mapBackendStudentAuthResponse(payload);
+
+    accessToken = mapped.access_token;
+    refreshToken = mapped.refresh_token;
+
+    return mapped;
 }
 
 export async function changeStudentPassword(
     previousPassword: string,
     newPassword: string
-): Promise<{ message?: string; message_key?: string }> {
+): Promise<{ message?: string; message_key?: string; has_password?: boolean }> {
     const response = await api.post<
-        { message?: string; message_key?: string },
+        { message?: string; message_key?: string; has_password?: boolean },
         { previous_password: string; new_password: string }
     >('/student/change-password', {
         previous_password: previousPassword,
@@ -133,8 +186,8 @@ export async function loginStudentWithTemporaryPassword(
 
 export async function refreshStudentAccessToken(
     refreshTokenValue: string
-): Promise<{ access_token: string; refresh_token: string }> {
-    return postJson<{ access_token: string; refresh_token: string }>(
+): Promise<{ access_token: string; refresh_token: string; has_password?: boolean }> {
+    return postJson<{ access_token: string; refresh_token: string; has_password?: boolean }>(
         '/student/refresh-token',
         {
             refresh_token: refreshTokenValue,

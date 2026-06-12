@@ -274,6 +274,56 @@ class CognitoClient {
         }
     }
 
+    async hasPassword(username: string): Promise<boolean> {
+        try {
+            const getUserParams: AdminGetUserCommandInput = {
+                UserPoolId: this.pool_id,
+                Username: username,
+            };
+
+            const getUserCommand = new AdminGetUserCommand(getUserParams);
+            const userResult = await this.client.send(getUserCommand);
+
+            switch (userResult.UserStatus) {
+                case 'CONFIRMED':
+                    return true;
+                case 'FORCE_CHANGE_PASSWORD':
+                case 'EXTERNAL_PROVIDER':
+                default:
+                    return false;
+            }
+        } catch (error: any) {
+            console.error(
+                'Failed to determine password state for %s:',
+                username,
+                error
+            );
+            return false;
+        }
+    }
+
+    async inspectUser(username: string): Promise<{
+        userStatus: string | undefined;
+        cognitoUsername: string;
+        cognitoSub: string;
+    }> {
+        const getUserParams: AdminGetUserCommandInput = {
+            UserPoolId: this.pool_id,
+            Username: username,
+        };
+
+        const getUserCommand = new AdminGetUserCommand(getUserParams);
+        const userResult = await this.client.send(getUserCommand);
+
+        return {
+            userStatus: userResult.UserStatus,
+            cognitoUsername: userResult.Username ?? username,
+            cognitoSub:
+                userResult.UserAttributes?.find(attr => attr.Name === 'sub')
+                    ?.Value ?? '',
+        };
+    }
+
     async isFirstTimeLogin(username: string): Promise<boolean> {
         try {
             const getUserParams: AdminGetUserCommandInput = {
