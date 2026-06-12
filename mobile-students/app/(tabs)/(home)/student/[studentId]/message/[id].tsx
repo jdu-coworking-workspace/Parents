@@ -1,21 +1,20 @@
-import { useMemo, useContext } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useContext, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
-
-function normalizeParam(value?: string | string[]) {
-  if (Array.isArray(value)) {
-    return value[0] ?? '';
-  }
-
-  return value ?? '';
-}
+import { fetchStudentMessage } from '@/services/student-messages';
+import type { Message } from '@/types/message';
 
 function formatDateTime(value: string) {
   if (!value) {
@@ -32,19 +31,7 @@ function formatDateTime(value: string) {
   return `${day}.${month}.${year}  ${timePart}`;
 }
 
-function getPriorityLabel(priority: string) {
-  if (priority === 'high') {
-    return 'majburiy';
-  }
-
-  if (priority === 'medium') {
-    return 'muhim';
-  }
-
-  return 'oddiy';
-}
-
-function getPriorityBadgeColor(priority: string) {
+function getPriorityBadgeColor(priority: Message['priority']) {
   if (priority === 'high') {
     return '#FF2B2B';
   }
@@ -62,44 +49,116 @@ export default function MessageDetailScreen() {
   const pageBackgroundColor = isDark ? '#111215' : '#fff';
   const { t } = useContext(I18nContext);
 
-  const params = useLocalSearchParams<{
-    title?: string | string[];
-    preview?: string | string[];
-    sentAt?: string | string[];
-    priority?: string | string[];
+  const { id } = useLocalSearchParams<{
+    id?: string | string[];
+    studentId?: string | string[];
   }>();
 
-  const title = normalizeParam(params.title) || 'Xabar';
-  const preview = normalizeParam(params.preview) || 'Xabar matni mavjud emas';
-  const sentAt = normalizeParam(params.sentAt);
-  const priority = normalizeParam(params.priority) || 'high';
+  const messageId = Array.isArray(id) ? id[0] : id;
 
-  const formattedDate = useMemo(() => formatDateTime(sentAt), [sentAt]);
+  const [message, setMessage] = useState<Message | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
-  const getPriorityLabelLocal = (priority: string) => {
+  const loadMessage = useCallback(async () => {
+    if (!messageId) {
+      setIsError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setIsError(false);
+      const post = await fetchStudentMessage(messageId);
+      setMessage(post);
+    } catch (error) {
+      console.error('Error loading student message:', error);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messageId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadMessage();
+    }, [loadMessage])
+  );
+
+  const getPriorityLabel = (priority: Message['priority']) => {
     if (priority === 'high') return t('critical');
     if (priority === 'medium') return t('important');
     return t('ordinary');
   };
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(preview);
+    if (!message?.content) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(message.content);
   };
+
+  if (isLoading) {
+    return (
+      <ThemedView
+        style={[styles.centeredContainer, { backgroundColor: pageBackgroundColor }]}
+      >
+        <ActivityIndicator size="large" color="#0A84FF" />
+        <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (isError || !message) {
+    return (
+      <ThemedView
+        style={[styles.centeredContainer, { backgroundColor: pageBackgroundColor }]}
+      >
+        <ThemedText style={styles.errorText}>
+          {t('failedToRetrieveMessage')}
+        </ThemedText>
+        <Pressable style={styles.retryButton} onPress={() => void loadMessage()}>
+          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
       <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
         <View style={styles.titleRow}>
-          <ThemedText style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>{title}</ThemedText>
-          <View style={[styles.badge, { backgroundColor: getPriorityBadgeColor(priority) }]}>
-            <ThemedText style={styles.badgeText}>{getPriorityLabelLocal(priority)}</ThemedText>
+          <ThemedText
+            style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}
+          >
+            {message.title}
+          </ThemedText>
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: getPriorityBadgeColor(message.priority) },
+            ]}
+          >
+            <ThemedText style={styles.badgeText}>
+              {getPriorityLabel(message.priority)}
+            </ThemedText>
           </View>
         </View>
 
-        <ThemedText style={[styles.preview, { color: isDark ? '#E5E7EB' : '#1F2937' }]}>{preview}</ThemedText>
+        <ThemedText
+          style={[styles.preview, { color: isDark ? '#E5E7EB' : '#1F2937' }]}
+        >
+          {message.content}
+        </ThemedText>
 
         <View style={styles.footerRow}>
-          <ThemedText style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}>{formattedDate}</ThemedText>
+          <ThemedText
+            style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+          >
+            {formatDateTime(message.sent_time)}
+          </ThemedText>
 
           <Pressable onPress={handleCopy} style={styles.copyButton}>
             <Ionicons name="copy-outline" size={20} color="#0A84FF" />
@@ -116,6 +175,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 14,
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#005678',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   card: {
     borderRadius: 8,

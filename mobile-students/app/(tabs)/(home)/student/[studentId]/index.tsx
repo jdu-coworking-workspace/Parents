@@ -1,6 +1,13 @@
-import { useMemo, useState, useContext } from 'react';
-import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useContext, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,61 +15,10 @@ import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BrandColors, Colors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
+import { fetchStudentMessages } from '@/services/student-messages';
+import type { Message } from '@/types/message';
 
-type MessageItem = {
-  id: number;
-  title: string;
-  preview: string;
-  sentAt: string;
-  priority: 'high' | 'medium' | 'low';
-  isUnread?: boolean;
-};
-
-const MOCK_MESSAGES: MessageItem[] = [
-  {
-    id: 1,
-    title: 'Portfolio Update',
-    preview: 'Please review your child\'s latest portfolio items and teacher comments.',
-    sentAt: '2026-04-21 10:30',
-    priority: 'high',
-    isUnread: true,
-  },
-  {
-    id: 2,
-    title: 'Homework Reminder',
-    preview: 'Mathematics homework must be submitted by Friday, 5:00 PM.',
-    sentAt: '2026-04-20 16:15',
-    priority: 'low',
-  },
-  {
-    id: 3,
-    title: 'Class Schedule Change',
-    preview: 'Tomorrow\'s class times have changed. Please check the updated schedule.',
-    sentAt: '2026-04-19 09:00',
-    priority: 'medium',
-  },
-  {
-    id: 4,
-    title: 'Sports Event',
-    preview: 'The school sports event will take place this Saturday.',
-    sentAt: '2026-04-18 14:25',
-    priority: 'low',
-  },
-  {
-    id: 5,
-    title: 'Exam Reminder',
-    preview: 'The mathematics exam starts on Monday at 09:00.',
-    sentAt: '2026-04-17 08:45',
-    priority: 'high',
-  },
-  {
-    id: 6,
-    title: 'Tuition Payment Notice',
-    preview: 'Updated information for the April tuition payment is now available.',
-    sentAt: '2026-04-16 11:10',
-    priority: 'low',
-  },
-];
+const PAGE_SIZE = 10;
 
 function formatDateTime(value: string) {
   const [datePart = '', timePart = ''] = value.split(' ');
@@ -75,13 +31,19 @@ function formatDateTime(value: string) {
   return `${day}.${month}.${year}   ${timePart}`;
 }
 
-function getImportanceLabel(priority: MessageItem['priority'], t: (k: any) => string) {
+function getImportanceLabel(
+  priority: Message['priority'],
+  t: (k: any) => string
+) {
   if (priority === 'high') return t('critical');
   if (priority === 'medium') return t('important');
   return t('ordinary');
 }
 
-function getImportanceBadgeStyle(priority: MessageItem['priority'], isRead: boolean) {
+function getImportanceBadgeStyle(
+  priority: Message['priority'],
+  isRead: boolean
+) {
   const baseStyle = {
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -108,7 +70,6 @@ export default function StudentMessagesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const backgroundColor = Colors[colorScheme].background;
-  const [visibleCount, setVisibleCount] = useState(3);
   const { t } = useContext(I18nContext);
   const { studentId } = useLocalSearchParams<{
     studentId?: string;
@@ -116,39 +77,188 @@ export default function StudentMessagesScreen() {
     familyName?: string;
   }>();
 
-  const visibleMessages = useMemo(
-    () => MOCK_MESSAGES.slice(0, visibleCount),
-    [visibleCount]
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+
+  const readButNotSentMessageIDs = useRef<number[]>([]);
+  const isMountedRef = useRef(true);
+  const messagesRef = useRef<Message[]>([]);
+
+  messagesRef.current = messages;
+
+  const loadMessages = useCallback(
+    async ({
+      refresh = false,
+      loadMore = false,
+    }: {
+      refresh?: boolean;
+      loadMore?: boolean;
+    } = {}) => {
+      try {
+        if (refresh) {
+          setIsRefreshing(true);
+        } else if (loadMore) {
+          setIsLoadingMore(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        setIsError(false);
+
+        const currentMessages = messagesRef.current;
+        const lastMessage =
+          loadMore && currentMessages.length > 0
+            ? currentMessages[currentMessages.length - 1]
+            : null;
+
+        const fetched = await fetchStudentMessages({
+          last_post_id: loadMore && lastMessage ? lastMessage.id : 0,
+          last_sent_at: loadMore && lastMessage ? lastMessage.sent_time : null,
+          read_post_ids: readButNotSentMessageIDs.current,
+        });
+
+        if (readButNotSentMessageIDs.current.length > 0) {
+          readButNotSentMessageIDs.current = [];
+        }
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setMessages(prev => {
+          if (refresh || !loadMore) {
+            return fetched;
+          }
+
+          const existingIds = new Set(prev.map(message => message.id));
+          const nextMessages = fetched.filter(
+            message => !existingIds.has(message.id)
+          );
+          return [...prev, ...nextMessages];
+        });
+        setHasMore(fetched.length >= PAGE_SIZE);
+      } catch (error) {
+        console.error('Error loading student messages:', error);
+        if (isMountedRef.current) {
+          setIsError(true);
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+          setIsLoadingMore(false);
+        }
+      }
+    },
+    []
   );
 
-  const canLoadMore = visibleCount < MOCK_MESSAGES.length;
+  useFocusEffect(
+    useCallback(() => {
+      isMountedRef.current = true;
+      void loadMessages();
+
+      return () => {
+        isMountedRef.current = false;
+      };
+    }, [loadMessages])
+  );
+
+  const handleOpenMessage = (message: Message) => {
+    if (!message.viewed_at) {
+      readButNotSentMessageIDs.current = Array.from(
+        new Set([...readButNotSentMessageIDs.current, message.id])
+      );
+
+      setMessages(prev =>
+        prev.map(item =>
+          item.id === message.id
+            ? { ...item, viewed_at: item.viewed_at ?? message.sent_time }
+            : item
+        )
+      );
+    }
+
+    router.push({
+      pathname: '/(tabs)/(home)/student/[studentId]/message/[id]',
+      params: {
+        studentId: studentId ?? '',
+        id: String(message.id),
+      },
+    });
+  };
+
+  if (isLoading && messages.length === 0) {
+    return (
+      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
+        <ActivityIndicator size="large" color={BrandColors[colorScheme]} />
+        <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (isError && messages.length === 0) {
+    return (
+      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
+        <ThemedText style={styles.errorText}>
+          {t('errorLoadingMessages')}
+        </ThemedText>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void loadMessages({ refresh: true })}
+        >
+          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
+        <ThemedText style={styles.emptyTitle}>{t('noMessagesYet')}</ThemedText>
+        <ThemedText style={styles.emptyDescription}>
+          {t('noMessagesDescription')}
+        </ThemedText>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void loadMessages({ refresh: true })}
+        >
+          <ThemedText style={styles.retryButtonText}>{t('refresh')}</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {visibleMessages.map(message => {
-          const isRead = !message.isUnread;
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void loadMessages({ refresh: true })}
+            tintColor={BrandColors[colorScheme]}
+          />
+        }
+      >
+        {messages.map(message => {
+          const isRead = !!message.viewed_at;
 
           return (
             <Pressable
               key={message.id}
-              onPress={() =>
-                router.push({
-                  pathname: '/(tabs)/(home)/student/[studentId]/message/[id]',
-                  params: {
-                    studentId: studentId ?? '',
-                    id: String(message.id),
-                    title: message.title,
-                    preview: message.preview,
-                    sentAt: message.sentAt,
-                    priority: message.priority,
-                  },
-                })
-              }
+              onPress={() => handleOpenMessage(message)}
               style={[
                 styles.card,
                 {
-                  backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
                   borderColor: !isRead
                     ? BrandColors[colorScheme]
                     : colorScheme === 'dark'
@@ -159,15 +269,26 @@ export default function StudentMessagesScreen() {
               ]}
             >
               <View style={styles.titleRow}>
-                <ThemedText style={[styles.title, isRead && styles.readOpacity]}>{message.title}</ThemedText>
+                <ThemedText
+                  style={[styles.title, isRead && styles.readOpacity]}
+                >
+                  {message.title}
+                </ThemedText>
                 <View style={styles.headerRight}>
-                  <ThemedText style={getImportanceBadgeStyle(message.priority, isRead)}>
+                  <ThemedText
+                    style={getImportanceBadgeStyle(message.priority, isRead)}
+                  >
                     {getImportanceLabel(message.priority, t)}
                   </ThemedText>
                 </View>
               </View>
 
-              <ThemedText style={[styles.preview, isRead && styles.readOpacity]}>{message.preview}</ThemedText>
+              <ThemedText
+                style={[styles.preview, isRead && styles.readOpacity]}
+                numberOfLines={3}
+              >
+                {message.content}
+              </ThemedText>
 
               <View style={styles.bottomRow}>
                 <View style={styles.dateAndStatus}>
@@ -180,7 +301,7 @@ export default function StudentMessagesScreen() {
                       isRead && styles.readOpacity,
                     ]}
                   >
-                    {formatDateTime(message.sentAt)}
+                    {formatDateTime(message.sent_time)}
                   </ThemedText>
 
                   <Ionicons
@@ -193,25 +314,20 @@ export default function StudentMessagesScreen() {
 
                 <Pressable
                   style={styles.readMoreButton}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(tabs)/(home)/student/[studentId]/message/[id]',
-                      params: {
-                        studentId: studentId ?? '',
-                        id: String(message.id),
-                        title: message.title,
-                        preview: message.preview,
-                        sentAt: message.sentAt,
-                        priority: message.priority,
-                      },
-                    })
-                  }
+                  onPress={() => handleOpenMessage(message)}
                 >
-                  <ThemedText style={[styles.readMoreText, { color: colorScheme === 'dark' ? '#0A84FF' : '#2089dc' }]}>
+                  <ThemedText
+                    style={[
+                      styles.readMoreText,
+                      {
+                        color: colorScheme === 'dark' ? '#0A84FF' : '#2089dc',
+                      },
+                    ]}
+                  >
                     {t('continueReading')}
                   </ThemedText>
                   <Ionicons
-                    name='chevron-forward'
+                    name="chevron-forward"
                     size={16}
                     color={colorScheme === 'dark' ? '#0A84FF' : '#2089dc'}
                     style={{ marginLeft: 4 }}
@@ -222,9 +338,22 @@ export default function StudentMessagesScreen() {
           );
         })}
 
-        {canLoadMore && (
-          <Pressable style={styles.loadMoreButton} onPress={() => setVisibleCount(prev => prev + 3)}>
-            <ThemedText style={styles.loadMoreText}>{t('loadMoreMessages')}</ThemedText>
+        {hasMore && (
+          <Pressable
+            style={[
+              styles.loadMoreButton,
+              isLoadingMore && styles.loadMoreButtonDisabled,
+            ]}
+            disabled={isLoadingMore}
+            onPress={() => void loadMessages({ loadMore: true })}
+          >
+            {isLoadingMore ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <ThemedText style={styles.loadMoreText}>
+                {t('loadMoreMessages')}
+              </ThemedText>
+            )}
           </Pressable>
         )}
       </ScrollView>
@@ -236,8 +365,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
   content: {
     paddingBottom: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    opacity: 0.7,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#005678',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   card: {
     padding: 10,
@@ -317,6 +484,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     backgroundColor: '#005678',
+  },
+  loadMoreButtonDisabled: {
+    opacity: 0.8,
   },
   loadMoreText: {
     color: '#FFFFFF',
