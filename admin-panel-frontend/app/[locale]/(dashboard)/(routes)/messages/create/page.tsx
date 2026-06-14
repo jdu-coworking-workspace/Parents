@@ -557,7 +557,6 @@ export default function SendMessagePage() {
               title={formValues.title ?? ""}
               description={formValues.description ?? ""}
               priority={formValues.priority}
-              audienceLabel={tPosts(audienceTab)}
               audience={audienceTab}
               imagePreview={imagePreview}
               imagePath={formValues.image}

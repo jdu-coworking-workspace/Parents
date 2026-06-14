@@ -178,6 +178,7 @@
     "confirmPostTitle": "Post / Notification",
     "confirmRecipientGroup": "Recipient Group:",
     "confirmSelectedStudents": "Selected Students:",
+    "confirmSelectedCount": "Selected: {count}",
     "confirmSelectedGroups": "Selected Groups:",
     "confirmSelectedRecipients": "Selected Recipients:",
     "confirmParentsTab": "Parent",

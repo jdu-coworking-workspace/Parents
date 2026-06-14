@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -51,9 +51,93 @@ function ParentsIcon({ className }: { className?: string }) {
   return <LocalAssetIcon src={PARENTS_ICON} className={className} />;
 }
 
-function getInitials(givenName?: string, familyName?: string) {
-  const initials = `${givenName?.charAt(0) ?? ""}${familyName?.charAt(0) ?? ""}`;
-  return initials.toUpperCase() || "?";
+function getPriorityBadgeClassName(priority?: string) {
+  switch (priority) {
+    case "high":
+      return "bg-red-500 text-white dark:bg-red-600 dark:text-white";
+    case "medium":
+      return "bg-yellow-500 text-white dark:bg-amber-500 dark:text-white";
+    case "low":
+      return "bg-green-500 text-white dark:bg-green-600 dark:text-white";
+    default:
+      return "bg-muted text-foreground";
+  }
+}
+
+function getConfirmImageSrc(imagePreview?: string, imagePath?: string): string {
+  if (imagePreview) return imagePreview;
+  if (!imagePath) return "";
+  if (imagePath.startsWith("data:") || imagePath.startsWith("http")) {
+    return imagePath;
+  }
+  const base = process.env.NEXT_PUBLIC_IMAGES_URL ?? "";
+  const path = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
+  return `${base}${path}`;
+}
+
+function AudienceToggle({
+  activeTab,
+  className,
+}: {
+  activeTab: PreviewAudienceTab;
+  className?: string;
+}) {
+  const t = useTranslations("sendmessage");
+
+  const tabs: {
+    id: PreviewAudienceTab;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      id: "student",
+      label: t("students"),
+      icon: (
+        <GroupRecipientsIcon className="h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11" />
+      ),
+    },
+    {
+      id: "parent",
+      label: t("confirmParentsTab"),
+      icon: <ParentsIcon className="h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11" />,
+    },
+  ];
+
+  return (
+    <div
+      className={cn(
+        "flex w-full gap-0 overflow-hidden rounded-lg border border-border sm:rounded-xl",
+        className
+      )}
+    >
+      {tabs.map((tab, index) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <div
+            key={tab.id}
+            aria-hidden
+            className={cn(
+              "pointer-events-none flex min-h-[88px] flex-1 select-none flex-col items-center justify-center gap-1.5 px-2 py-4 text-[11px] font-semibold uppercase tracking-wide sm:min-h-[104px] sm:gap-2 sm:px-4 sm:py-6 sm:text-xs md:gap-3 md:py-8 md:text-sm",
+              index > 0 && "border-l border-border",
+              isActive
+                ? "bg-slate-600 text-white dark:bg-slate-500"
+                : "bg-muted/50 text-foreground dark:bg-muted/30 dark:text-muted-foreground"
+            )}
+          >
+            <span
+              className={cn(
+                "dark:[&_img]:brightness-0 dark:[&_img]:invert",
+                isActive && "[&_img]:brightness-0 [&_img]:invert"
+              )}
+            >
+              {tab.icon}
+            </span>
+            {tab.label}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 interface SendMessageConfirmDialogProps {
@@ -61,7 +145,6 @@ interface SendMessageConfirmDialogProps {
   title: string;
   description: string;
   priority: string | undefined;
-  audienceLabel: string;
   audience: "parents" | "students";
   imagePreview?: string;
   imagePath?: string;
@@ -81,7 +164,6 @@ export default function SendMessageConfirmDialog({
   title,
   description,
   priority,
-  audienceLabel,
   audience,
   imagePreview,
   imagePath,
@@ -97,62 +179,62 @@ export default function SendMessageConfirmDialog({
 }: SendMessageConfirmDialogProps) {
   const t = useTranslations("sendmessage");
   const locale = useLocale();
-  const [previewTab, setPreviewTab] = useState<PreviewAudienceTab>("student");
 
   const priorityLabel = priority ? t(priority as "high" | "medium" | "low") : "";
-  const messagePrefix =
-    audience === "students"
-      ? t("confirmMessageForStudents")
-      : t("confirmMessageForParents");
+  const audienceTab: PreviewAudienceTab =
+    audience === "students" ? "student" : "parent";
+  const recipientCount =
+    selectedGroups.reduce(
+      (total, group) => total + (group.member_count ?? 0),
+      0
+    ) + selectedStudents.length;
 
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-4xl gap-0 overflow-hidden p-0 sm:rounded-2xl">
+      <DialogContent
+        hideCloseButton
+        className="flex max-h-[min(92dvh,920px)] w-[calc(100%-1rem)] max-w-4xl flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground sm:w-[calc(100%-2rem)] sm:rounded-2xl"
+      >
         <DialogTitle className="sr-only">{t("confirmPostTitle")}</DialogTitle>
         <DialogDescription className="sr-only">
           {t("confirmAndSend")}
         </DialogDescription>
-        <div className="flex min-h-[420px] flex-col sm:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
           {/* Left: post summary */}
-          <div className="flex w-full min-w-0 flex-col items-center px-8 py-10 sm:w-1/2">
-            <GroupRecipientsIcon className="mb-5 h-16 w-16" />
-            <h2 className="text-center text-2xl font-bold tracking-tight">
+          <div className="flex w-full min-w-0 flex-col border-b border-border px-4 py-5 sm:px-6 sm:py-7 md:w-1/2 md:border-b-0 md:border-r md:py-8 lg:px-8">
+            <AudienceToggle
+              activeTab={audienceTab}
+              className="mb-4 sm:mb-5"
+            />
+            <h2 className="text-center text-lg font-semibold tracking-tight text-muted-foreground sm:text-xl">
               {t("confirmPostTitle")}
             </h2>
-            <div className="mt-4 w-full max-w-sm space-y-3 self-start">
-              {title ? (
-                <p className="text-lg font-medium text-foreground">{title}</p>
-              ) : null}
-              {priorityLabel ? (
-                <span className="flex w-1/2 items-center justify-center rounded-lg bg-[#3d3d3d] px-4 py-3.5 text-base font-semibold text-white">
-                  {t("priority")}: {priorityLabel}
-                </span>
-              ) : null}
+            {title ? (
+              <h3 className="mt-3 break-words px-2 text-center text-2xl font-bold leading-tight tracking-tight text-foreground sm:mt-4 sm:text-3xl md:text-[2rem]">
+                {title}
+              </h3>
+            ) : null}
+            <div className={cn("w-full space-y-3", title ? "mt-5 sm:mt-6" : "mt-4")}>
               <textarea
                 readOnly
-                rows={5}
-                value={
-                  description
-                    ? `${messagePrefix} ${description}`
-                    : messagePrefix
-                }
-                className="w-full resize-none rounded-lg border-2 border-border bg-muted/50 px-4 py-3.5 text-base leading-relaxed text-foreground outline-none"
+                rows={4}
+                value={description}
+                className="min-h-[112px] w-full resize-none rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm leading-relaxed text-foreground outline-none dark:bg-muted/20 sm:min-h-[128px] sm:px-4 sm:py-3.5 sm:text-base"
               />
             </div>
             {(imagePreview || imagePath) && (
-              <div className="mt-4 w-full max-w-sm">
-                <Image
-                  src={imagePreview || (imagePath ? `/${imagePath}` : "")}
+              <div className="mt-4 flex justify-start">
+                {/* Native img for reliable data-URL and uploaded image preview */}
+                <img
+                  src={getConfirmImageSrc(imagePreview, imagePath)}
                   alt=""
-                  width={300}
-                  height={200}
-                  className="w-full rounded-lg object-cover"
+                  className="h-[112px] w-[112px] rounded-md border border-border bg-muted/40 object-contain dark:bg-muted/20 sm:h-[120px] sm:w-[120px]"
                 />
               </div>
             )}
             {scheduleEnabled && scheduledAt && (
-              <p className="mt-3 w-full max-w-sm text-left text-sm text-muted-foreground">
+              <p className="mt-3 w-full text-left text-xs text-muted-foreground sm:text-sm">
                 {t("scheduledAt")}:{" "}
                 {scheduledAt
                   .toLocaleString(locale, {
@@ -169,70 +251,32 @@ export default function SendMessageConfirmDialog({
           </div>
 
           {/* Right: recipients */}
-          <div className="flex w-full min-w-0 flex-col px-8 py-10 sm:w-1/2">
-            <div className="flex flex-col sm:-ml-px sm:border-l-2 sm:border-foreground sm:pl-8">
-            <div className="flex gap-0 overflow-hidden rounded-xl border border-border">
-              <button
-                type="button"
-                aria-pressed={previewTab === "student"}
-                onClick={() => setPreviewTab("student")}
+          <div className="flex w-full min-w-0 flex-col px-4 py-5 sm:px-6 sm:py-7 md:flex md:w-1/2 md:flex-col md:overflow-hidden md:py-8 lg:px-8">
+            {priorityLabel ? (
+              <span
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-3 px-4 py-8 text-sm font-semibold uppercase tracking-wide transition-colors",
-                  previewTab === "student"
-                    ? "bg-[#727b8c] text-white"
-                    : "bg-muted/40 text-foreground hover:bg-muted/60"
+                  "inline-flex w-fit max-w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-semibold sm:px-4 sm:py-3.5 sm:text-base",
+                  getPriorityBadgeClassName(priority)
                 )}
               >
-                <GroupRecipientsIcon className="h-11 w-11" />
-                {t("students")}
-              </button>
-              <button
-                type="button"
-                aria-pressed={previewTab === "parent"}
-                onClick={() => setPreviewTab("parent")}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-3 border-l border-border px-4 py-8 text-sm font-semibold uppercase tracking-wide transition-colors",
-                  previewTab === "parent"
-                    ? "bg-[#727b8c] text-white"
-                    : "bg-muted/40 text-foreground hover:bg-muted/60"
-                )}
-              >
-                <ParentsIcon className="h-11 w-11" />
-                {t("confirmParentsTab")}
-              </button>
-            </div>
+                {t("priority")}: {priorityLabel}
+              </span>
+            ) : null}
 
-            <p className="mt-8 text-sm">
-              <span className="font-semibold">{t("confirmRecipientGroup")}</span>
-              <br />
-              <span className="font-bold">{audienceLabel}</span>
+            <p className="mt-4 text-sm font-semibold text-foreground sm:mt-5">
+              {t("confirmSelectedCount", { count: recipientCount })}
             </p>
 
-            <p className="mt-6 text-sm font-semibold">
-              {selectedGroups.length > 0 && selectedStudents.length > 0
-                ? t("confirmSelectedRecipients")
-                : t("confirmSelectedStudents")}
-            </p>
-
-            <div className="mt-3 max-h-72 flex-1 overflow-y-auto rounded-lg bg-[#f0f0f0] p-3">
+            <div className="mt-3 min-h-[120px] max-h-52 flex-1 overflow-y-auto rounded-lg bg-muted/60 p-2.5 dark:bg-muted/30 sm:max-h-64 sm:p-3 md:min-h-0 md:max-h-none md:flex-1">
               <ul className="flex flex-col gap-2">
                 {selectedGroups.map((group) => (
                   <li key={`group-${group.id}`}>
-                    <RecipientPill
-                      label={group.name}
-                      initials={group.name?.charAt(0)?.toUpperCase() ?? "G"}
-                    />
+                    <RecipientPill label={group.name} />
                   </li>
                 ))}
                 {selectedStudents.map((student) => (
                   <li key={`student-${student.id}`}>
-                    <RecipientPill
-                      label={formatStudentName(student)}
-                      initials={getInitials(
-                        student.given_name,
-                        student.family_name
-                      )}
-                    />
+                    <RecipientPill label={formatStudentName(student)} />
                   </li>
                 ))}
               </ul>
@@ -242,16 +286,15 @@ export default function SendMessageConfirmDialog({
                 </p>
               )}
             </div>
-            </div>
           </div>
         </div>
 
-        <DialogFooter className="gap-3 bg-background px-8 py-5 sm:justify-end">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-card px-4 py-4 sm:gap-3 sm:px-6 sm:py-5 md:justify-end lg:px-8">
           <DialogClose asChild>
             <Button
               type="button"
               variant="outline"
-              className="min-w-[100px] rounded-lg border-foreground/30"
+              className="w-full rounded-lg sm:min-w-[100px] sm:w-auto"
             >
               {t("close")}
             </Button>
@@ -262,7 +305,7 @@ export default function SendMessageConfirmDialog({
               disabled={!isFormValid || !hasRecipients || isSubmitting}
               isLoading={isSubmitting}
               onClick={onConfirm}
-              className="min-w-[140px] rounded-lg bg-[#3d3d3d] text-white hover:bg-[#2d2d2d]"
+              className="w-full rounded-lg sm:min-w-[140px] sm:w-auto"
             >
               {t("confirmAndSend")}
             </Button>
@@ -273,22 +316,10 @@ export default function SendMessageConfirmDialog({
   );
 }
 
-function RecipientPill({
-  label,
-  initials,
-}: {
-  label: string;
-  initials: string;
-}) {
+function RecipientPill({ label }: { label: string }) {
   return (
-    <div className="inline-flex max-w-full items-center gap-2 rounded-full bg-[#4a4a4a] py-1.5 pl-1.5 pr-4 text-sm font-medium text-white">
-      <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-semibold text-foreground"
-        aria-hidden
-      >
-        {initials}
-      </span>
-      <span className="truncate">{label}</span>
+    <div className="flex h-7 w-[152px] shrink-0 items-center justify-center rounded-full bg-zinc-900 px-2 text-[11px] font-medium text-white dark:bg-zinc-800 dark:ring-1 dark:ring-zinc-700 sm:h-8 sm:w-[168px] sm:text-xs">
+      <span className="w-full truncate text-center">{label}</span>
     </div>
   );
 }

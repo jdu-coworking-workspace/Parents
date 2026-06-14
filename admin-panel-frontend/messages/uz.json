@@ -179,6 +179,7 @@
     "confirmPostTitle": "Post / Bildirishnoma",
     "confirmRecipientGroup": "Qabul qiluvchilar guruhi:",
     "confirmSelectedStudents": "Tanlangan talabalar:",
+    "confirmSelectedCount": "Tanlangan: {count}",
     "confirmSelectedGroups": "Tanlangan guruhlar:",
     "confirmSelectedRecipients": "Tanlangan qabul qiluvchilar:",
     "confirmParentsTab": "Ota-ona",

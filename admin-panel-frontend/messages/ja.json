@@ -179,6 +179,7 @@
     "confirmPostTitle": "投稿 / 通知",
     "confirmRecipientGroup": "受信者グループ:",
     "confirmSelectedStudents": "選択した学生:",
+    "confirmSelectedCount": "選択: {count}",
     "confirmSelectedGroups": "選択したグループ:",
     "confirmSelectedRecipients": "選択した受信者:",
     "confirmParentsTab": "保護者",
