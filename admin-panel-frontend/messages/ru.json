@@ -178,6 +178,7 @@
     "confirmPostTitle": "Пост / Уведомление",
     "confirmRecipientGroup": "Группа получателей:",
     "confirmSelectedStudents": "Выбранные студенты:",
+    "confirmSelectedCount": "Выбрано: {count}",
     "confirmSelectedGroups": "Выбранные группы:",
     "confirmSelectedRecipients": "Выбранные получатели:",
     "confirmParentsTab": "Родитель",
