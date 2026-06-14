@@ -24,6 +24,7 @@ import {
   sendPushTokenToBackend,
   setupNotificationHandler,
 } from "@/services/push-notifications";
+import { setAuthCallbacks } from "@/services/api-client";
 import type { StudentUser } from "@/types/auth";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pushSetupStartedRef = useRef(false);
   const lastUploadedPushTokenRef = useRef<string | null>(null);
   const isAuthenticatedRef = useRef(false);
+  const signOutRef = useRef<() => Promise<void>>(async () => {});
 
   const persistSession = async (response: {
     access_token: string;
@@ -105,6 +107,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Restore token on mount
   useEffect(() => {
     restoreToken();
+  }, []);
+
+  useEffect(() => {
+    setAuthCallbacks({
+      onUnauthorized: () => {
+        void signOutRef.current();
+      },
+      onForbidden: () => {
+        void signOutRef.current();
+      },
+    });
   }, []);
 
   useEffect(() => {
@@ -229,6 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Sign out error:", error);
     }
   };
+
+  signOutRef.current = signOut;
 
   const value: AuthContextType = {
     user,

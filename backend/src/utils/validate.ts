@@ -29,6 +29,24 @@ export function isValidId(id: string): boolean {
     return parseInt(id) > 0 && /^[0-9]+$/.test(id);
 }
 
+export function parsePositiveInt(value: unknown): number | null {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return null;
+    }
+    return parsed;
+}
+
+export function parsePositiveIntArray(values: unknown): number[] {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+
+    return values
+        .map(value => parsePositiveInt(value))
+        .filter((id): id is number => id !== null);
+}
+
 export function isValidArrayId(ids: number[]): boolean {
     if (!Array.isArray(ids)) {
         return false;

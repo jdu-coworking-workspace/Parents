@@ -183,6 +183,8 @@ CREATE TABLE
     `post_id` int NOT NULL,
     `student_id` int NOT NULL,
     `group_id` int DEFAULT NULL,
+    `viewed_at` datetime DEFAULT NULL,
+    `push` tinyint (1) NOT NULL DEFAULT '0',
     PRIMARY KEY (`id`),
     KEY `idx_poststudent_post_id` (`post_id`),
     KEY `idx_poststudent_student_id` (`student_id`),
