@@ -91,6 +91,8 @@ module.exports = ({ config }) => {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: variantConfig.androidPackage,
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       statusBar: {
         barStyle: "light-content",
         backgroundColor: "#3B81F6",
@@ -127,6 +129,13 @@ module.exports = ({ config }) => {
           dark: {
             backgroundColor: "#000000",
           },
+        },
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: variantConfig.androidIcon,
+          color: "#000000",
         },
       ],
       "expo-secure-store",

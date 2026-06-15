@@ -1,9 +1,19 @@
 import { NextFunction, Response, Router } from 'express';
 
 import { IController } from '../../../utils/icontroller';
-import { ExtendedRequest, verifyToken } from '../../../middlewares/mobileAuth';
+import {
+    ExtendedRequest,
+    verifyStudentToken,
+    verifyToken,
+} from '../../../middlewares/mobileAuth';
 import { mobilePostService } from './post.service';
+import { mobileStudentPostService } from './student-post.service';
 import { ApiError } from '../../../errors/ApiError';
+import {
+    isValidId,
+    parsePositiveInt,
+    parsePositiveIntArray,
+} from '../../../utils/validate';
 
 export class MobilePostModuleController implements IController {
     public router: Router = Router();
@@ -18,6 +28,20 @@ export class MobilePostModuleController implements IController {
         this.router.post('/view', verifyToken, this.viewPost);
         this.router.post('/view/extended', verifyToken, this.viewExtended);
         this.router.get('/post/:post_id', verifyToken, this.getPostData);
+
+        this.router.post('/student/posts', verifyStudentToken, this.studentPosts);
+        this.router.get(
+            '/student/posts/:id',
+            verifyStudentToken,
+            this.studentPost
+        );
+        this.router.post('/student/view', verifyStudentToken, this.studentViewPost);
+        this.router.post(
+            '/student/view/extended',
+            verifyStudentToken,
+            this.studentViewExtended
+        );
+        this.router.get('/student/unread', verifyStudentToken, this.studentUnread);
     }
 
     getPostData = async (
@@ -146,6 +170,158 @@ export class MobilePostModuleController implements IController {
                 .status(200)
                 .json({ message: 'Successfully viewed' })
                 .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentPosts = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { last_post_id, last_sent_at, read_post_ids } = req.body;
+            const safeLastPostId = parsePositiveInt(last_post_id) ?? 0;
+            const safeReadPostIds = parsePositiveIntArray(read_post_ids);
+
+            const posts = await mobileStudentPostService.listPosts({
+                studentId: req.user.id,
+                lastPostId: safeLastPostId,
+                lastSentAt: last_sent_at,
+                readPostIds: safeReadPostIds,
+            });
+
+            return res
+                .status(200)
+                .json({
+                    posts,
+                    message:
+                        safeReadPostIds.length > 0
+                            ? 'Successfully viewed and fetched posts'
+                            : 'Successfully fetched posts',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentPost = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { id: post_id } = req.params;
+
+            if (!isValidId(post_id)) {
+                throw new ApiError(400, 'Invalid post id');
+            }
+
+            const postStudentId = parsePositiveInt(post_id);
+            if (!postStudentId) {
+                throw new ApiError(400, 'Invalid post id');
+            }
+
+            const post = await mobileStudentPostService.getPost({
+                postStudentId: String(postStudentId),
+                studentId: req.user.id,
+            });
+
+            if (post.length === 0) {
+                return res.status(404).json({ error: 'Post not found' }).end();
+            }
+
+            await mobileStudentPostService.viewPost({
+                postStudentId,
+                studentId: req.user.id,
+            });
+
+            post[0].images = post[0].image ? [post[0].image] : [];
+
+            return res
+                .status(200)
+                .json({
+                    post: post[0],
+                    message: 'Successfully fetched post',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentViewPost = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { post_id } = req.body;
+            const postStudentId = parsePositiveInt(post_id);
+
+            if (!postStudentId) {
+                throw new ApiError(400, 'Invalid post id');
+            }
+
+            await mobileStudentPostService.viewPost({
+                postStudentId,
+                studentId: req.user.id,
+            });
+
+            return res
+                .status(200)
+                .json({ message: 'Successfully viewed' })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentViewExtended = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { post_ids } = req.body;
+            const postStudentIds = parsePositiveIntArray(post_ids);
+
+            if (postStudentIds.length === 0) {
+                throw new ApiError(400, 'Invalid post ids');
+            }
+
+            await mobileStudentPostService.viewExtended({
+                postStudentIds,
+                studentId: req.user.id,
+            });
+
+            return res
+                .status(200)
+                .json({ message: 'Successfully viewed' })
+                .end();
+        } catch (e: any) {
+            if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    studentUnread = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const unreadCount = await mobileStudentPostService.getUnreadCount(
+                req.user.id
+            );
+
+            return res.status(200).json({ unread_count: unreadCount }).end();
         } catch (e: any) {
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);

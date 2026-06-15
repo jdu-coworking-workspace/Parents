@@ -16,18 +16,18 @@ export default function SettingsLayout() {
         name="index"
         options={{
           headerShown: true,
-          title: t('settingsHeader'),
+          title: t("settingsHeader"),
           headerStyle: {
             backgroundColor: headerBg,
           },
-          headerTintColor: '#fff',
+          headerTintColor: "#fff",
           headerTitleStyle: {
-            fontWeight: 'bold',
+            fontWeight: "bold",
             fontSize: 18,
-            color: '#fff',
+            color: "#fff",
           },
           headerShadowVisible: false,
-          headerTitleAlign: 'center',
+          headerTitleAlign: "center",
         }}
       />
       <Stack.Screen
