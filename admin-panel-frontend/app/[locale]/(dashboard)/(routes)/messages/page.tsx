@@ -576,7 +576,7 @@ export default function Info() {
               }}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                 audienceTab === "parents"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-foreground text-background dark:bg-background dark:text-foreground shadow-sm"
                   : "text-muted-foreground"
               }`}
             >
@@ -595,7 +595,7 @@ export default function Info() {
               }}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm pr-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ml-2 ${
                 audienceTab === "students"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-foreground text-background dark:bg-background dark:text-foreground shadow-sm"
                   : "text-muted-foreground"
               }`}
             >
@@ -607,7 +607,7 @@ export default function Info() {
             <label
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm pr-3 text-sm font-medium transition-all ml-4 ${
                 showScheduled
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-foreground text-background dark:bg-background dark:text-foreground shadow-sm"
                   : "text-muted-foreground"
               }`}
               htmlFor="show-scheduled"
@@ -723,7 +723,7 @@ function MessagesContent({
   return (
     <>
       <div className="flex items-center justify-between w-full gap-2 mb-2">
-        <div className="flex-1 px-3">
+        <div className="w-full sm:max-w-sm">
           <Input
             placeholder={t("filter")}
             value={searchInput}

@@ -204,7 +204,10 @@
     "chooseFile": "ファイルを選択",
     "noFileChosen": "ファイルが選択されていません",
     "selectDateTime": "日付と時間を選択",
-    "timesShownIn": "表示時刻のタイムゾーン：{timeZone}"
+    "timesShownIn": "表示時刻のタイムゾーン：{timeZone}",
+    "sendMessageTo": "{audience}メッセージを送信する",
+    "toParents": "保護者へ",
+    "toStudents": "学生へ"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "予約されたメッセージを見る",

@@ -314,7 +314,7 @@ export default function SendMessagePage() {
     <div className="w-full">
       <Form {...form}>
         <PageHeader
-          title={`${t("sendMessage")} to ${tPosts(audienceTab)}`}
+          title={t("sendMessageTo", { audience: t(audienceTab === "parents" ? "toParents" : "toStudents") })}
           variant="create"
         >
           <DraftsDialog
@@ -341,7 +341,7 @@ export default function SendMessagePage() {
               setSelectedStudents([]);
             }}
           >
-            <TabsList className="mt-2">
+            <TabsList className="mt-2 [&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white">
               <TabsTrigger value="parents">{tPosts("parents")}</TabsTrigger>
               <TabsTrigger value="students">{tPosts("students")}</TabsTrigger>
             </TabsList>
@@ -520,7 +520,7 @@ export default function SendMessagePage() {
           />
 
           <Tabs defaultValue="group">
-            <TabsList>
+            <TabsList className="[&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white">
               <TabsTrigger value="group">{t("groups")}</TabsTrigger>
               <TabsTrigger value="student">{t("students")}</TabsTrigger>
             </TabsList>

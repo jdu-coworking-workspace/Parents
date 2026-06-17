@@ -207,7 +207,10 @@
     "chooseFile": "Faylni tanlang",
     "noFileChosen": "Fayl tanlanmagan",
     "selectDateTime": "Sana va vaqtni tanlang",
-    "timesShownIn": "Vaqtlar {timeZone} da ko'rsatilgan"
+    "timesShownIn": "Vaqtlar {timeZone} da ko'rsatilgan",
+    "sendMessageTo": "{audience} xabar yuboring",
+    "toParents": "Ota-onalarga",
+    "toStudents": "Talabalarga"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Rejalashtirilgan xabar",
