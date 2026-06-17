@@ -16,7 +16,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Colors, colors as semanticColors } from "@/constants/theme";
+import {
+  BrandColors,
+  Colors,
+  colors as semanticColors,
+} from "@/constants/theme";
 import { I18nContext } from "@/contexts/i18n-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { changeStudentPassword } from "@/services/student-auth";
@@ -58,13 +62,10 @@ function usePasswordPalette(colorScheme: "light" | "dark") {
     text: Colors[colorScheme].text,
     background: Colors[colorScheme].background,
     primary: BrandColors[colorScheme],
-    // Use pure white background for inputs in light mode
     inputBg: colorScheme === "dark" ? "#151718" : "#FFFFFF",
-    // In dark mode make the input border and muted/icon color white
     inputBorder: colorScheme === "dark" ? "#FFFFFF" : "#D1D5DB",
     cardBg: colorScheme === "dark" ? "#101417" : "#FFFFFF",
     cardBorder: colorScheme === "dark" ? "#26323A" : "#E5E7EB",
-    // Use white for icon/placeholder muted color in dark mode
     muted: colorScheme === "dark" ? "#FFFFFF" : "#6B7280",
     mutedSoft: colorScheme === "dark" ? "#E5E7EB" : "#9CA3AF",
     successBg: colorScheme === "dark" ? "#052E24" : "#ECFDF5",
@@ -74,7 +75,9 @@ function usePasswordPalette(colorScheme: "light" | "dark") {
   };
 }
 
-function getPasswordRules(password: string): { key: PasswordRuleKey; passed: boolean }[] {
+function getPasswordRules(
+  password: string,
+): { key: PasswordRuleKey; passed: boolean }[] {
   return [
     { key: "minLength", passed: password.length >= 8 },
     { key: "hasNumber", passed: /\d/.test(password) },
@@ -259,7 +262,9 @@ function PasswordValidationCard({
                 style={[
                   styles.ruleText,
                   {
-                    color: rule.passed ? semanticColors.success : semanticColors.error,
+                    color: rule.passed
+                      ? semanticColors.success
+                      : semanticColors.error,
                   },
                 ]}
               >
@@ -381,7 +386,10 @@ export default function ChangePasswordScreen() {
       nextErrors.new = t("passwordRequirementsNotMet");
     }
 
-    if (passwords.new.trim() && passwords.current.trim() === passwords.new.trim()) {
+    if (
+      passwords.new.trim() &&
+      passwords.current.trim() === passwords.new.trim()
+    ) {
       nextErrors.new = t("newPasswordMustBeDifferent");
     }
 
@@ -452,9 +460,14 @@ export default function ChangePasswordScreen() {
         <ScrollView
           alwaysBounceVertical
           bounces
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
           contentInsetAdjustmentBehavior="automatic"
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
           onScrollBeginDrag={Keyboard.dismiss}
@@ -517,25 +530,18 @@ export default function ChangePasswordScreen() {
               palette={palette}
             />
           ) : null}
+
+          <View style={styles.buttonWrapper}>
+            <SaveButton
+              label={t("savePassword")}
+              loadingLabel={t("loading")}
+              disabled={isSaveDisabled}
+              isLoading={isSaving}
+              palette={palette}
+              onPress={handleSavePress}
+            />
+          </View>
         </ScrollView>
-        <View
-          style={[
-            styles.footer,
-            {
-              backgroundColor: palette.background,
-              paddingBottom: Math.max(insets.bottom, 12),
-            },
-          ]}
-        >
-          <SaveButton
-            label={t("savePassword")}
-            loadingLabel={t("loading")}
-            disabled={isSaveDisabled}
-            isLoading={isSaving}
-            palette={palette}
-            onPress={handleSavePress}
-          />
-        </View>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -552,7 +558,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 120,
   },
   headerBlock: {
     marginBottom: 22,
@@ -681,6 +686,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: "500",
   },
+  buttonWrapper: {
+    marginTop: 32,
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   primaryButton: {
     minHeight: 54,
     borderRadius: 12,
@@ -703,9 +713,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
   },
 });
