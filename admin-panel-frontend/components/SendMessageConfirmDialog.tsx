@@ -75,6 +75,22 @@ function getConfirmImageSrc(imagePreview?: string, imagePath?: string): string {
   return `${base}${path}`;
 }
 
+const MIN_VISIBLE_RECIPIENT_ROWS = 4;
+const MAX_VISIBLE_RECIPIENT_ROWS = 9;
+const RECIPIENT_ROW_HEIGHT_PX = 38;
+
+function getRecipientListHeights(itemCount: number): {
+  minHeight: number;
+  maxHeight: number;
+} {
+  const minHeight = MIN_VISIBLE_RECIPIENT_ROWS * RECIPIENT_ROW_HEIGHT_PX;
+  const visibleRows = Math.max(
+    MIN_VISIBLE_RECIPIENT_ROWS,
+    Math.min(itemCount, MAX_VISIBLE_RECIPIENT_ROWS)
+  );
+  return { minHeight, maxHeight: visibleRows * RECIPIENT_ROW_HEIGHT_PX };
+}
+
 function AudienceToggle({
   activeTab,
   className,
@@ -93,13 +109,13 @@ function AudienceToggle({
       id: "student",
       label: t("students"),
       icon: (
-        <GroupRecipientsIcon className="h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11" />
+        <GroupRecipientsIcon className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9" />
       ),
     },
     {
       id: "parent",
       label: t("confirmParentsTab"),
-      icon: <ParentsIcon className="h-8 w-8 sm:h-10 sm:w-10 md:h-11 md:w-11" />,
+      icon: <ParentsIcon className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9" />,
     },
   ];
 
@@ -117,10 +133,10 @@ function AudienceToggle({
             key={tab.id}
             aria-hidden
             className={cn(
-              "pointer-events-none flex min-h-[88px] flex-1 select-none flex-col items-center justify-center gap-1.5 px-2 py-4 text-[11px] font-semibold uppercase tracking-wide sm:min-h-[104px] sm:gap-2 sm:px-4 sm:py-6 sm:text-xs md:gap-3 md:py-8 md:text-sm",
+              "pointer-events-none flex min-h-[3.5rem] flex-1 select-none flex-col items-center justify-center gap-1 px-2 py-2 text-[10px] font-semibold uppercase tracking-wide sm:min-h-[4rem] sm:gap-1.5 sm:px-3 sm:py-2.5 sm:text-xs md:py-3 md:text-sm",
               index > 0 && "border-l border-border",
               isActive
-                ? "bg-slate-600 text-white dark:bg-slate-500"
+                ? "bg-green-500 text-white dark:bg-green-600 dark:text-white"
                 : "bg-muted/50 text-foreground dark:bg-muted/30 dark:text-muted-foreground"
             )}
           >
@@ -183,35 +199,31 @@ export default function SendMessageConfirmDialog({
   const priorityLabel = priority ? t(priority as "high" | "medium" | "low") : "";
   const audienceTab: PreviewAudienceTab =
     audience === "students" ? "student" : "parent";
-  const recipientCount =
-    selectedGroups.reduce(
-      (total, group) => total + (group.member_count ?? 0),
-      0
-    ) + selectedStudents.length;
+  const selectedGroupCount = selectedGroups.length;
+  const selectedStudentCount = selectedStudents.length;
+  const groupListHeights = getRecipientListHeights(selectedGroupCount);
+  const studentListHeights = getRecipientListHeights(selectedStudentCount);
 
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent
         hideCloseButton
-        className="flex max-h-[min(92dvh,920px)] w-[calc(100%-1rem)] max-w-4xl flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground sm:w-[calc(100%-2rem)] sm:rounded-2xl"
+        className="flex h-auto max-h-[min(92dvh,860px)] min-h-[min(60dvh,520px)] w-[calc(100%-1rem)] max-w-4xl flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground sm:w-[calc(100%-2rem)] sm:rounded-2xl"
       >
         <DialogTitle className="sr-only">{t("confirmPostTitle")}</DialogTitle>
         <DialogDescription className="sr-only">
           {t("confirmAndSend")}
         </DialogDescription>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row">
           {/* Left: post summary */}
-          <div className="flex w-full min-w-0 flex-col border-b border-border px-4 py-5 sm:px-6 sm:py-7 md:w-1/2 md:border-b-0 md:border-r md:py-8 lg:px-8">
+          <div className="flex w-full min-w-0 shrink-0 flex-col border-b border-border px-4 py-5 sm:px-6 sm:py-7 md:w-1/2 md:border-b-0 md:border-r md:py-5 lg:px-6">
             <AudienceToggle
               activeTab={audienceTab}
-              className="mb-4 sm:mb-5"
+              className="mb-2 sm:mb-3"
             />
-            <h2 className="text-center text-lg font-semibold tracking-tight text-muted-foreground sm:text-xl">
-              {t("confirmPostTitle")}
-            </h2>
             {title ? (
-              <h3 className="mt-3 break-words px-2 text-center text-2xl font-bold leading-tight tracking-tight text-foreground sm:mt-4 sm:text-3xl md:text-[2rem]">
+              <h3 className="mt-0 break-words px-2 text-center text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl md:text-[2rem]">
                 {title}
               </h3>
             ) : null}
@@ -220,7 +232,7 @@ export default function SendMessageConfirmDialog({
                 readOnly
                 rows={4}
                 value={description}
-                className="min-h-[112px] w-full resize-none rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm leading-relaxed text-foreground outline-none dark:bg-muted/20 sm:min-h-[128px] sm:px-4 sm:py-3.5 sm:text-base"
+                className="min-h-[120px] w-full resize-none rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-sm leading-relaxed text-foreground outline-none dark:border-zinc-700/70 dark:bg-zinc-800/50 sm:min-h-[140px] sm:px-4 sm:py-3.5 sm:text-base"
               />
             </div>
             {(imagePreview || imagePath) && (
@@ -229,59 +241,104 @@ export default function SendMessageConfirmDialog({
                 <img
                   src={getConfirmImageSrc(imagePreview, imagePath)}
                   alt=""
-                  className="h-[112px] w-[112px] rounded-md border border-border bg-muted/40 object-contain dark:bg-muted/20 sm:h-[120px] sm:w-[120px]"
+                  className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
                 />
               </div>
-            )}
-            {scheduleEnabled && scheduledAt && (
-              <p className="mt-3 w-full text-left text-xs text-muted-foreground sm:text-sm">
-                {t("scheduledAt")}:{" "}
-                {scheduledAt
-                  .toLocaleString(locale, {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })
-                  .replace(",", "")}
-              </p>
             )}
           </div>
 
           {/* Right: recipients */}
-          <div className="flex w-full min-w-0 flex-col px-4 py-5 sm:px-6 sm:py-7 md:flex md:w-1/2 md:flex-col md:overflow-hidden md:py-8 lg:px-8">
-            {priorityLabel ? (
-              <span
-                className={cn(
-                  "inline-flex w-fit max-w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-semibold sm:px-4 sm:py-3.5 sm:text-base",
-                  getPriorityBadgeClassName(priority)
-                )}
-              >
-                {t("priority")}: {priorityLabel}
-              </span>
-            ) : null}
+          <div className="flex w-full min-w-0 flex-col px-3 py-3 sm:px-4 sm:py-4 md:min-h-0 md:w-1/2 md:py-5">
+            <div className="grid w-full shrink-0 grid-cols-[auto_1fr] items-start gap-3 sm:gap-4">
+              {priorityLabel ? (
+                <span
+                  className={cn(
+                    "inline-flex w-fit max-w-full items-center justify-center rounded-md px-2.5 py-1 text-xs font-semibold sm:px-3 sm:py-1.5 sm:text-sm",
+                    getPriorityBadgeClassName(priority)
+                  )}
+                >
+                  {t("priority")}: {priorityLabel}
+                </span>
+              ) : (
+                <span />
+              )}
+              {scheduleEnabled && scheduledAt ? (
+                <p className="max-w-full justify-self-center text-center text-[10px] leading-snug text-muted-foreground sm:text-xs">
+                  <span className="font-medium text-foreground">{t("scheduledAt")}:</span>
+                  <br />
+                  {scheduledAt
+                    .toLocaleString(locale, {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })
+                    .replace(",", "")}
+                </p>
+              ) : null}
+            </div>
 
-            <p className="mt-4 text-sm font-semibold text-foreground sm:mt-5">
-              {t("confirmSelectedCount", { count: recipientCount })}
-            </p>
+            <div className="mt-3 flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-muted/50 dark:border-zinc-700/70 dark:bg-zinc-800/50">
+              <div className="grid flex-1 grid-cols-1 divide-y divide-border dark:divide-zinc-700/70 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                <div className="flex min-w-0 flex-col p-2 sm:p-2.5">
+                  <p className="shrink-0 text-center text-xs font-semibold text-foreground sm:text-sm">
+                    {t("groups")}
+                  </p>
+                  <p className="mt-0.5 shrink-0 text-center text-[10px] font-medium text-muted-foreground sm:text-xs">
+                    {t("confirmSelectedCount", { count: selectedGroupCount })}
+                  </p>
+                  <ul
+                    className="mt-3.5 flex flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain pr-0.5 sm:mt-4"
+                    style={{
+                      minHeight: `${groupListHeights.minHeight}px`,
+                      maxHeight: `${groupListHeights.maxHeight}px`,
+                    }}
+                  >
+                    {selectedGroups.map((group) => (
+                      <li key={`group-${group.id}`}>
+                        <RecipientPill label={group.name} />
+                      </li>
+                    ))}
+                    {selectedGroups.length === 0 && (
+                      <li className="py-2 text-center text-[10px] text-muted-foreground sm:text-xs">
+                        {t("notSelected")}
+                      </li>
+                    )}
+                  </ul>
+                </div>
 
-            <div className="mt-3 min-h-[120px] max-h-52 flex-1 overflow-y-auto rounded-lg bg-muted/60 p-2.5 dark:bg-muted/30 sm:max-h-64 sm:p-3 md:min-h-0 md:max-h-none md:flex-1">
-              <ul className="flex flex-col gap-2">
-                {selectedGroups.map((group) => (
-                  <li key={`group-${group.id}`}>
-                    <RecipientPill label={group.name} />
-                  </li>
-                ))}
-                {selectedStudents.map((student) => (
-                  <li key={`student-${student.id}`}>
-                    <RecipientPill label={formatStudentName(student)} />
-                  </li>
-                ))}
-              </ul>
+                <div className="flex min-w-0 flex-col p-2 sm:p-2.5">
+                  <p className="shrink-0 text-center text-xs font-semibold text-foreground sm:text-sm">
+                    {t("students")}
+                  </p>
+                  <p className="mt-0.5 shrink-0 text-center text-[10px] font-medium text-muted-foreground sm:text-xs">
+                    {t("confirmSelectedCount", { count: selectedStudentCount })}
+                  </p>
+                  <ul
+                    className="mt-3.5 flex flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain pr-0.5 sm:mt-4"
+                    style={{
+                      minHeight: `${studentListHeights.minHeight}px`,
+                      maxHeight: `${studentListHeights.maxHeight}px`,
+                    }}
+                  >
+                    {selectedStudents.map((student) => (
+                      <li key={`student-${student.id}`}>
+                        <RecipientPill label={formatStudentName(student)} />
+                      </li>
+                    ))}
+                    {selectedStudents.length === 0 && (
+                      <li className="py-2 text-center text-[10px] text-muted-foreground sm:text-xs">
+                        {t("notSelected")}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
               {!hasRecipients && (
-                <p className="py-4 text-center text-sm font-semibold text-destructive">
+                <p className="shrink-0 border-t border-border py-2 text-center text-xs font-semibold text-destructive sm:text-sm">
                   {t("selectatleastone")}
                 </p>
               )}
@@ -318,7 +375,7 @@ export default function SendMessageConfirmDialog({
 
 function RecipientPill({ label }: { label: string }) {
   return (
-    <div className="flex h-7 w-[152px] shrink-0 items-center justify-center rounded-full bg-zinc-900 px-2 text-[11px] font-medium text-white dark:bg-zinc-800 dark:ring-1 dark:ring-zinc-700 sm:h-8 sm:w-[168px] sm:text-xs">
+    <div className="flex h-8 w-full max-w-full shrink-0 items-center justify-center rounded-full bg-zinc-900 px-3 text-[11px] font-medium text-white dark:bg-zinc-700 sm:h-9 sm:text-xs">
       <span className="w-full truncate text-center">{label}</span>
     </div>
   );
