@@ -46,6 +46,16 @@ export async function markStudentMessageViewed(postId: number): Promise<void> {
 }
 
 export async function fetchStudentUnreadCount(): Promise<number> {
-  const response = await api.get<{ unread_count: number }>('/student/unread');
-  return response.data?.unread_count ?? 0;
+  const response = await api.get<any>('/student/unread');
+  const data = response.data;
+
+  if (Array.isArray(data)) {
+    return data[0]?.unread_count !== undefined ? Number(data[0].unread_count) : 0;
+  }
+
+  if (data && typeof data === 'object') {
+    return data.unread_count !== undefined ? Number(data.unread_count) : 0;
+  }
+
+  return 0;
 }

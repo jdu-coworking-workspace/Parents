@@ -15,7 +15,8 @@ import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BrandColors, Colors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
-import { fetchStudentMessages } from '@/services/student-messages';
+import { useMessageContext } from '@/contexts/message-context';
+import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
 import type { Message } from '@/types/message';
 
 const PAGE_SIZE = 10;
@@ -84,11 +85,26 @@ export default function StudentMessagesScreen() {
   const [isError, setIsError] = useState(false);
   const [hasMore, setHasMore] = useState(false);
 
+  const { setUnreadCount } = useMessageContext();
+
   const readButNotSentMessageIDs = useRef<number[]>([]);
   const isMountedRef = useRef(true);
   const messagesRef = useRef<Message[]>([]);
 
   messagesRef.current = messages;
+
+  // Fetch and update unread count
+  const refreshUnreadCount = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    try {
+      const count = await fetchStudentUnreadCount();
+      if (isMountedRef.current) {
+        setUnreadCount(count);
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  }, [setUnreadCount]);
 
   const loadMessages = useCallback(
     async ({
@@ -160,12 +176,17 @@ export default function StudentMessagesScreen() {
   useFocusEffect(
     useCallback(() => {
       isMountedRef.current = true;
-      void loadMessages();
+      const initLoad = async () => {
+        await loadMessages();
+        await refreshUnreadCount();
+      };
+
+      void initLoad();
 
       return () => {
         isMountedRef.current = false;
       };
-    }, [loadMessages])
+    }, [loadMessages, refreshUnreadCount])
   );
 
   const handleOpenMessage = (message: Message) => {
@@ -181,6 +202,9 @@ export default function StudentMessagesScreen() {
             : item
         )
       );
+
+      // Optimistically decrement unread count
+      setUnreadCount((prev: number) => Math.max(0, prev - 1));
     }
 
     router.push({
@@ -242,7 +266,10 @@ export default function StudentMessagesScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => void loadMessages({ refresh: true })}
+            onRefresh={async () => {
+              await loadMessages({ refresh: true });
+              await refreshUnreadCount();
+            }}
             tintColor={BrandColors[colorScheme]}
           />
         }
