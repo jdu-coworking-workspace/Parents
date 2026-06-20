@@ -317,6 +317,11 @@ export default function Info() {
       ),
     },
     {
+      accessorKey: "admin_name",
+      header: t("Admin_name"),
+      cell: ({ row }) => tName("name", { ...row?.original?.admin }),
+    },
+    {
       accessorKey: "priority",
       header: t("Priority"),
       cell: ({ row }) => {
