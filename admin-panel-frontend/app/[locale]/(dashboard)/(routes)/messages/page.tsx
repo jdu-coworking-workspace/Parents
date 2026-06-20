@@ -34,7 +34,7 @@ import usePagination from "@/lib/usePagination";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { normalizeSearch } from "@/lib/normalizeSearch";
 import PageHeader from "@/components/PageHeader";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -115,6 +115,8 @@ export default function Info() {
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const router = useRouter();
 
   const deleteMultiple = useApiMutation<
     { message: string; deletedCount: number },
@@ -559,11 +561,62 @@ export default function Info() {
             </DialogContent>
           </Dialog>
 
-          <Link href={`/messages/create?audience=${audienceTab}`} passHref>
-            <Button icon={<Plus className="h-5 w-5" />}>
-              {t("createpost")}
-            </Button>
-          </Link>
+          <Button
+            icon={<Plus className="h-5 w-5" />}
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            {t("createpost")}
+          </Button>
+
+          {/* Create post audience picker dialog */}
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
+            <DialogContent className="sm:max-w-lg pt-8 pb-8 px-10 rounded-2xl border border-transparent dark:border-white/20">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl sm:text-2xl font-bold text-center mb-6">
+                    {t("createPostRecipientTitle")}
+                  </DialogTitle>
+                </DialogHeader>
+
+                  <div className="mt-0 flex flex-col sm:flex-row gap-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    router.push(`/messages/create?audience=students`);
+                  }}
+                  aria-label={t("studentAudienceTitle")}
+                  className={
+                    "flex-1 flex items-center justify-center gap-4 px-2.5 py-2 rounded-xl border border-black/15 dark:border-transparent shadow-sm transition-transform duration-200 transform hover:scale-105 hover:shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[56px]"
+                  }
+                >
+                  <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                  <div className="text-base font-semibold text-foreground">
+                    {t("studentAudienceTitle")}
+                  </div>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    router.push(`/messages/create?audience=parents`);
+                  }}
+                  aria-label={t("parentAudienceTitle")}
+                  className={
+                    "flex-1 flex items-center justify-center gap-4 px-2.5 py-2 rounded-xl border border-black/15 dark:border-transparent shadow-sm transition-transform duration-200 transform hover:scale-105 hover:shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[56px]"
+                  }
+                >
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div className="text-base font-semibold text-foreground">
+                    {t("parentAudienceTitle")}
+                  </div>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </PageHeader>
 

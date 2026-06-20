@@ -650,7 +650,13 @@
     "confirmDeleteTitle": "この投稿を削除してもよろしいですか？",
     "confirmDeleteDesc": "この操作は元に戻すことができません。",
     "postsPerPage": "投稿のページサイズ",
-    "choosePostsPerPage": "ページに表示する投稿の数を選択"
+    "choosePostsPerPage": "ページに表示する投稿の数を選択",
+    "createPostRecipientTitle": "誰にメッセージを送信しますか？"
+    ,
+    "studentAudienceTitle": "学生",
+    "studentAudienceDescription": "学生にメッセージを送信",
+    "parentAudienceTitle": "保護者",
+    "parentAudienceDescription": "保護者へメッセージを送信"
   },
   "ParentTable": {
     "name": "名前",
