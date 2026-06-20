@@ -341,7 +341,7 @@ export default function SendMessagePage() {
               setSelectedStudents([]);
             }}
           >
-            <TabsList className="mt-2 [&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white">
+            <TabsList className="[&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white dark:[&_[data-state=active]]:bg-white dark:[&_[data-state=active]]:text-black">
               <TabsTrigger value="parents">{tPosts("parents")}</TabsTrigger>
               <TabsTrigger value="students">{tPosts("students")}</TabsTrigger>
             </TabsList>
@@ -520,7 +520,7 @@ export default function SendMessagePage() {
           />
 
           <Tabs defaultValue="group">
-            <TabsList className="[&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white">
+            <TabsList className="[&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white dark:[&_[data-state=active]]:bg-white dark:[&_[data-state=active]]:text-black">
               <TabsTrigger value="group">{t("groups")}</TabsTrigger>
               <TabsTrigger value="student">{t("students")}</TabsTrigger>
             </TabsList>
