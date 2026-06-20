@@ -60,13 +60,18 @@ type SaveButtonProps = {
 function usePasswordPalette(colorScheme: "light" | "dark") {
   return {
     text: Colors[colorScheme].text,
+    // Input ichidagi yozuv ochroq bo'lishi uchun yangi rang:
+    inputText: colorScheme === "dark" ? "#E5E7EB" : "#374151",
     background: Colors[colorScheme].background,
-    primary: BrandColors[colorScheme],
-    inputBg: colorScheme === "dark" ? "#151718" : "#FFFFFF",
+    // Lead bergan ranglar qoshildi:
+    primary: "#2563EB",
+    inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
+    muted: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    // Border o'zgartirilmadi, so'raganingizdek eski holatida:
     inputBorder: colorScheme === "dark" ? "#FFFFFF" : "#D1D5DB",
+
     cardBg: colorScheme === "dark" ? "#101417" : "#FFFFFF",
     cardBorder: colorScheme === "dark" ? "#26323A" : "#E5E7EB",
-    muted: colorScheme === "dark" ? "#FFFFFF" : "#6B7280",
     mutedSoft: colorScheme === "dark" ? "#E5E7EB" : "#9CA3AF",
     successBg: colorScheme === "dark" ? "#052E24" : "#ECFDF5",
     errorBg: colorScheme === "dark" ? "#3B1010" : "#FEF2F2",
@@ -104,12 +109,6 @@ function PasswordField({
     <View style={styles.fieldBlock}>
       <ThemedText style={styles.label}>{label}</ThemedText>
       <View style={styles.passwordContainer}>
-        <Ionicons
-          name="lock-closed-outline"
-          size={20}
-          color={palette.muted}
-          style={styles.leftIcon}
-        />
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -122,7 +121,7 @@ function PasswordField({
           style={[
             styles.input,
             {
-              color: palette.text,
+              color: palette.inputText, // Yangi ochroq rang berildi
               backgroundColor: palette.inputBg,
               borderColor: error ? semanticColors.error : palette.inputBorder,
             },
@@ -600,18 +599,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  leftIcon: {
-    left: 14,
-    position: "absolute",
-    zIndex: 1,
-  },
   input: {
     height: 52,
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
     fontSize: 16,
-    paddingLeft: 46,
+    paddingLeft: 16, // Quluf ikonkasidan qolgan boshliq yopildi (46 dan 16 ga)
     paddingRight: 56,
     paddingVertical: Platform.OS === "android" ? 10 : 0,
     textAlignVertical: "center",
