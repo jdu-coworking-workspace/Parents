@@ -16,11 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import {
-  BrandColors,
-  Colors,
-  colors as semanticColors,
-} from "@/constants/theme";
+import { Colors, colors as semanticColors } from "@/constants/theme";
 import { I18nContext } from "@/contexts/i18n-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { changeStudentPassword } from "@/services/student-auth";
