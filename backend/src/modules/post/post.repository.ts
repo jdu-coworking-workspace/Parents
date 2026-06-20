@@ -112,8 +112,14 @@ export class PostRepository {
         const result = await DB.query(
             `SELECT po.id, po.title, po.description, po.priority, po.sent_at, po.edited_at, po.image,
                     ad.id AS admin_id, ad.given_name, ad.family_name,
-                    COUNT(DISTINCT CASE WHEN pp.viewed_at IS NOT NULL THEN pp.parent_id END) AS read_count,
-                    COUNT(DISTINCT CASE WHEN pp.viewed_at IS NULL THEN pp.parent_id END) AS unread_count
+                    COUNT(DISTINCT CASE
+                        WHEN po.audience = 'students' AND ps.viewed_at IS NOT NULL THEN ps.student_id
+                        WHEN po.audience = 'parents' AND pp.viewed_at IS NOT NULL THEN pp.parent_id
+                    END) AS read_count,
+                    COUNT(DISTINCT CASE
+                        WHEN po.audience = 'students' AND ps.viewed_at IS NULL THEN ps.student_id
+                        WHEN po.audience = 'parents' AND pp.viewed_at IS NULL THEN pp.parent_id
+                    END) AS unread_count
             FROM Post AS po
             INNER JOIN Admin AS ad ON po.admin_id = ad.id
             LEFT JOIN PostStudent AS ps ON ps.post_id = po.id
@@ -193,7 +199,10 @@ export class PostRepository {
             `SELECT po.id, po.title, po.description, po.priority, po.sent_at, po.edited_at,
                     ad.id AS admin_id, ad.given_name AS admin_given_name, ad.family_name AS admin_family_name,
                     COALESCE(ROUND((
-                        COUNT(DISTINCT CASE WHEN pp.viewed_at IS NOT NULL THEN ps.student_id END) /
+                        COUNT(DISTINCT CASE
+                            WHEN po.audience = 'students' AND ps.viewed_at IS NOT NULL THEN ps.student_id
+                            WHEN po.audience = 'parents' AND pp.viewed_at IS NOT NULL THEN ps.student_id
+                        END) /
                         NULLIF(COUNT(DISTINCT ps.student_id), 0)
                     ) * 100, 2), 0) AS read_percent
             FROM Post AS po
