@@ -223,7 +223,7 @@ export default function SettingsScreen() {
                     <ThemedText
                       style={[styles.profileInitial, { color: colors.icon }]}
                     >
-                      {t("firstName")}
+                      {t("name")}
                     </ThemedText>
                     <ThemedText style={styles.profileText}>
                       {displayName}

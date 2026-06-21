@@ -1,22 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import SendMessageConfirmDialog from "@/components/SendMessageConfirmDialog";
 import Group from "@/types/group";
 import { GroupTable } from "@/components/GroupTable";
 import Student from "@/types/student";
@@ -36,7 +26,6 @@ import { Link, useRouter } from "@/navigation";
 import { useMakeZodI18nMap } from "@/lib/zodIntl";
 import { toast } from "@/components/ui/use-toast";
 import Post from "@/types/post";
-import ReactLinkify from "react-linkify";
 import useApiMutation from "@/lib/useApiMutation";
 import DraftsDialog, { DraftData } from "@/components/DraftsDialog";
 import { X, Send } from "lucide-react";
@@ -73,7 +62,6 @@ export default function SendMessagePage() {
   const audienceParam = searchParams?.get("audience");
   const initialAudience: AudienceTab =
     audienceParam === "students" ? "students" : "parents";
-  const locale = useLocale();
   const tName = useTranslations("names");
   const [audienceTab, setAudienceTab] = useState<AudienceTab>(initialAudience);
   const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
@@ -565,8 +553,31 @@ export default function SendMessagePage() {
             )}
           </div>
           <div className="flex gap-2 mt-4">
-            <Dialog>
-              <DialogTrigger asChild>
+            <SendMessageConfirmDialog
+              title={formValues.title ?? ""}
+              description={formValues.description ?? ""}
+              priority={formValues.priority}
+              audience={audienceTab}
+              imagePreview={imagePreview}
+              imagePath={formValues.image}
+              scheduleEnabled={scheduleEnabled}
+              scheduledAt={scheduledAt}
+              selectedGroups={selectedGroups}
+              selectedStudents={selectedStudents}
+              hasRecipients={hasRecipients}
+              isFormValid={isFormValid}
+              isSubmitting={isSubmitting}
+              formatStudentName={(student) =>
+                tName("name", { ...student, parents: "" })
+              }
+              onConfirm={() => {
+                if (formRef.current) {
+                  formRef.current.dispatchEvent(
+                    new Event("submit", { bubbles: true })
+                  );
+                }
+              }}
+              trigger={
                 <Button
                   type="button"
                   isLoading={isSubmitting}
@@ -575,106 +586,8 @@ export default function SendMessagePage() {
                 >
                   {t("sendMessage")}
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[80%] max-h-max">
-                <div className="sm:flex gap-4">
-                  <DialogHeader className="w-full whitespace-pre-wrap">
-                    <DialogTitle className="whitespace-pre-wrap break-all text-center">
-                      {formValues.title}
-                    </DialogTitle>
-                    <DialogDescription className="whitespace-pre-wrap break-all">
-                      <ReactLinkify>{formValues.description}</ReactLinkify>
-                    </DialogDescription>
-                    <div className="flex w-full">
-                      <div className="bg-slate-500 px-4 py-1 rounded ">
-                        {t("priority")}:{" "}
-                        {formValues.priority && t(formValues.priority)}
-                      </div>
-                    </div>
-                    {(imagePreview || formValues.image) && (
-                      <div className="mt-4">
-                        <Image
-                          src={
-                            imagePreview ||
-                            (formValues.image ? `/${formValues.image}` : "")
-                          }
-                          alt="Selected image"
-                          width={300}
-                          height={200}
-                          className="rounded object-cover"
-                        />
-                      </div>
-                    )}
-                    {scheduleEnabled && scheduledAt && (
-                      <div className="mt-2 text-left text-sm">
-                        {t("scheduledAt")}:{" "}
-                        {scheduledAt &&
-                          scheduledAt
-                            .toLocaleString(locale, {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: false,
-                            })
-                            .replace(",", "")}
-                      </div>
-                    )}
-                  </DialogHeader>
-                  <div className="sm:w-1 sm:h-full bg-slate-600"></div>
-                  <div className="flex flex-wrap gap-4 items-start content-start sm:max-w-[40%]">
-                    <div className="flex flex-col gap-1">
-                      <b>{t("groups")}</b>
-                      <div className="flex flex-wrap gap-2 items-start content-start ">
-                        {selectedGroups.map((group) => (
-                          <Badge key={group.id}>{group?.name}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <b>{t("students")}</b>
-                      <div className="flex flex-wrap gap-2 items-start content-start ">
-                        {selectedStudents.map((e) => (
-                          <Badge key={e.id}>
-                            {tName("name", { ...e, parents: "" })}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    {!hasRecipients && (
-                      <div className="w-full text-destructive text-center font-semibold">
-                        {t("selectatleastone")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <DialogFooter className="flex flex-wrap justify-end gap-2">
-                  <DialogClose asChild>
-                    <Button type="button" variant="secondary">
-                      {t("close")}
-                    </Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button
-                      type="submit"
-                      disabled={!isFormValid || !hasRecipients || isSubmitting}
-                      isLoading={isSubmitting}
-                      onClick={() => {
-                        if (formRef.current) {
-                          formRef.current.dispatchEvent(
-                            new Event("submit", { bubbles: true })
-                          );
-                        }
-                      }}
-                    >
-                      {t("confirm")}
-                    </Button>
-                  </DialogClose>
-                  <DialogClose asChild></DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              }
+            />
             <Button
               variant={"secondary"}
               type="button"
