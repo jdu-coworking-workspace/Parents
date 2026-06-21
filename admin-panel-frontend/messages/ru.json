@@ -649,7 +649,13 @@
     "confirmDeleteTitle": "Вы уверены, что хотите удалить это сообщение?",
     "confirmDeleteDesc": "Это действие не может быть отменено.",
     "postsPerPage": "Количество строк на странице",
-    "choosePostsPerPage": "Выберите количество строк на странице"
+    "choosePostsPerPage": "Выберите количество строк на странице",
+    "createPostRecipientTitle": "Кому вы хотите отправить сообщение?"
+    ,
+    "studentAudienceTitle": "Студенты",
+    "studentAudienceDescription": "Отправка сообщений студентам",
+    "parentAudienceTitle": "Родители",
+    "parentAudienceDescription": "Отправка сообщений родителям и опекунам"
   },
   "ParentTable": {
     "name": "Имя",

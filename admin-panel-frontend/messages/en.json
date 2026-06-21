@@ -653,7 +653,13 @@
     "confirmDeleteTitle": "Are you sure you want to delete this post?",
     "confirmDeleteDesc": "This action cannot be undone.",
     "postsPerPage": "Posts per page",
-    "choosePostsPerPage": "Choose number of posts per page"
+    "choosePostsPerPage": "Choose number of posts per page",
+    "createPostRecipientTitle": "Who would you like to send the message to?"
+    ,
+    "studentAudienceTitle": "Students",
+    "studentAudienceDescription": "Send messages to university students",
+    "parentAudienceTitle": "Parents",
+    "parentAudienceDescription": "Send messages to parents and guardians"
   },
   "ParentTable": {
     "name": "Name",

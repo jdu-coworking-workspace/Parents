@@ -652,7 +652,13 @@
     "confirmDeleteTitle": "Ushbu xabarni o'chirishni istaysizmi?",
     "confirmDeleteDesc": "Bu amalni bekor qilib bo‘lmaydi.",
     "postsPerPage": "Xabarlar sahifasi uchun sahifa miqdori",
-    "choosePostsPerPage": "Sahifada ko'rsatiladigan xabarlar sonini tanlang"
+    "choosePostsPerPage": "Sahifada ko'rsatiladigan xabarlar sonini tanlang",
+    "createPostRecipientTitle": "Kimga xabar yubormoqchisiz?"
+    ,
+    "studentAudienceTitle": "Talabalar",
+    "studentAudienceDescription": "Talabalarga xabar yuborish",
+    "parentAudienceTitle": "Ota-onalar",
+    "parentAudienceDescription": "Ota-onalar va vasiylarga xabar yuborish"
   },
   "ParentTable": {
     "name": "Ism",
