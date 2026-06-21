@@ -12,6 +12,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider } from "@/contexts/auth-context";
 import { I18nProvider } from "@/contexts/i18n-context";
 import { ThemeModeProvider } from "@/contexts/theme-context";
+import { MessageProvider } from "@/contexts/message-context";
 
 export const unstable_settings = {
   initialRouteName: "sign-in",
@@ -23,15 +24,15 @@ function RootLayoutContent() {
 
   return (
     <RootSiblingParent>
-     <I18nProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-          <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <I18nProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
       </I18nProvider>
     </RootSiblingParent>
   );
@@ -41,7 +42,9 @@ export default function RootLayout() {
   return (
     <ThemeModeProvider>
       <AuthProvider>
-        <RootLayoutContent />
+        <MessageProvider>
+          <RootLayoutContent />
+        </MessageProvider>
       </AuthProvider>
     </ThemeModeProvider>
   );

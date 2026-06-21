@@ -138,14 +138,6 @@ export async function request<TResponse>(
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-        console.debug(`API Request: ${method} ${url}`, {
-             hasBody: body != null,
-             bodyKeys:
-                 body && typeof body === 'object' && !Array.isArray(body)
-                     ? Object.keys(body as Record<string, unknown>)
-                     : undefined,
-             headerNames: Object.keys(headers),
-         });
         const response = await fetch(url, {
             method,
             headers,
