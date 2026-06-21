@@ -12,7 +12,7 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import PaginationApi from "@/components/PaginationApi";
 import { Input } from "@/components/ui/input";
-import { Link } from "@/navigation";
+import { Link, useRouter } from "@/navigation"; 
 import { Button } from "@/components/ui/button";
 import PostApi from "@/types/postApi";
 import Post from "@/types/post";
@@ -34,7 +34,7 @@ import usePagination from "@/lib/usePagination";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { normalizeSearch } from "@/lib/normalizeSearch";
 import PageHeader from "@/components/PageHeader";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -574,13 +574,13 @@ export default function Info() {
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogContent className="sm:max-w-lg pt-8 pb-8 px-10 rounded-2xl border border-transparent dark:border-white/20">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl sm:text-2xl font-bold text-center mb-6">
-                    {t("createPostRecipientTitle")}
-                  </DialogTitle>
-                </DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="text-2xl sm:text-2xl font-bold text-center mb-6">
+                  {t("createPostRecipientTitle")}
+                </DialogTitle>
+              </DialogHeader>
 
-                  <div className="mt-0 flex flex-col sm:flex-row gap-4">
+              <div className="mt-0 flex flex-col sm:flex-row gap-4">
                 <Button
                   variant="secondary"
                   onClick={() => {
