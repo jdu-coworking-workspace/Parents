@@ -213,7 +213,10 @@
     "chooseFile": "Выберите файл",
     "noFileChosen": "Файл не выбран",
     "selectDateTime": "Выберите дату и время",
-    "timesShownIn": "Время указано в {timeZone}"
+    "timesShownIn": "Время указано в {timeZone}",
+    "sendMessageTo": "Отправить сообщение {audience}",
+    "toParents": "Родителям",
+    "toStudents": "Студентам"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Просмотр запланированного сообщения",

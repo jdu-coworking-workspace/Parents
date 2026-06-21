@@ -215,7 +215,10 @@
     "chooseFile": "Choose File",
     "noFileChosen": "No file chosen",
     "selectDateTime": "Select date and time",
-    "timesShownIn": "Times shown in {timeZone}"
+    "timesShownIn": "Times shown in {timeZone}",
+    "sendMessageTo": "Send Message {audience}",
+    "toParents": "to Parents",
+    "toStudents": "to Students"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "View Scheduled Message",
