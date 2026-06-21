@@ -37,7 +37,7 @@ function LocalAssetIcon({
       alt=""
       width={56}
       height={56}
-      className={cn("object-contain", className)}
+      className={cn("block flex-none object-contain", className)}
       aria-hidden
     />
   );
@@ -122,7 +122,7 @@ function AudienceToggle({
   return (
     <div
       className={cn(
-        "flex w-full gap-0 overflow-hidden rounded-lg border border-border sm:rounded-xl",
+        "flex h-[5rem] min-h-[5rem] w-full flex-none gap-0 overflow-hidden rounded-lg border border-border sm:h-[5.75rem] sm:min-h-[5.75rem] sm:rounded-xl md:h-[6.25rem] md:min-h-[6.25rem]",
         className
       )}
     >
@@ -133,7 +133,7 @@ function AudienceToggle({
             key={tab.id}
             aria-hidden
             className={cn(
-              "pointer-events-none flex min-h-[3.5rem] flex-1 select-none flex-col items-center justify-center gap-1 px-2 py-2 text-[10px] font-semibold uppercase tracking-wide sm:min-h-[4rem] sm:gap-1.5 sm:px-3 sm:py-2.5 sm:text-xs md:py-3 md:text-sm",
+              "pointer-events-none flex h-full min-h-0 flex-1 shrink-0 select-none flex-col items-center justify-center gap-1 px-2 py-2 text-[10px] font-semibold uppercase leading-none tracking-wide sm:gap-1.5 sm:px-3 sm:py-2.5 sm:text-xs md:py-3 md:text-sm",
               index > 0 && "border-l border-border",
               isActive
                 ? "bg-green-500 text-white dark:bg-green-600 dark:text-white"
@@ -142,7 +142,7 @@ function AudienceToggle({
           >
             <span
               className={cn(
-                "dark:[&_img]:brightness-0 dark:[&_img]:invert",
+                "flex flex-none items-center justify-center dark:[&_img]:brightness-0 dark:[&_img]:invert",
                 isActive && "[&_img]:brightness-0 [&_img]:invert"
               )}
             >
@@ -217,13 +217,13 @@ export default function SendMessageConfirmDialog({
         </DialogDescription>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row">
           {/* Left: post summary */}
-          <div className="flex w-full min-w-0 shrink-0 flex-col border-b border-border px-4 py-5 sm:px-6 sm:py-7 md:w-1/2 md:border-b-0 md:border-r md:py-5 lg:px-6">
+          <div className="flex w-full min-w-0 shrink-0 flex-col border-b border-border px-4 py-5 sm:px-6 sm:py-7 md:min-h-0 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r md:py-5 lg:px-6">
             <AudienceToggle
               activeTab={audienceTab}
               className="mb-2 sm:mb-3"
             />
             {title ? (
-              <h3 className="mt-0 break-words px-2 text-center text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl md:text-[2rem]">
+              <h3 className="mt-0 shrink-0 break-words px-2 text-center text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl md:text-[2rem]">
                 {title}
               </h3>
             ) : null}
