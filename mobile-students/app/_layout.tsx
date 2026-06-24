@@ -6,6 +6,7 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { RootSiblingParent } from 'react-native-root-siblings';
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -23,18 +24,20 @@ function RootLayoutContent() {
   const colorScheme = useColorScheme();
 
   return (
-    <RootSiblingParent>
-      <I18nProvider>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-            <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </I18nProvider>
-    </RootSiblingParent>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <RootSiblingParent>
+        <I18nProvider>
+          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+              <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </I18nProvider>
+      </RootSiblingParent>
+    </GestureHandlerRootView>
   );
 }
 

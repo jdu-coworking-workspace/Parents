@@ -1,20 +1,25 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
+  ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
+import ZoomGallery from '@/components/ZoomGallery';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { fetchStudentMessage } from '@/services/student-messages';
 import type { Message } from '@/types/message';
+import { getMessageImageUrls } from '@/utils/image-url';
 
 function formatDateTime(value: string) {
   if (!value) {
@@ -59,6 +64,8 @@ export default function MessageDetailScreen() {
   const [message, setMessage] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [zoomVisible, setZoomVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const loadMessage = useCallback(async () => {
     if (!messageId) {
@@ -84,6 +91,16 @@ export default function MessageDetailScreen() {
     useCallback(() => {
       void loadMessage();
     }, [loadMessage])
+  );
+
+  const imageUrls = useMemo(
+    () => getMessageImageUrls(message?.images ?? message?.image ?? null),
+    [message]
+  );
+
+  const imagesForZoomGallery = useMemo(
+    () => imageUrls.map(uri => ({ uri })),
+    [imageUrls]
   );
 
   const getPriorityLabel = (priority: Message['priority']) => {
@@ -128,44 +145,79 @@ export default function MessageDetailScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
-      <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
-        <View style={styles.titleRow}>
-          <ThemedText
-            style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}
-          >
-            {message.title}
-          </ThemedText>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: getPriorityBadgeColor(message.priority) },
-            ]}
-          >
-            <ThemedText style={styles.badgeText}>
-              {getPriorityLabel(message.priority)}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
+          <View style={styles.titleRow}>
+            <ThemedText
+              style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}
+            >
+              {message.title}
             </ThemedText>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: getPriorityBadgeColor(message.priority) },
+              ]}
+            >
+              <ThemedText style={styles.badgeText}>
+                {getPriorityLabel(message.priority)}
+              </ThemedText>
+            </View>
+          </View>
+
+          {imageUrls.length > 0 && (
+            <View style={styles.imageContainer}>
+              {imageUrls.map((uri, index) => (
+                <View key={`${uri}-${index}`} style={styles.imageItem}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCurrentImageIndex(index);
+                      setZoomVisible(true);
+                    }}
+                  >
+                    <View style={styles.imageWrapper}>
+                      <Image
+                        style={styles.image}
+                        source={{ uri }}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <ThemedText
+            style={[styles.preview, { color: isDark ? '#E5E7EB' : '#1F2937' }]}
+          >
+            {message.content}
+          </ThemedText>
+
+          <View style={styles.footerRow}>
+            <ThemedText
+              style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+            >
+              {formatDateTime(message.sent_time)}
+            </ThemedText>
+
+            <Pressable onPress={handleCopy} style={styles.copyButton}>
+              <Ionicons name="copy-outline" size={20} color="#0A84FF" />
+              <ThemedText style={styles.copyText}>{t('copy')}</ThemedText>
+            </Pressable>
           </View>
         </View>
+      </ScrollView>
 
-        <ThemedText
-          style={[styles.preview, { color: isDark ? '#E5E7EB' : '#1F2937' }]}
-        >
-          {message.content}
-        </ThemedText>
-
-        <View style={styles.footerRow}>
-          <ThemedText
-            style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
-          >
-            {formatDateTime(message.sent_time)}
-          </ThemedText>
-
-          <Pressable onPress={handleCopy} style={styles.copyButton}>
-            <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-            <ThemedText style={styles.copyText}>{t('copy')}</ThemedText>
-          </Pressable>
-        </View>
-      </View>
+      <ZoomGallery
+        visible={zoomVisible}
+        images={imagesForZoomGallery}
+        initialIndex={currentImageIndex}
+        onRequestClose={() => setZoomVisible(false)}
+      />
     </ThemedView>
   );
 }
@@ -173,8 +225,11 @@ export default function MessageDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 14,
+    paddingBottom: 24,
   },
   centeredContainer: {
     flex: 1,
@@ -226,6 +281,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'lowercase',
+  },
+  imageContainer: {
+    marginTop: 12,
+  },
+  imageItem: {
+    marginBottom: 10,
+  },
+  imageWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: 260,
   },
   preview: {
     marginTop: 8,

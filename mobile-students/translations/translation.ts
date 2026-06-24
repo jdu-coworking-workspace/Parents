@@ -237,7 +237,11 @@ const translations = {
     imageSavedMessage: "Image saved to your Photos.",
     downloadFailedImage: "Download failed",
     unableToSaveInDevelopment:
-      "Unable to save in development build. Try a production build or check permissions.",
+      "Unable to save image in this build. Use the installed development app or production build.",
+    expoGoImageSaveMessage:
+      "Direct gallery save is not available in Expo Go. Use the development build app, or share the image from the share menu.",
+    imageShareHint:
+      "Choose an app from the share menu to save the image to your gallery.",
     permissionDenied: "Permission denied to access photo library.",
     downloadError: "Failed to download image.",
     // additional keys used by UI
@@ -688,7 +692,11 @@ const translations = {
     imageSavedMessage: "Rasm gallereyaga saqlandi.",
     downloadFailedImage: "Yuklab olish muvaffaqiyatsiz",
     unableToSaveInDevelopment:
-      "Development buildda saqlab bo'lmaydi. Production buildni sinab ko'ring yoki ruxsatlarni tekshiring.",
+      "Bu buildda rasmni to'g'ridan-to'g'ri saqlab bo'lmaydi. Development build ilovasidan foydalaning.",
+    expoGoImageSaveMessage:
+      "Expo Go da rasmni to'g'ridan-to'g'ri galereyaga saqlab bo'lmaydi. Development build ilovasidan foydalaning yoki ulashish menyusidan saqlang.",
+    imageShareHint:
+      "Rasmni galereyaga saqlash uchun ulashish menyusidan ilovani tanlang.",
     permissionDenied: "Foto kutubxonasiga kirish ruxsati berilmadi.",
     downloadError: "Rasmni yuklab olishda xatolik.",
     /* mobile-students additional keys */
@@ -976,7 +984,11 @@ const translations = {
     imageSavedMessage: "Изображение сохранено в галерею.",
     downloadFailedImage: "Ошибка загрузки",
     unableToSaveInDevelopment:
-      "Невозможно сохранить в development сборке. Попробуйте production сборку или проверьте разрешения.",
+      "В этой сборке нельзя сохранить изображение напрямую. Используйте development build приложение.",
+    expoGoImageSaveMessage:
+      "В Expo Go прямое сохранение в галерею недоступно. Используйте development build или сохраните через меню «Поделиться».",
+    imageShareHint:
+      "Выберите приложение в меню «Поделиться», чтобы сохранить изображение в галерею.",
     permissionDenied: "Доступ к фотогалерее запрещен.",
     downloadError: "Ошибка загрузки изображения.",
     /* mobile-students additional keys */
