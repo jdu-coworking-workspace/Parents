@@ -39,6 +39,8 @@ import { Plus } from "lucide-react";
 import usePagination from "@/lib/usePagination";
 import PageHeader from "@/components/PageHeader";
 import { useListQuery } from "@/lib/useListQuery";
+import YesBadge from "@/components/yesbadge";
+import NoBadge from "@/components/nobadge";
 
 export default function Students() {
   const t = useTranslations("students");
@@ -120,8 +122,12 @@ export default function Students() {
       },
     },
     {
-      accessorKey: "phone_number",
-      header: t("phoneNumber"),
+      accessorKey: "last_login_at || arn",
+      header: t("loginStatus"),
+      cell: ({ row }) => {
+        const isLoggedIn = row.original.last_login_at || row.original.arn;
+        return isLoggedIn ? <YesBadge /> : <NoBadge />;
+      },
     },
     {
       header: t("action"),

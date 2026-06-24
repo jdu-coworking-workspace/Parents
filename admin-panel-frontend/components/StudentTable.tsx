@@ -13,6 +13,8 @@ import {
 } from "./GenericSelectTable";
 import usePagination from "@/lib/usePagination";
 import { useListQuery } from "@/lib/useListQuery";
+import YesBadge from "./yesbadge";
+import NoBadge from "./nobadge";
 
 export function StudentTable({
   selectedStudents,
@@ -114,11 +116,12 @@ export function StudentTable({
         },
       },
       {
-        accessorKey: "phone_number",
-        header: t("phoneNumber"),
-        cell: ({ row }) => (
-          <div className="text-left">{row.getValue("phone_number")}</div>
-        ),
+        accessorKey: "last_login_at || arn",
+        header: t("loginStatus"),
+        cell: ({ row }) => {
+          const isLoggedIn = row.original.last_login_at || row.original.arn;
+          return isLoggedIn ? <YesBadge /> : <NoBadge />;
+        },
       },
     ],
     [t, tName]
