@@ -367,7 +367,8 @@ export class PostRepository {
                 s.given_name,
                 s.family_name,
                 s.student_number,
-                ps.id as post_student_id
+                ps.id as post_student_id,
+                ps.viewed_at
             FROM Student s
             INNER JOIN PostStudent ps ON s.id = ps.student_id
             WHERE ps.post_id = ?
@@ -388,7 +389,7 @@ export class PostRepository {
         // Get total count
         const countQuery = query
             .replace(/SELECT[\s\S]+?FROM/i, 'SELECT COUNT(*) as total FROM')
-            .replace(/,\s*ps\.id\s+as\s+post_student_id\s*FROM/i, ' FROM');
+            .replace(/,\s*ps\.id\s+as\s+post_student_id,\s*ps\.viewed_at\s*FROM/i, ' FROM');
 
         const countRows = (await DB.query(countQuery, params)) as any[];
         const total = countRows[0]?.total || 0;
@@ -488,10 +489,19 @@ export class PostRepository {
             SELECT 
                 g.id,
                 g.name,
-                COUNT(DISTINCT CASE WHEN pp.viewed_at IS NOT NULL THEN pp.parent_id END) as viewed_count,
-                COUNT(DISTINCT CASE WHEN pp.viewed_at IS NULL THEN pp.parent_id END) as not_viewed_count
+                CASE WHEN po.audience = 'students' THEN
+                    COUNT(DISTINCT CASE WHEN pst.viewed_at IS NOT NULL THEN pst.id END)
+                ELSE
+                    COUNT(DISTINCT CASE WHEN pp.viewed_at IS NOT NULL THEN pp.parent_id END)
+                END as viewed_count,
+                CASE WHEN po.audience = 'students' THEN
+                    COUNT(DISTINCT CASE WHEN pst.viewed_at IS NULL THEN pst.id END)
+                ELSE
+                    COUNT(DISTINCT CASE WHEN pp.viewed_at IS NULL THEN pp.parent_id END)
+                END as not_viewed_count
             FROM StudentGroup g
             INNER JOIN PostStudent pst ON pst.group_id = g.id
+            INNER JOIN Post po ON po.id = pst.post_id
             LEFT JOIN PostParent pp ON pp.post_student_id = pst.id
             WHERE pst.post_id = ?
         `;
@@ -540,7 +550,8 @@ export class PostRepository {
                 s.given_name,
                 s.family_name,
                 s.student_number,
-                ps.id as post_student_id
+                ps.id as post_student_id,
+                ps.viewed_at
             FROM Student s
             INNER JOIN GroupMember gs ON s.id = gs.student_id
             INNER JOIN PostStudent ps ON s.id = ps.student_id
@@ -565,7 +576,7 @@ export class PostRepository {
                 /SELECT DISTINCT[\s\S]+?FROM/i,
                 'SELECT COUNT(DISTINCT s.id) as total FROM'
             )
-            .replace(/,\s*ps\.id\s+as\s+post_student_id\s*FROM/i, ' FROM');
+            .replace(/,\s*ps\.id\s+as\s+post_student_id,\s*ps\.viewed_at\s*FROM/i, ' FROM');
 
         const countRows = (await DB.query(countQuery, params)) as any[];
         const total = countRows[0]?.total || 0;

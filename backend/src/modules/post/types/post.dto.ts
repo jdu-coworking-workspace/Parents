@@ -160,6 +160,7 @@ export interface StudentWithReadStatus {
     family_name: string;
     student_number: string;
     post_student_id: number;
+    viewed_at: Date | false;
     parents: ParentReadStatus[];
 }
 

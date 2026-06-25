@@ -99,14 +99,16 @@ export default function ThisMessage({
       },
       cell: ({ row }) => {
         const parents = row.original?.parents || [];
-        const anyViewed = parents.some((parent) => parent.viewed_at);
+        const isViewed =
+          row.original.viewed_at ||
+          parents.some((parent) => parent.viewed_at);
 
         return (
           <HoverCard>
             <HoverCardTrigger asChild>
               <Link href={`${pathname}/student/${row.original.id}`}>
                 <Bell
-                  className={anyViewed ? "text-green-500" : "text-red-500"}
+                  className={isViewed ? "text-green-500" : "text-red-500"}
                 />
               </Link>
             </HoverCardTrigger>
@@ -128,7 +130,14 @@ export default function ThisMessage({
                       )}
                     </div>
                   ))
-                : t("noParents")}
+                : (
+                    <div className="flex justify-between py-2">
+                      <div className="font-bold">
+                        {tName("name", { ...row.original, parents: "" })}
+                      </div>
+                      {row.original.viewed_at ? <CheckCheck /> : <Check />}
+                    </div>
+                  )}
             </HoverCardContent>
           </HoverCard>
         );

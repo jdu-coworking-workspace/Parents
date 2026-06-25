@@ -584,6 +584,7 @@ export class PostService {
                     family_name: student.family_name,
                     student_number: student.student_number,
                     post_student_id: student.post_student_id,
+                    viewed_at: student.viewed_at || false,
                     parents: parents.map(parent => ({
                         id: parent.id,
                         given_name: parent.given_name,
@@ -708,6 +709,7 @@ export class PostService {
                     family_name: student.family_name,
                     student_number: student.student_number,
                     post_student_id: student.post_student_id,
+                    viewed_at: student.viewed_at || false,
                     parents: parents.map(parent => ({
                         id: parent.id,
                         given_name: parent.given_name,
