@@ -30,6 +30,9 @@ export interface StudentDetailData {
     phone_number: string;
     student_number: string;
     cohort: number | null;
+    // Optional login fields to indicate whether the student has logged in or has a device ARN
+    last_login_at?: string;
+    arn?: string;
 }
 
 export interface ParentBasicData {

@@ -9,4 +9,7 @@ export default interface Student {
   family_name: string;
   cohort?: number;
   parents?: Parent[];
+  // Optional login fields
+  last_login_at?: string;
+  arn?: string;
 }

@@ -139,7 +139,7 @@ export class StudentRepository {
                 : '';
 
         return await DB.query(
-            `SELECT id, email, given_name, family_name, phone_number, student_number, cohort
+            `SELECT id, email, given_name, family_name, phone_number, student_number, cohort, last_login_at, arn
             FROM Student
             WHERE school_id = :school_id ${whereClause}
             ORDER BY id DESC
@@ -202,7 +202,7 @@ export class StudentRepository {
         schoolId: number
     ): Promise<StudentDetailInfo | null> {
         const result = await DB.query(
-            `SELECT id, email, given_name, family_name, phone_number, student_number, cohort
+            `SELECT id, email, given_name, family_name, phone_number, student_number, cohort, last_login_at, arn
             FROM Student
             WHERE id = :id AND school_id = :school_id`,
             {
