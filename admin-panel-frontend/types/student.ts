@@ -8,6 +8,5 @@ export default interface Student {
   given_name: string;
   family_name: string;
   cohort?: number;
-  viewed_at?: string | false;
   parents?: Parent[];
 }

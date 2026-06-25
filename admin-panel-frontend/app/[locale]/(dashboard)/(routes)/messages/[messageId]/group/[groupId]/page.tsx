@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import Student from "@/types/student";
+import { MessageStudent } from "@/types/studentApi";
 import { Link } from "@/navigation";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
@@ -55,7 +55,7 @@ export default function ThisGroup({
   const { data: groupData, isError } = useListQuery<{
     group: Group;
     pagination: pagination;
-    students: Student[];
+    students: MessageStudent[];
   }>(`post/${messageId}/group/${groupId}?page=${studentPage}`, [
     "group",
     messageId,
@@ -77,7 +77,7 @@ export default function ThisGroup({
     }
   );
 
-  const studentColumns: ColumnDef<Student>[] = [
+  const studentColumns: ColumnDef<MessageStudent>[] = [
     {
       accessorKey: "given_name",
       header: t("studentGivenName"),
@@ -132,8 +132,7 @@ export default function ThisGroup({
       cell: ({ row }) => {
         const parents = row.original?.parents || [];
         const isViewed =
-          row.original.viewed_at ||
-          parents.some((parent) => parent.viewed_at);
+          row.original.viewed_at || parents.some((parent) => parent.viewed_at);
 
         return (
           <HoverCard>
@@ -145,31 +144,33 @@ export default function ThisGroup({
               </Link>
             </HoverCardTrigger>
             <HoverCardContent>
-              {row.original?.parents?.length
-                ? row.original?.parents.map((parent) => (
-                    <div key={parent.id}>
-                      <div className="flex justify-between py-2">
-                        <div className="font-bold">
-                          {tName("name", {
-                            given_name: parent.given_name,
-                            family_name: parent.family_name,
-                          })}
-                        </div>
-                        {parent.viewed_at ? <CheckCheck /> : <Check />}
-                      </div>
-                      {row.original?.parents?.at(-1) !== parent && (
-                        <Separator />
-                      )}
-                    </div>
-                  ))
-                : (
+              {row.original?.parents?.length ? (
+                row.original?.parents.map((parent) => (
+                  <div key={parent.id}>
                     <div className="flex justify-between py-2">
                       <div className="font-bold">
-                        {tName("name", { ...row.original, parents: "" })}
+                        {tName("name", {
+                          given_name: parent.given_name,
+                          family_name: parent.family_name,
+                        })}
                       </div>
-                      {row.original.viewed_at ? <CheckCheck /> : <Check />}
+                      {parent.viewed_at ? <CheckCheck /> : <Check />}
                     </div>
-                  )}
+                    {row.original?.parents?.at(-1) !== parent && <Separator />}
+                  </div>
+                ))
+              ) : (
+                <div className="flex justify-between py-2">
+                  <div className="font-bold">
+                    {tName("name", {
+                      given_name: row.original.given_name,
+                      family_name: row.original.family_name,
+                      parents: "",
+                    })}
+                  </div>
+                  {row.original.viewed_at ? <CheckCheck /> : <Check />}
+                </div>
+              )}
             </HoverCardContent>
           </HoverCard>
         );

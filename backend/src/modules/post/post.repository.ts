@@ -389,7 +389,10 @@ export class PostRepository {
         // Get total count
         const countQuery = query
             .replace(/SELECT[\s\S]+?FROM/i, 'SELECT COUNT(*) as total FROM')
-            .replace(/,\s*ps\.id\s+as\s+post_student_id,\s*ps\.viewed_at\s*FROM/i, ' FROM');
+            .replace(
+                /,\s*ps\.id\s+as\s+post_student_id,\s*ps\.viewed_at\s*FROM/i,
+                ' FROM'
+            );
 
         const countRows = (await DB.query(countQuery, params)) as any[];
         const total = countRows[0]?.total || 0;
@@ -576,7 +579,10 @@ export class PostRepository {
                 /SELECT DISTINCT[\s\S]+?FROM/i,
                 'SELECT COUNT(DISTINCT s.id) as total FROM'
             )
-            .replace(/,\s*ps\.id\s+as\s+post_student_id,\s*ps\.viewed_at\s*FROM/i, ' FROM');
+            .replace(
+                /,\s*ps\.id\s+as\s+post_student_id,\s*ps\.viewed_at\s*FROM/i,
+                ' FROM'
+            );
 
         const countRows = (await DB.query(countQuery, params)) as any[];
         const total = countRows[0]?.total || 0;

@@ -14,10 +14,12 @@ import { usePathname, Link } from "@/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import postView from "@/types/postView";
 import { Button } from "@/components/ui/button";
-import StudentApi from "@/types/studentApi";
+import StudentApi, {
+  MessageStudent,
+  MessageStudentApi,
+} from "@/types/studentApi";
 import { Bell, Check, CheckCheck, Edit3Icon } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
-import Student from "@/types/student";
 import { Input } from "@/components/ui/input";
 import PaginationApi from "@/components/PaginationApi";
 import {
@@ -62,7 +64,7 @@ export default function ThisMessage({
   const [studentPage, setStudentPage] = useState(1);
   const [studentSearch, setStudentSearch] = useState("");
   const { data: studentData, isError: isStudentError } =
-    useListQuery<StudentApi>(
+    useListQuery<MessageStudentApi>(
       `post/${messageId}/students?page=${studentPage}&email=${studentSearch}`,
       ["student", messageId, studentPage, studentSearch]
     );
@@ -73,11 +75,16 @@ export default function ThisMessage({
     ["group", messageId, groupPage, groupSearch]
   );
 
-  const studentColumns: ColumnDef<Student>[] = [
+  const studentColumns: ColumnDef<MessageStudent>[] = [
     {
       accessorKey: "name",
       header: t("name"),
-      cell: ({ row }) => tName("name", { ...row?.original, parents: "" }),
+      cell: ({ row }) =>
+        tName("name", {
+          given_name: row.original.given_name,
+          family_name: row.original.family_name,
+          parents: "",
+        }),
     },
     {
       accessorKey: "email",
@@ -100,8 +107,7 @@ export default function ThisMessage({
       cell: ({ row }) => {
         const parents = row.original?.parents || [];
         const isViewed =
-          row.original.viewed_at ||
-          parents.some((parent) => parent.viewed_at);
+          row.original.viewed_at || parents.some((parent) => parent.viewed_at);
 
         return (
           <HoverCard>
@@ -113,31 +119,33 @@ export default function ThisMessage({
               </Link>
             </HoverCardTrigger>
             <HoverCardContent>
-              {row.original?.parents?.length
-                ? row.original?.parents.map((parent) => (
-                    <div key={parent.id}>
-                      <div className="flex justify-between py-2">
-                        <div className="font-bold">
-                          {tName("name", {
-                            given_name: parent.given_name,
-                            family_name: parent.family_name,
-                          })}
-                        </div>
-                        {parent.viewed_at ? <CheckCheck /> : <Check />}
-                      </div>
-                      {row.original?.parents?.at(-1) !== parent && (
-                        <Separator />
-                      )}
-                    </div>
-                  ))
-                : (
+              {row.original?.parents?.length ? (
+                row.original?.parents.map((parent) => (
+                  <div key={parent.id}>
                     <div className="flex justify-between py-2">
                       <div className="font-bold">
-                        {tName("name", { ...row.original, parents: "" })}
+                        {tName("name", {
+                          given_name: parent.given_name,
+                          family_name: parent.family_name,
+                        })}
                       </div>
-                      {row.original.viewed_at ? <CheckCheck /> : <Check />}
+                      {parent.viewed_at ? <CheckCheck /> : <Check />}
                     </div>
-                  )}
+                    {row.original?.parents?.at(-1) !== parent && <Separator />}
+                  </div>
+                ))
+              ) : (
+                <div className="flex justify-between py-2">
+                  <div className="font-bold">
+                    {tName("name", {
+                      given_name: row.original.given_name,
+                      family_name: row.original.family_name,
+                      parents: "",
+                    })}
+                  </div>
+                  {row.original.viewed_at ? <CheckCheck /> : <Check />}
+                </div>
+              )}
             </HoverCardContent>
           </HoverCard>
         );
