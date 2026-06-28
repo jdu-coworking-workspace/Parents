@@ -10,6 +10,7 @@ export interface ExtendedRequest extends Request {
     [k: string]: any;
 }
 
+
 async function getStudentUserData(cognitoClient: any, token: string) {
     try {
         return await cognitoClient.accessToken(token);

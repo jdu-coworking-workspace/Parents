@@ -232,6 +232,7 @@ class MobileAuthModuleController implements IController {
         };
     }
 
+    
     private async getStudentAuthUser(accessToken: string) {
         try {
             return await this.studentCognitoClient.accessToken(accessToken);
