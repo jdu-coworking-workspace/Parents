@@ -232,6 +232,18 @@ class MobileAuthModuleController implements IController {
         };
     }
 
+    private async getStudentAuthUser(accessToken: string) {
+        try {
+            return await this.studentCognitoClient.accessToken(accessToken);
+        } catch (err: any) {
+            if (err?.status !== 401 || config.USE_MOCK_COGNITO) {
+                throw err;
+            }
+
+            return this.getGoogleUserInfo(accessToken);
+        }
+    }
+
     studentGoogleLogin = async (
         req: Request,
         res: Response,
@@ -705,9 +717,7 @@ class MobileAuthModuleController implements IController {
             }
 
             const accessToken = authHeader.split(' ')[1];
-            const authUser = await this.studentCognitoClient.accessToken(
-                accessToken
-            );
+            const authUser = await this.getStudentAuthUser(accessToken);
             const students = await DB.query(
                 `SELECT st.id
                  FROM Student AS st

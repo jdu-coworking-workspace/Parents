@@ -10,6 +10,39 @@ export interface ExtendedRequest extends Request {
     [k: string]: any;
 }
 
+async function getStudentUserData(cognitoClient: any, token: string) {
+    try {
+        return await cognitoClient.accessToken(token);
+    } catch (err: any) {
+        if (err?.status !== 401 || config.USE_MOCK_COGNITO) {
+            throw err;
+        }
+
+        const cognitoDomain = config.STUDENT_COGNITO_DOMAIN || config.COGNITO_DOMAIN;
+        if (!cognitoDomain) {
+            throw err;
+        }
+
+        const resp = await fetch(`${cognitoDomain}/oauth2/userInfo`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!resp.ok) {
+            throw err;
+        }
+
+        const data = await resp.json();
+        return {
+            email: data.email ?? '',
+            phone_number: data.phone_number ?? '',
+            sub_id: data.sub ?? '',
+        };
+    }
+}
+
 export const verifyToken = async (
     req: ExtendedRequest,
     res: Response,
@@ -111,7 +144,7 @@ export const verifyStudentToken = async (
     try {
         let userData;
         try {
-            userData = await cognitoClient.accessToken(token);
+            userData = await getStudentUserData(cognitoClient, token);
         } catch (cognitoError: any) {
             if (cognitoError.status === 401) {
                 return res
