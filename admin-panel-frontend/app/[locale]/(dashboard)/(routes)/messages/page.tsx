@@ -585,23 +585,6 @@ export default function Info() {
                   variant="secondary"
                   onClick={() => {
                     setIsCreateDialogOpen(false);
-                    router.push(`/messages/create?audience=students`);
-                  }}
-                  aria-label={t("studentAudienceTitle")}
-                  className={
-                    "flex-1 flex items-center justify-center gap-4 px-2.5 py-2 rounded-xl border border-black/15 dark:border-transparent shadow-sm transition-transform duration-200 transform hover:scale-105 hover:shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[56px]"
-                  }
-                >
-                  <GraduationCap className="h-5 w-5 text-muted-foreground" />
-                  <div className="text-base font-semibold text-foreground">
-                    {t("studentAudienceTitle")}
-                  </div>
-                </Button>
-
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setIsCreateDialogOpen(false);
                     router.push(`/messages/create?audience=parents`);
                   }}
                   aria-label={t("parentAudienceTitle")}
@@ -612,6 +595,23 @@ export default function Info() {
                   <Users className="h-5 w-5 text-muted-foreground" />
                   <div className="text-base font-semibold text-foreground">
                     {t("parentAudienceTitle")}
+                  </div>
+                </Button>
+                
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    router.push(`/messages/create?audience=students`);
+                  }}
+                  aria-label={t("studentAudienceTitle")}
+                  className={
+                    "flex-1 flex items-center justify-center gap-4 px-2.5 py-2 rounded-xl border border-black/15 dark:border-transparent shadow-sm transition-transform duration-200 transform hover:scale-105 hover:shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[56px]"
+                  }
+                >
+                  <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                  <div className="text-base font-semibold text-foreground">
+                    {t("studentAudienceTitle")}
                   </div>
                 </Button>
               </div>

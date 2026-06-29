@@ -398,7 +398,10 @@
     "selectAll": "Barchasini tanlash",
     "selectAllFiltered": "Filterlangan barchasini tanlash",
     "selecting": "Tanlanmoqda...",
-    "unselectAll": "Barchasini bekor qilish"
+    "unselectAll": "Barchasini bekor qilish",
+    "loginStatus": "Kirish holati",
+    "loggedIn": "Kirgan",
+    "notLoggedIn": "Kirmagan"
   },
   "ThisForms": {
     "Forms": "Formlar",
