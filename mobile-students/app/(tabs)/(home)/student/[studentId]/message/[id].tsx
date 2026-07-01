@@ -15,21 +15,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { fetchStudentMessage } from '@/services/student-messages';
 import type { Message } from '@/types/message';
-
-function formatDateTime(value: string) {
-  if (!value) {
-    return '';
-  }
-
-  const [datePart = '', timePart = ''] = value.split(' ');
-  const [year = '', month = '', day = ''] = datePart.split('-');
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}.${month}.${year}  ${timePart}`;
-}
+import { formatMessageDateTime } from '@/utils/formatDateTime';
 
 function getPriorityBadgeColor(priority: Message['priority']) {
   if (priority === 'high') {
@@ -157,7 +143,7 @@ export default function MessageDetailScreen() {
           <ThemedText
             style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
           >
-            {formatDateTime(message.sent_time)}
+            {formatMessageDateTime(message.sent_time)}
           </ThemedText>
 
           <Pressable onPress={handleCopy} style={styles.copyButton}>

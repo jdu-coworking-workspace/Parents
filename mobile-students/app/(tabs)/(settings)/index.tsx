@@ -112,7 +112,6 @@ export default function SettingsScreen() {
   const initialLabel =
     languageData.find((l) => l.code === currentLang)?.label ?? "O'zbekcha";
   const [selectedLanguage, setSelectedLanguage] = useState(initialLabel);
-  const [isLightModeOn, setIsLightModeOn] = useState(true);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
   const [previewFontSize, setPreviewFontSize] = useState(1.4);
 
@@ -301,7 +300,7 @@ export default function SettingsScreen() {
                 />
               </View>
               <ThemedText style={styles.rowLabel}>
-                {isLightModeOn ? t("lightMode") : t("darkMode")}
+                {currentColorScheme === "dark" ? t("darkMode") : t("lightMode")}
               </ThemedText>
               <View style={styles.rowSpacer} />
               <View

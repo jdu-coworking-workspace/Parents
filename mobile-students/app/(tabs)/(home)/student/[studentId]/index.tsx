@@ -18,19 +18,9 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { useMessageContext } from '@/contexts/message-context';
 import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
 import type { Message } from '@/types/message';
+import { formatMessageDateTime } from '@/utils/formatDateTime';
 
 const PAGE_SIZE = 10;
-
-function formatDateTime(value: string) {
-  const [datePart = '', timePart = ''] = value.split(' ');
-  const [year = '', month = '', day = ''] = datePart.split('-');
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}.${month}.${year}   ${timePart}`;
-}
 
 function getImportanceLabel(
   priority: Message['priority'],
@@ -328,7 +318,7 @@ export default function StudentMessagesScreen() {
                       isRead && styles.readOpacity,
                     ]}
                   >
-                    {formatDateTime(message.sent_time)}
+                    {formatMessageDateTime(message.sent_time)}
                   </ThemedText>
 
                   <Ionicons
