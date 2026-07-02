@@ -195,6 +195,8 @@ export type TranslationKeys = {
   passwordTooShort: string;
   temporaryPasswordRequired: string;
   emailRequired: string;
+  forgotPasswordCodeSent: string;
+  forgotPasswordCodeResent: string;
   temporaryPasswordSent: string;
   verifyEmailError: string;
   enterTemporaryPassword: string;

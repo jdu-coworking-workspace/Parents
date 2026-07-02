@@ -41,6 +41,9 @@ const translations = {
     temporaryPasswordRequired:
       "Temporary password needs to be changed. Please set a new password.",
     emailRequired: "Please enter your email address.",
+    forgotPasswordCodeSent: "Verification code sent successfully.",
+    forgotPasswordCodeResent:
+      "Verification code resent successfully (Attempt {attempt}).",
     temporaryPasswordSent: "Temporary password sent to your email.",
     verifyEmailError: "An error occurred while verifying the email address.",
     enterTemporaryPassword: "Enter temporary password",
@@ -411,6 +414,9 @@ const translations = {
     back: "戻る",
     copy: "コピー",
     emailRequired: "メールアドレスを入力してください。",
+    forgotPasswordCodeSent: "確認コードを正常に送信しました。",
+    forgotPasswordCodeResent:
+      "確認コードを再送信しました（{attempt}回目）。",
     temporaryPasswordSent: "仮パスワードをメールに送信しました。",
     verifyEmailError: "メールアドレスの確認中にエラーが発生しました。",
     enterTemporaryPassword: "仮パスワードを入力してください",
@@ -699,6 +705,9 @@ const translations = {
     back: "Orqaga",
     copy: "Nusxa",
     emailRequired: "Iltimos, elektron pochtangizni kiriting.",
+    forgotPasswordCodeSent: "Tasdiqlash kodi muvaffaqiyatli yuborildi.",
+    forgotPasswordCodeResent:
+      "Tasdiqlash kodi qayta yuborildi ({attempt}-urinish).",
     temporaryPasswordSent:
       "Vaqtinchalik parol elektron pochtangizga yuborildi.",
     verifyEmailError:
@@ -987,6 +996,9 @@ const translations = {
     back: "Назад",
     copy: "Копировать",
     emailRequired: "Пожалуйста, введите адрес электронной почты.",
+    forgotPasswordCodeSent: "Код подтверждения успешно отправлен.",
+    forgotPasswordCodeResent:
+      "Код подтверждения успешно отправлен повторно (попытка {attempt}).",
     temporaryPasswordSent:
       "Временный пароль отправлен на вашу электронную почту.",
     verifyEmailError: "Произошла ошибка при проверке адреса электронной почты.",

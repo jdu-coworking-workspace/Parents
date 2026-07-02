@@ -293,6 +293,23 @@ export default function SignInScreen() {
                 </View>
               ) : null}
 
+              {step !== "email" ? (
+                <Pressable
+                  style={styles.forgotPasswordButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/forgot-password",
+                      params: { email: email.trim().toLowerCase() },
+                    } as never)
+                  }
+                  disabled={isLoading}
+                >
+                  <ThemedText style={[styles.forgotPasswordText, { color: palette.primary }]}>
+                    {t('forgotPasswordLink')}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+
               {info ? (
                 <ThemedText
                   style={[styles.feedbackText, { color: palette.info }]}
@@ -452,5 +469,15 @@ const styles = StyleSheet.create({
   secondaryButton: {
     marginTop: 12,
     alignItems: "center",
+  },
+  forgotPasswordButton: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textDecorationLine: "underline",
   },
 });
