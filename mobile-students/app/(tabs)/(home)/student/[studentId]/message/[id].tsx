@@ -1,28 +1,44 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   StyleSheet,
+  ToastAndroid,
   View,
-} from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+} from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { I18nContext } from '@/contexts/i18n-context';
-import { fetchStudentMessage } from '@/services/student-messages';
-import type { Message } from '@/types/message';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { I18nContext } from "@/contexts/i18n-context";
+import { fetchStudentMessage } from "@/services/student-messages";
+import type { Message } from "@/types/message";
+
+// Example of your translations type file
+export type TranslationKeys = {
+  critical: string;
+  important: string;
+  ordinary: string;
+  loading: string;
+  failedToRetrieveMessage: string;
+  tryAgain: string;
+  copy: string;
+  // Add your new key here! 👇
+  messageCopiedToClipboard: string;
+};
 
 function formatDateTime(value: string) {
   if (!value) {
-    return '';
+    return "";
   }
 
-  const [datePart = '', timePart = ''] = value.split(' ');
-  const [year = '', month = '', day = ''] = datePart.split('-');
+  const [datePart = "", timePart = ""] = value.split(" ");
+  const [year = "", month = "", day = ""] = datePart.split("-");
 
   if (!year || !month || !day) {
     return value;
@@ -31,22 +47,32 @@ function formatDateTime(value: string) {
   return `${day}.${month}.${year}  ${timePart}`;
 }
 
-function getPriorityBadgeColor(priority: Message['priority']) {
-  if (priority === 'high') {
-    return '#FF2B2B';
+function showCopiedToast(message: string) {
+  if (Platform.OS === "android") {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+    return;
   }
 
-  if (priority === 'medium') {
-    return '#F59E0B';
+  // iOS'da ToastAndroid ishlamaydi, shuning uchun Alert orqali ko'rsatamiz
+  Alert.alert(message);
+}
+
+function getPriorityBadgeColor(priority: Message["priority"]) {
+  if (priority === "high") {
+    return "#FF2B2B";
   }
 
-  return '#16A34A';
+  if (priority === "medium") {
+    return "#F59E0B";
+  }
+
+  return "#16A34A";
 }
 
 export default function MessageDetailScreen() {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const isDark = colorScheme === 'dark';
-  const pageBackgroundColor = isDark ? '#111215' : '#fff';
+  const colorScheme = useColorScheme() ?? "dark";
+  const isDark = colorScheme === "dark";
+  const pageBackgroundColor = isDark ? "#111215" : "#fff";
   const { t } = useContext(I18nContext);
 
   const { id } = useLocalSearchParams<{
@@ -73,7 +99,7 @@ export default function MessageDetailScreen() {
       const post = await fetchStudentMessage(messageId);
       setMessage(post);
     } catch (error) {
-      console.error('Error loading student message:', error);
+      console.error("Error loading student message:", error);
       setIsError(true);
     } finally {
       setIsLoading(false);
@@ -83,13 +109,13 @@ export default function MessageDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadMessage();
-    }, [loadMessage])
+    }, [loadMessage]),
   );
 
-  const getPriorityLabel = (priority: Message['priority']) => {
-    if (priority === 'high') return t('critical');
-    if (priority === 'medium') return t('important');
-    return t('ordinary');
+  const getPriorityLabel = (priority: Message["priority"]) => {
+    if (priority === "high") return t("critical");
+    if (priority === "medium") return t("important");
+    return t("ordinary");
   };
 
   const handleCopy = async () => {
@@ -98,15 +124,21 @@ export default function MessageDetailScreen() {
     }
 
     await Clipboard.setStringAsync(message.content);
+
+    // Assert the type to bypass the error
+    showCopiedToast(t("messageCopiedToClipboard" as keyof typeof t | any));
   };
 
   if (isLoading) {
     return (
       <ThemedView
-        style={[styles.centeredContainer, { backgroundColor: pageBackgroundColor }]}
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: pageBackgroundColor },
+        ]}
       >
         <ActivityIndicator size="large" color="#0A84FF" />
-        <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+        <ThemedText style={styles.loadingText}>{t("loading")}</ThemedText>
       </ThemedView>
     );
   }
@@ -114,24 +146,34 @@ export default function MessageDetailScreen() {
   if (isError || !message) {
     return (
       <ThemedView
-        style={[styles.centeredContainer, { backgroundColor: pageBackgroundColor }]}
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: pageBackgroundColor },
+        ]}
       >
         <ThemedText style={styles.errorText}>
-          {t('failedToRetrieveMessage')}
+          {t("failedToRetrieveMessage")}
         </ThemedText>
-        <Pressable style={styles.retryButton} onPress={() => void loadMessage()}>
-          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void loadMessage()}
+        >
+          <ThemedText style={styles.retryButtonText}>
+            {t("tryAgain")}
+          </ThemedText>
         </Pressable>
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
+    <ThemedView
+      style={[styles.container, { backgroundColor: pageBackgroundColor }]}
+    >
       <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
         <View style={styles.titleRow}>
           <ThemedText
-            style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}
+            style={[styles.title, { color: isDark ? "#FFFFFF" : "#111827" }]}
           >
             {message.title}
           </ThemedText>
@@ -148,21 +190,21 @@ export default function MessageDetailScreen() {
         </View>
 
         <ThemedText
-          style={[styles.preview, { color: isDark ? '#E5E7EB' : '#1F2937' }]}
+          style={[styles.preview, { color: isDark ? "#E5E7EB" : "#1F2937" }]}
         >
           {message.content}
         </ThemedText>
 
         <View style={styles.footerRow}>
           <ThemedText
-            style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+            style={[styles.date, { color: isDark ? "#6B7280" : "#6B7280" }]}
           >
             {formatDateTime(message.sent_time)}
           </ThemedText>
 
           <Pressable onPress={handleCopy} style={styles.copyButton}>
             <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-            <ThemedText style={styles.copyText}>{t('copy')}</ThemedText>
+            <ThemedText style={styles.copyText}>{t("copy")}</ThemedText>
           </Pressable>
         </View>
       </View>
@@ -178,8 +220,8 @@ const styles = StyleSheet.create({
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
   },
   loadingText: {
@@ -187,18 +229,18 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#005678',
+    backgroundColor: "#005678",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 16,
   },
   card: {
@@ -206,14 +248,14 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 12,
   },
   title: {
     fontSize: 36 / 2,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
   },
   badge: {
@@ -222,10 +264,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'lowercase',
+    fontWeight: "700",
+    textTransform: "lowercase",
   },
   preview: {
     marginTop: 8,
@@ -234,22 +276,22 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     marginTop: 44,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   date: {
     fontSize: 32 / 2,
   },
   copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingVertical: 4,
   },
   copyText: {
-    color: '#0A84FF',
+    color: "#0A84FF",
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
