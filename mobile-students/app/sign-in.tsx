@@ -196,7 +196,7 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.title}>{t('welcomeStudent')}</ThemedText>
+                <ThemedText disableScaling style={styles.title}>{t('welcomeStudent')}</ThemedText>
               </View>
 
               <Pressable
@@ -213,6 +213,7 @@ export default function SignInScreen() {
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
                 <ThemedText
+                  disableScaling
                   style={[
                     styles.googleButtonText,
                     { color: Colors[colorScheme].text },
@@ -237,7 +238,7 @@ export default function SignInScreen() {
               </View>
 
               <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>{t('email')}</ThemedText>
+                <ThemedText disableScaling style={styles.label}>{t('email')}</ThemedText>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
@@ -260,7 +261,7 @@ export default function SignInScreen() {
 
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
-                  <ThemedText style={styles.label}>{t('password')}</ThemedText>
+                  <ThemedText disableScaling style={styles.label}>{t('password')}</ThemedText>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       value={password}
@@ -295,6 +296,7 @@ export default function SignInScreen() {
 
               {info ? (
                 <ThemedText
+                  disableScaling
                   style={[styles.feedbackText, { color: palette.info }]}
                 >
                   {info}
@@ -303,6 +305,7 @@ export default function SignInScreen() {
 
               {error ? (
                 <ThemedText
+                  disableScaling
                   style={[styles.feedbackText, { color: palette.error }]}
                 >
                   {error}
@@ -320,7 +323,7 @@ export default function SignInScreen() {
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <ThemedText style={styles.primaryButtonText}>
+                  <ThemedText disableScaling style={styles.primaryButtonText}>
                     {step === 'email' ? t('next') : t('signIn')}
                   </ThemedText>
                 )}
@@ -338,7 +341,7 @@ export default function SignInScreen() {
                   }}
                   disabled={isLoading}
                 >
-                  <ThemedText style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
+                  <ThemedText disableScaling style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
                 </Pressable>
               ) : null}
             </ScrollView>

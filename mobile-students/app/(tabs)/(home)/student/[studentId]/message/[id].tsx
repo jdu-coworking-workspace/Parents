@@ -131,7 +131,10 @@ export default function MessageDetailScreen() {
       <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
         <View style={styles.titleRow}>
           <ThemedText
-            style={[styles.title, { color: isDark ? '#FFFFFF' : '#111827' }]}
+            style={[
+              styles.title,
+              { color: isDark ? '#FFFFFF' : '#111827' },
+            ]}
           >
             {message.title}
           </ThemedText>
@@ -162,7 +165,7 @@ export default function MessageDetailScreen() {
 
           <Pressable onPress={handleCopy} style={styles.copyButton}>
             <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-            <ThemedText style={styles.copyText}>{t('copy')}</ThemedText>
+            <ThemedText style={styles.copyText}>Copy</ThemedText>
           </Pressable>
         </View>
       </View>
@@ -208,13 +211,14 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
   },
   title: {
     fontSize: 36 / 2,
     fontWeight: '700',
     flex: 1,
+    flexShrink: 1,
   },
   badge: {
     borderRadius: 6,

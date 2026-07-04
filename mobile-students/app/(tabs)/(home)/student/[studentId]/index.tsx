@@ -297,6 +297,8 @@ export default function StudentMessagesScreen() {
             >
               <View style={styles.titleRow}>
                 <ThemedText
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                   style={[styles.title, isRead && styles.readOpacity]}
                 >
                   {message.title}
@@ -311,8 +313,9 @@ export default function StudentMessagesScreen() {
               </View>
 
               <ThemedText
+                numberOfLines={2}
+                ellipsizeMode="tail"
                 style={[styles.preview, isRead && styles.readOpacity]}
-                numberOfLines={3}
               >
                 {message.content}
               </ThemedText>

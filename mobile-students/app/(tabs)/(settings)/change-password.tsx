@@ -103,7 +103,7 @@ function PasswordField({
 }: PasswordFieldProps) {
   return (
     <View style={styles.fieldBlock}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
+      <ThemedText disableScaling style={styles.label}>{label}</ThemedText>
       <View style={styles.passwordContainer}>
         <TextInput
           value={value}
@@ -144,7 +144,7 @@ function PasswordField({
             size={16}
             color={semanticColors.error}
           />
-          <ThemedText style={styles.fieldErrorText}>{error}</ThemedText>
+          <ThemedText disableScaling style={styles.fieldErrorText}>{error}</ThemedText>
         </View>
       ) : null}
     </View>
@@ -178,6 +178,7 @@ function FeedbackBanner({
         color={isSuccess ? semanticColors.success : semanticColors.error}
       />
       <ThemedText
+        disableScaling
         style={[
           styles.feedbackText,
           { color: isSuccess ? semanticColors.success : semanticColors.error },
@@ -217,7 +218,7 @@ function PasswordValidationCard({
         { backgroundColor: palette.cardBg, borderColor: palette.cardBorder },
       ]}
     >
-      <ThemedText style={styles.validationTitle}>
+      <ThemedText disableScaling style={styles.validationTitle}>
         {t("passwordStrength")}
       </ThemedText>
       <View style={styles.strengthRow}>
@@ -233,6 +234,7 @@ function PasswordValidationCard({
           />
         </View>
         <ThemedText
+          disableScaling
           style={[styles.strengthLabel, { color: passwordStrength.color }]}
         >
           {passwordStrength.label}
@@ -254,6 +256,7 @@ function PasswordValidationCard({
                 style={styles.ruleIcon}
               />
               <ThemedText
+                disableScaling
                 style={[
                   styles.ruleText,
                   {
@@ -299,7 +302,7 @@ function SaveButton({
           style={styles.buttonLoader}
         />
       ) : null}
-      <ThemedText style={styles.primaryButtonText}>
+      <ThemedText disableScaling style={styles.primaryButtonText}>
         {isLoading ? loadingLabel : label}
       </ThemedText>
     </Pressable>
