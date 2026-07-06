@@ -16,28 +16,28 @@ import { ThemeModeProvider } from "@/contexts/theme-context";
 import { MessageProvider } from "@/contexts/message-context";
 
 export const unstable_settings = {
-  initialRouteName: "sign-in",
-  anchor: "sign-in",
+  initialRouteName: "index",
+  anchor: "index",
 };
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <RootSiblingParent>
-        <I18nProvider>
-          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-              <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </I18nProvider>
-      </RootSiblingParent>
-    </GestureHandlerRootView>
+    <RootSiblingParent>
+      <I18nProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="language-select" options={{ headerShown: false }} />
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </I18nProvider>
+    </RootSiblingParent>
   );
 }
 
