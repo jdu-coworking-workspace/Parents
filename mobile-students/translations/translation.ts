@@ -397,6 +397,40 @@ const translations = {
     errorLoadingMessages:
       "メッセージの読み込み中にエラーが発生しました。もう一度お試しください。",
     tryAgain: "もう一度試してください",
+    updateAvailable: "アップデートがあります",
+    updateAvailableMessage:
+      "新しいバージョンのアプリがあります。今すぐダウンロードしますか？",
+    download: "ダウンロード",
+    downloading: "ダウンロード中...",
+    downloadingMessage: "アップデートをダウンロードしています。しばらくお待ちください。",
+    updateDownloaded: "アップデートをダウンロードしました",
+    updateDownloadedMessage:
+      "アップデートのダウンロードが完了しました。適用するために再起動しますか？",
+    restartNow: "今すぐ再起動",
+    restart: "再起動",
+    updateComplete: "アップデート完了",
+    updateCompleteMessage: "すでに最新バージョンです。",
+    downloadFailed: "ダウンロードに失敗しました",
+    error: "エラー",
+    updateCheckFailed: "アップデートの確認に失敗しました",
+    noUpdates: "アップデートはありません",
+    latestVersion: "最新バージョンを使用しています！",
+    checkForUpdates: "アップデートを確認",
+    checking: "確認中...",
+    updateFailed: "アップデートに失敗しました",
+    manualUpdateComplete:
+      "手動アップデートが完了しました。適用するために再起動しますか？",
+    imageSaved: "保存しました",
+    imageSavedMessage: "画像を写真ライブラリに保存しました。",
+    downloadFailedImage: "ダウンロードに失敗しました",
+    unableToSaveInDevelopment:
+      "このビルドでは画像を直接保存できません。開発ビルドアプリまたは本番ビルドを使用してください。",
+    expoGoImageSaveMessage:
+      "Expo Goではギャラリーへの直接保存は利用できません。開発ビルドアプリを使用するか、共有メニューから画像を保存してください。",
+    imageShareHint:
+      "画像をギャラリーに保存するには、共有メニューからアプリを選択してください。",
+    permissionDenied: "写真ライブラリへのアクセスが許可されていません。",
+    downloadError: "画像のダウンロードに失敗しました。",
     // add missing keys and new message key
     detailedView: "詳細表示",
     contractFile: "契約書.pdf",
