@@ -2,6 +2,7 @@ import { useCallback, useContext, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -232,18 +233,64 @@ export default function StudentMessagesScreen() {
   }
 
   if (messages.length === 0) {
+    const iconColor = colorScheme === 'dark' ? '#FFFFFF' : '#3B81F6';
+
     return (
-      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
-        <ThemedText style={styles.emptyTitle}>{t('noMessagesYet')}</ThemedText>
-        <ThemedText style={styles.emptyDescription}>
-          {t('noMessagesDescription')}
-        </ThemedText>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => void loadMessages({ refresh: true })}
+      <ThemedView style={[styles.container, { backgroundColor }]}>
+        <ScrollView
+          contentContainerStyle={styles.noMessagesContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void loadMessages({ refresh: true })}
+              tintColor={BrandColors[colorScheme]}
+            />
+          }
         >
-          <ThemedText style={styles.retryButtonText}>{t('refresh')}</ThemedText>
-        </Pressable>
+          <View style={styles.noMessagesIllustration}>
+            <Image
+              source={require('@/assets/images/parentandchildren.png')}
+              style={styles.illustrationImage}
+            />
+          </View>
+
+          <ThemedText style={styles.emptyTitle}>{t('noMessagesYet')}</ThemedText>
+          <ThemedText style={styles.emptyDescription}>
+            {t('noMessagesDescription')}
+          </ThemedText>
+
+          <Pressable
+  style={({ pressed }) => [
+    styles.refreshButtonContainer,
+    isRefreshing && styles.refreshButtonContainerLoading,
+    {
+      backgroundColor: isRefreshing
+        ? (colorScheme === 'dark' ? '#2563EB' : 'rgba(59, 129, 246, 0.05)')
+        : (colorScheme === 'dark' ? '#3B81F6' : '#3B81F61A'),
+      opacity: pressed && !isRefreshing ? 0.7 : 1,
+    },
+  ]}
+  android_ripple={{ color: '#3B81F633' }}
+  disabled={isRefreshing}
+  onPress={() => void loadMessages({ refresh: true })}
+>
+  {isRefreshing ? (
+    <ActivityIndicator size="small" color={iconColor} />
+  ) : (
+    <>
+      <Ionicons
+        name="refresh-outline"
+        size={20}
+        color={iconColor}
+        style={{ marginRight: 8 }}
+      />
+      <ThemedText style={[styles.refreshButtonText, { color: iconColor }]}>
+        {t('refresh')}
+      </ThemedText>
+    </>
+  )}
+</Pressable>
+        </ScrollView>
       </ThemedView>
     );
   }
@@ -403,6 +450,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
+  noMessagesContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 40,
+    paddingTop: 56,
+  },
+  noMessagesIllustration: {
+    marginBottom: 4,
+    alignItems: 'center',
+    width: '100%',
+  },
+  illustrationImage: {
+  width: '100%',
+  height: 250,
+  resizeMode: 'contain',
+  },
   content: {
     paddingBottom: 24,
   },
@@ -418,14 +482,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 9,
   },
   emptyDescription: {
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
     opacity: 0.7,
-    marginBottom: 24,
+    marginBottom: 40,
   },
   retryButton: {
     backgroundColor: '#005678',
@@ -435,6 +499,25 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  refreshButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 47.67,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  refreshButtonContainerLoading: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    width: 68,
+    height: 48,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
     fontWeight: '600',
     fontSize: 16,
   },

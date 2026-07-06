@@ -410,9 +410,10 @@ const translations = {
     continueReading: "続きを読む",
     loadMoreMessages: "もっと見る",
     messageNotFound: "メッセージが見つかりません",
-    noMessagesYet: "まだメッセージはありません",
+    noMessagesYet: "まだメッセージがありません",
     noMessagesDescription:
-      "学校からメッセージが届くとここに表示されます。下に引っ張って更新してください。",
+      "学校からのメッセージを受信すると、ここに表示されます。下にスワイプして更新してください。",
+    refresh: '更新',
     errorLoadingMessages:
       "メッセージの読み込み中にエラーが発生しました。もう一度お試しください。",
     tryAgain: "もう一度試してください",
