@@ -398,7 +398,10 @@
     "selectAll": "Select all",
     "selectAllFiltered": "Select all filtered",
     "selecting": "Selecting...",
-    "unselectAll": "Unselect all"
+    "unselectAll": "Unselect all",
+    "loginStatus": "Login Status",
+    "loggedIn": "Logged In",
+    "notLoggedIn": "Not Logged In"
   },
   "ThisForms": {
     "Forms": "Forms",

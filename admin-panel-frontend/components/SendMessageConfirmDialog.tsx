@@ -106,16 +106,16 @@ function AudienceToggle({
     icon: React.ReactNode;
   }[] = [
     {
+      id: "parent",
+      label: t("confirmParentsTab"),
+      icon: <ParentsIcon className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9" />,
+    },
+    {
       id: "student",
       label: t("students"),
       icon: (
         <GroupRecipientsIcon className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9" />
       ),
-    },
-    {
-      id: "parent",
-      label: t("confirmParentsTab"),
-      icon: <ParentsIcon className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9" />,
     },
   ];
 

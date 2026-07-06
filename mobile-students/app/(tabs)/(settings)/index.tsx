@@ -23,12 +23,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
 import { I18nContext } from "@/contexts/i18n-context";
 import { useAuth } from "@/contexts/auth-context";
-import { useThemeModeContext } from "@/contexts/theme-context";
 import { ThemedView } from "@/components/themed-view";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { FontSizeSlider } from "@/components/FontSizeSlider";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 // Mock data for student
 const mockStudentData = {
@@ -103,7 +103,6 @@ const LanguageSelection: React.FC<
 export default function SettingsScreen() {
   const { signOut, user } = useAuth();
   const router = useRouter();
-  const { toggleTheme, currentColorScheme } = useThemeModeContext();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
@@ -112,7 +111,6 @@ export default function SettingsScreen() {
   const initialLabel =
     languageData.find((l) => l.code === currentLang)?.label ?? "O'zbekcha";
   const [selectedLanguage, setSelectedLanguage] = useState(initialLabel);
-  const [isLightModeOn, setIsLightModeOn] = useState(true);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
   const [previewFontSize, setPreviewFontSize] = useState(1.4);
 
@@ -166,10 +164,6 @@ export default function SettingsScreen() {
   const handlePresentModal = useCallback(() => {
     setIsLanguageOpen(true);
   }, []);
-
-  const handleToggleLight = useCallback(() => {
-    toggleTheme();
-  }, [toggleTheme]);
 
   // Compute display name from authenticated user
   const displayName = useMemo(() => {
@@ -290,44 +284,7 @@ export default function SettingsScreen() {
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
 
-            <Pressable style={styles.row} onPress={handleToggleLight}>
-              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
-                <Ionicons
-                  color="#fff"
-                  name={
-                    currentColorScheme === "dark" ? "moon" : "sunny-outline"
-                  }
-                  size={20}
-                />
-              </View>
-              <ThemedText style={styles.rowLabel}>
-                {isLightModeOn ? t("lightMode") : t("darkMode")}
-              </ThemedText>
-              <View style={styles.rowSpacer} />
-              <View
-                style={[
-                  styles.toggleSwitch,
-                  {
-                    backgroundColor:
-                      currentColorScheme === "dark" ? "#3B82F6" : "#E5E7EB",
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.toggleDot,
-                    {
-                      backgroundColor:
-                        currentColorScheme === "dark" ? "#fff" : "#999",
-                      alignSelf:
-                        currentColorScheme === "dark"
-                          ? "flex-end"
-                          : "flex-start",
-                    },
-                  ]}
-                />
-              </View>
-            </Pressable>
+            <ThemeSwitcher />
           </View>
 
           <View style={{ marginTop: 40, marginBottom: 20 }}>
@@ -543,18 +500,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FF4444",
     fontSize: 16,
-  },
-  toggleSwitch: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    paddingHorizontal: 2,
-  },
-  toggleDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
   },
   fontSizeModalOverlay: {
     flex: 1,
