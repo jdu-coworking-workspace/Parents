@@ -237,7 +237,11 @@ const translations = {
     imageSavedMessage: "Image saved to your Photos.",
     downloadFailedImage: "Download failed",
     unableToSaveInDevelopment:
-      "Unable to save in development build. Try a production build or check permissions.",
+      "Unable to save image in this build. Use the installed development app or production build.",
+    expoGoImageSaveMessage:
+      "Direct gallery save is not available in Expo Go. Use the development build app, or share the image from the share menu.",
+    imageShareHint:
+      "Choose an app from the share menu to save the image to your gallery.",
     permissionDenied: "Permission denied to access photo library.",
     downloadError: "Failed to download image.",
     // additional keys used by UI
@@ -412,6 +416,71 @@ const translations = {
     errorLoadingMessages:
       "メッセージの読み込み中にエラーが発生しました。もう一度お試しください。",
     tryAgain: "もう一度試してください",
+    updateAvailable: "アップデートがあります",
+    updateAvailableMessage:
+      "新しいバージョンのアプリがあります。今すぐダウンロードしますか？",
+    download: "ダウンロード",
+    downloading: "ダウンロード中...",
+    downloadingMessage: "アップデートをダウンロードしています。しばらくお待ちください。",
+    updateDownloaded: "アップデートをダウンロードしました",
+    updateDownloadedMessage:
+      "アップデートのダウンロードが完了しました。適用するために再起動しますか？",
+    restartNow: "今すぐ再起動",
+    restart: "再起動",
+    updateComplete: "アップデート完了",
+    updateCompleteMessage: "すでに最新バージョンです。",
+    downloadFailed: "ダウンロードに失敗しました",
+    error: "エラー",
+    updateCheckFailed: "アップデートの確認に失敗しました",
+    noUpdates: "アップデートはありません",
+    latestVersion: "最新バージョンを使用しています！",
+    checkForUpdates: "アップデートを確認",
+    checking: "確認中...",
+    updateFailed: "アップデートに失敗しました",
+    manualUpdateComplete:
+      "手動アップデートが完了しました。適用するために再起動しますか？",
+    imageSaved: "保存しました",
+    imageSavedMessage: "画像を写真ライブラリに保存しました。",
+    downloadFailedImage: "ダウンロードに失敗しました",
+    unableToSaveInDevelopment:
+      "このビルドでは画像を直接保存できません。開発ビルドアプリまたは本番ビルドを使用してください。",
+    expoGoImageSaveMessage:
+      "Expo Goではギャラリーへの直接保存は利用できません。開発ビルドアプリを使用するか、共有メニューから画像を保存してください。",
+    imageShareHint:
+      "画像をギャラリーに保存するには、共有メニューからアプリを選択してください。",
+    permissionDenied: "写真ライブラリへのアクセスが許可されていません。",
+    downloadError: "画像のダウンロードに失敗しました。",
+    // add missing keys and new message key
+    detailedView: "詳細表示",
+    contractFile: "契約書.pdf",
+    temporaryPasswordIfRegistered:
+      "メールが登録されている場合、一時パスワードが送信されました。",
+    settingsHeader: "設定",
+    registrationCodeSent:
+      "この電話番号が登録されている場合、確認コードが送信されます",
+    verificationCodeVerified: "確認コードが正常に検証されました",
+    deviceTokenUpdated: "デバイストークンが正常に更新されました",
+    // mobile-students additional keys
+    welcomeStudent: "ようこそ、学生",
+    signInWithGoogle: "Googleでログイン",
+    next: "次へ",
+    signIn: "ログイン",
+    back: "戻る",
+    copy: "コピー",
+    emailRequired: "メールアドレスを入力してください。",
+    temporaryPasswordSent: "仮パスワードをメールに送信しました。",
+    verifyEmailError: "メールアドレスの確認中にエラーが発生しました。",
+    enterTemporaryPassword: "仮パスワードを入力してください",
+    savePasswordFailed:
+      "パスワードの保存に失敗しました。もう一度お試しください。",
+    emailNotFoundAdmin:
+      "メールアドレスが見つかりません。学校の管理者にお問い合わせください。",
+    googleAuthFailed: "Google認証に失敗しました。もう一度お試しください。",
+    googleCallbackFailed:
+      "Googleのコールバック処理に失敗しました。もう一度お試しください。",
+    oauthMissingParams:
+      "必要なログインデータが不足しています。もう一度お試しください。",
+    googleLoginFailed: "Googleログインに失敗しました。もう一度お試しください。",
     pageNotFound: "ページが見つかりません",
     pageNotFoundMessage:
       "お探しのページは存在しないか、アクセス権がありません。",
@@ -766,7 +835,11 @@ const translations = {
     imageSavedMessage: "Rasm gallereyaga saqlandi.",
     downloadFailedImage: "Yuklab olish muvaffaqiyatsiz",
     unableToSaveInDevelopment:
-      "Development buildda saqlab bo'lmaydi. Production buildni sinab ko'ring yoki ruxsatlarni tekshiring.",
+      "Bu buildda rasmni to'g'ridan-to'g'ri saqlab bo'lmaydi. Development build ilovasidan foydalaning.",
+    expoGoImageSaveMessage:
+      "Expo Go da rasmni to'g'ridan-to'g'ri galereyaga saqlab bo'lmaydi. Development build ilovasidan foydalaning yoki ulashish menyusidan saqlang.",
+    imageShareHint:
+      "Rasmni galereyaga saqlash uchun ulashish menyusidan ilovani tanlang.",
     permissionDenied: "Foto kutubxonasiga kirish ruxsati berilmadi.",
     downloadError: "Rasmni yuklab olishda xatolik.",
     /* mobile-students additional keys */
@@ -1055,7 +1128,11 @@ const translations = {
     imageSavedMessage: "Изображение сохранено в галерею.",
     downloadFailedImage: "Ошибка загрузки",
     unableToSaveInDevelopment:
-      "Невозможно сохранить в development сборке. Попробуйте production сборку или проверьте разрешения.",
+      "В этой сборке нельзя сохранить изображение напрямую. Используйте development build приложение.",
+    expoGoImageSaveMessage:
+      "В Expo Go прямое сохранение в галерею недоступно. Используйте development build или сохраните через меню «Поделиться».",
+    imageShareHint:
+      "Выберите приложение в меню «Поделиться», чтобы сохранить изображение в галерею.",
     permissionDenied: "Доступ к фотогалерее запрещен.",
     downloadError: "Ошибка загрузки изображения.",
     /* mobile-students additional keys */
