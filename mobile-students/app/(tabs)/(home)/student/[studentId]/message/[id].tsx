@@ -14,6 +14,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { DateTime } from 'luxon';
 
 import ZoomGallery from '@/components/ZoomGallery';
 import { ThemedText } from '@/components/themed-text';
@@ -35,28 +36,11 @@ export type TranslationKeys = {
   messageCopiedToClipboard: string;
 };
 
-function formatDateTime(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  const [datePart = "", timePart = ""] = value.split(" ");
-  const [year = "", month = "", day = ""] = datePart.split("-");
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}.${month}.${year}  ${timePart}`;
-}
-
 function showCopiedToast(message: string) {
   if (Platform.OS === "android") {
     ToastAndroid.show(message, ToastAndroid.SHORT);
     return;
   }
-
-  // iOS'da ToastAndroid ishlamaydi, shuning uchun Alert orqali ko'rsatamiz
   Alert.alert(message);
 }
 
@@ -181,6 +165,24 @@ export default function MessageDetailScreen() {
     );
   }
 
+  const sentTimeString = message.sent_time;
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Handle both ISO format (demo data) and database format (regular data)
+  let utcDateTime;
+  if (sentTimeString.includes('T')) {
+    // ISO format: 2025-08-30T10:30:00Z
+    utcDateTime = DateTime.fromISO(sentTimeString, { zone: 'utc' });
+  } else {
+    // Database format: 2025-08-30 10:30
+    utcDateTime = DateTime.fromFormat(sentTimeString, 'yyyy-MM-dd HH:mm', {
+      zone: 'utc',
+    });
+  }
+
+  const localDateTime = utcDateTime.setZone(userTimeZone);
+  const formattedTime = localDateTime.toFormat('dd.MM.yyyy   HH:mm');
+
   return (
     <ThemedView
       style={[styles.container, { backgroundColor: pageBackgroundColor }]}
@@ -240,12 +242,12 @@ export default function MessageDetailScreen() {
           {message.content}
         </ThemedText>
 
-          <View style={styles.footerRow}>
-            <ThemedText
-              style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
-            >
-              {formatDateTime(message.sent_time)}
-            </ThemedText>
+        <View style={styles.footerRow}>
+          <ThemedText
+            style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+          >
+            {formattedTime}
+          </ThemedText>
 
             <Pressable onPress={handleCopy} style={styles.copyButton}>
               <Ionicons name="copy-outline" size={20} color="#0A84FF" />
