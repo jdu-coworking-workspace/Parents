@@ -398,7 +398,10 @@
     "selectAll": "Barchasini tanlash",
     "selectAllFiltered": "Filterlangan barchasini tanlash",
     "selecting": "Tanlanmoqda...",
-    "unselectAll": "Barchasini bekor qilish"
+    "unselectAll": "Barchasini bekor qilish",
+    "loginStatus": "Kirish holati",
+    "loggedIn": "Kirgan",
+    "notLoggedIn": "Kirmagan"
   },
   "ThisForms": {
     "Forms": "Formlar",
@@ -550,6 +553,9 @@
     "studentId": "Talaba ID raqami",
     "cohort": "Kohort",
     "phoneNumber": "Telefon raqami",
+    "loginStatus": "Login holati",
+    "loggedIn": "Kirgan",
+    "notLoggedIn": "Kirmagan",
     "givenName": "Ism",
     "familyName": "Familiya",
     "action": "Harakat",

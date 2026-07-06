@@ -394,7 +394,10 @@
     "selectAll": "Выбрать всех",
     "selectAllFiltered": "Выбрать всех отфильтрованных",
     "selecting": "Выбор...",
-    "unselectAll": "Снять выбор со всех"
+    "unselectAll": "Снять выбор со всех",
+    "loginStatus": "Статус входа",
+    "loggedIn": "Вошёл",
+    "notLoggedIn": "Не вошёл"
   },
   "ThisForms": {
     "Forms": "Формы",
@@ -547,6 +550,9 @@
     "studentId": "ID студентв",
     "cohort": "Когорта",
     "phoneNumber": "Номер телефона",
+    "loginStatus": "Статус входа",
+    "loggedIn": "Вошел",
+    "notLoggedIn": "Не вошел",
     "givenName": "Имя",
     "familyName": "Фамилия",
     "action": "Действие",

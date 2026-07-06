@@ -395,7 +395,10 @@
     "selectAll": "すべて選択",
     "selectAllFiltered": "絞り込み結果をすべて選択",
     "selecting": "選択中...",
-    "unselectAll": "すべて解除"
+    "unselectAll": "すべて解除",
+    "loginStatus": "ログイン状態",
+    "loggedIn": "ログイン済み",
+    "notLoggedIn": "未ログイン"
   },
   "ThisForms": {
     "Forms": "フォーム",
@@ -548,6 +551,9 @@
     "studentId": "学生ID",
     "cohort": "期生",
     "phoneNumber": "電話番号",
+    "loginStatus": "ログイン状態",
+    "loggedIn": "ログイン済み",
+    "notLoggedIn": "未ログイン",
     "givenName": "名",
     "familyName": "姓",
     "action": "操作",
