@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { DateTime } from 'luxon';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -18,7 +19,6 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { useMessageContext } from '@/contexts/message-context';
 import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
 import type { Message } from '@/types/message';
-import { formatMessageDateTime } from '@/utils/formatDateTime';
 
 const PAGE_SIZE = 10;
 
@@ -266,6 +266,21 @@ export default function StudentMessagesScreen() {
       >
         {messages.map(message => {
           const isRead = !!message.viewed_at;
+          const sentTimeString = message.sent_time;
+          const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+          // Handle both ISO format (demo data) and database format (regular data)
+          let utcDateTime;
+          if (sentTimeString.includes('T')) {
+            // ISO format: 2025-08-30T10:30:00Z
+            utcDateTime = DateTime.fromISO(sentTimeString, { zone: 'utc' });
+          } else {
+            // Database format: 2025-08-30 10:30
+            utcDateTime = DateTime.fromFormat(sentTimeString, 'yyyy-MM-dd HH:mm', {
+              zone: 'utc',
+            });
+          }
+          const localDateTime = utcDateTime.setZone(userTimeZone);
 
           return (
             <Pressable
@@ -318,7 +333,7 @@ export default function StudentMessagesScreen() {
                       isRead && styles.readOpacity,
                     ]}
                   >
-                    {formatMessageDateTime(message.sent_time)}
+                    {localDateTime.toFormat('dd.MM.yyyy   HH:mm')}
                   </ThemedText>
 
                   <Ionicons

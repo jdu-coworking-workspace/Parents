@@ -8,6 +8,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { DateTime } from 'luxon';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -15,7 +16,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { fetchStudentMessage } from '@/services/student-messages';
 import type { Message } from '@/types/message';
-import { formatMessageDateTime } from '@/utils/formatDateTime';
 
 function getPriorityBadgeColor(priority: Message['priority']) {
   if (priority === 'high') {
@@ -112,6 +112,24 @@ export default function MessageDetailScreen() {
     );
   }
 
+  const sentTimeString = message.sent_time;
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Handle both ISO format (demo data) and database format (regular data)
+  let utcDateTime;
+  if (sentTimeString.includes('T')) {
+    // ISO format: 2025-08-30T10:30:00Z
+    utcDateTime = DateTime.fromISO(sentTimeString, { zone: 'utc' });
+  } else {
+    // Database format: 2025-08-30 10:30
+    utcDateTime = DateTime.fromFormat(sentTimeString, 'yyyy-MM-dd HH:mm', {
+      zone: 'utc',
+    });
+  }
+
+  const localDateTime = utcDateTime.setZone(userTimeZone);
+  const formattedTime = localDateTime.toFormat('dd.MM.yyyy   HH:mm');
+
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
       <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
@@ -143,7 +161,7 @@ export default function MessageDetailScreen() {
           <ThemedText
             style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
           >
-            {formatMessageDateTime(message.sent_time)}
+            {formattedTime}
           </ThemedText>
 
           <Pressable onPress={handleCopy} style={styles.copyButton}>
