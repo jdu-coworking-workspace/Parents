@@ -240,7 +240,11 @@ const translations = {
     imageSavedMessage: "Image saved to your Photos.",
     downloadFailedImage: "Download failed",
     unableToSaveInDevelopment:
-      "Unable to save in development build. Try a production build or check permissions.",
+      "Unable to save image in this build. Use the installed development app or production build.",
+    expoGoImageSaveMessage:
+      "Direct gallery save is not available in Expo Go. Use the development build app, or share the image from the share menu.",
+    imageShareHint:
+      "Choose an app from the share menu to save the image to your gallery.",
     permissionDenied: "Permission denied to access photo library.",
     downloadError: "Failed to download image.",
     // additional keys used by UI
@@ -260,6 +264,7 @@ const translations = {
     signIn: "Sign in",
     back: "Back",
     copy: "Copy",
+    messageCopiedToClipboard: "Message copied to clipboard",
   },
   ja: {
     welcome: "お帰りなさい",
@@ -299,6 +304,20 @@ const translations = {
     passwordTooShort: "パスワードは8文字以上である必要があります。",
     temporaryPasswordRequired:
       "一時パスワードを変更する必要があります。新しいパスワードを設定してください。",
+    emailRequired: "メールアドレスを入力してください。",
+    temporaryPasswordSent: "仮パスワードをメールに送信しました。",
+    verifyEmailError: "メールアドレスの確認中にエラーが発生しました。",
+    enterTemporaryPassword: "仮パスワードを入力してください",
+    savePasswordFailed:
+      "パスワードの保存に失敗しました。もう一度お試しください。",
+    emailNotFoundAdmin:
+      "メールアドレスが見つかりません。学校の管理者にお問い合わせください。",
+    googleAuthFailed: "Google認証に失敗しました。もう一度お試しください。",
+    googleCallbackFailed:
+      "Googleのコールバック処理に失敗しました。もう一度お試しください。",
+    oauthMissingParams:
+      "必要なログインデータが不足しています。もう一度お試しください。",
+    googleLoginFailed: "Googleログインに失敗しました。もう一度お試しください。",
     phoneNumberRequired: "電話番号は必須です。",
     passwordRequired: "パスワードは必須です。",
     invalidInput: "無効な入力。エントリを確認してください。",
@@ -309,6 +328,10 @@ const translations = {
     serviceUnavailable:
       "サービスは一時的に利用できません。後でもう一度試してください。",
     serverError: "サーバーエラー。後でもう一度試してください。",
+    accessDenied: "アクセスが拒否されました。",
+    notFound: "リソースが見つかりません。",
+    tooManyAttempts:
+      "ログイン試行回数が多すぎます。数分後にもう一度お試しください。",
     resetPasswordTitle: "秘密コードの復元",
     enterPhoneNumberText:
       "電話番号を入力してください。この番号に確認コードが送信されます。",
@@ -318,9 +341,9 @@ const translations = {
     enterVerificationCode: "確認コードを入力",
     verificationCode: "確認コード",
     continueText: "続ける",
+    codeWillExpire: "コードは{seconds}秒で期限切れになります。",
     codeExpired: "コードの有効期限が切れました",
     resendCode: "コードを再送信",
-    codeWillExpire: "コードは{seconds}秒で期限切れになります。",
     verify: "確認",
     createNewPasswordTitle: "新しいパスワードを作成",
     passwordCreatedSuccessfully:
@@ -328,7 +351,7 @@ const translations = {
     enterNewPasswordText: "アカウント用の安全なパスワードを作成してください。",
     confirmNewPassword: "新しいパスワードを確認",
     saveNewPassword: "保存",
-    backToSignIn: "登録ページに戻る",
+    backToSignIn: "サインインに戻る",
     home: "ホーム",
     form: "フォーム",
     settings: "設定",
@@ -390,12 +413,47 @@ const translations = {
     continueReading: "続きを読む",
     loadMoreMessages: "もっと見る",
     messageNotFound: "メッセージが見つかりません",
-    noMessagesYet: "まだメッセージはありません",
+    noMessagesYet: "まだメッセージがありません",
     noMessagesDescription:
-      "学校からメッセージが届くとここに表示されます。下に引っ張って更新してください。",
+      "学校からのメッセージを受信すると、ここに表示されます。下にスワイプして更新してください。",
+    refresh: '更新',
     errorLoadingMessages:
       "メッセージの読み込み中にエラーが発生しました。もう一度お試しください。",
     tryAgain: "もう一度試してください",
+    updateAvailable: "アップデートがあります",
+    updateAvailableMessage:
+      "新しいバージョンのアプリがあります。今すぐダウンロードしますか？",
+    download: "ダウンロード",
+    downloading: "ダウンロード中...",
+    downloadingMessage: "アップデートをダウンロードしています。しばらくお待ちください。",
+    updateDownloaded: "アップデートをダウンロードしました",
+    updateDownloadedMessage:
+      "アップデートのダウンロードが完了しました。適用するために再起動しますか？",
+    restartNow: "今すぐ再起動",
+    restart: "再起動",
+    updateComplete: "アップデート完了",
+    updateCompleteMessage: "すでに最新バージョンです。",
+    downloadFailed: "ダウンロードに失敗しました",
+    error: "エラー",
+    updateCheckFailed: "アップデートの確認に失敗しました",
+    noUpdates: "アップデートはありません",
+    latestVersion: "最新バージョンを使用しています！",
+    checkForUpdates: "アップデートを確認",
+    checking: "確認中...",
+    updateFailed: "アップデートに失敗しました",
+    manualUpdateComplete:
+      "手動アップデートが完了しました。適用するために再起動しますか？",
+    imageSaved: "保存しました",
+    imageSavedMessage: "画像を写真ライブラリに保存しました。",
+    downloadFailedImage: "ダウンロードに失敗しました",
+    unableToSaveInDevelopment:
+      "このビルドでは画像を直接保存できません。開発ビルドアプリまたは本番ビルドを使用してください。",
+    expoGoImageSaveMessage:
+      "Expo Goではギャラリーへの直接保存は利用できません。開発ビルドアプリを使用するか、共有メニューから画像を保存してください。",
+    imageShareHint:
+      "画像をギャラリーに保存するには、共有メニューからアプリを選択してください。",
+    permissionDenied: "写真ライブラリへのアクセスが許可されていません。",
+    downloadError: "画像のダウンロードに失敗しました。",
     // add missing keys and new message key
     detailedView: "詳細表示",
     contractFile: "契約書.pdf",
@@ -430,8 +488,52 @@ const translations = {
     oauthMissingParams:
       "必要なログインデータが不足しています。もう一度お試しください。",
     googleLoginFailed: "Googleログインに失敗しました。もう一度お試しください。",
+    pageNotFound: "ページが見つかりません",
+    pageNotFoundMessage:
+      "お探しのページは存在しないか、アクセス権がありません。",
+    studentNotFound: "生徒が見つかりません",
+    studentNotFoundMessage:
+      "この生徒はあなたのアカウントに割り当てられていない可能性があります。",
+    messageNotFoundTitle: "メッセージが見つかりません",
+    messageNotAvailable: "メッセージは利用できません",
+    goToHomeScreen: "ホーム画面に戻る",
+    chooseCorrectDate: "正しい日付を選択してください",
+    failedToRetrieveMessage: "メッセージの取得に失敗しました",
+    messageDoesNotBelongToStudent:
+      "このメッセージはこの生徒のものではありません",
+    loading: "読み込み中...",
+    pressBackAgainToExit: "終了するにはもう一度戻るを押してください",
+    SelectStudent: "お子様を選択",
+    noStudentsFound: "生徒が見つかりません",
+    noStudentsDescription:
+      "アカウントにまだ生徒が割り当てられていないようです。学校の管理者にお問い合わせいただくか、更新してみてください。",
+    refresh: "更新",
+    needHelp: "ヘルプが必要ですか？",
+    checkCorrectAccount: "正しいアカウントでログインしているか確認してください",
+    contactSchool: "問題が解決しない場合は学校にお問い合わせください",
+    checkInternet: "インターネット接続を確認してください",
+    improveNotificationDelivery: "通知配信を改善",
+    batteryOptimizationDescription:
+      "一部のAndroidデバイスでは、バッテリーを節約するために通知が遅延またはブロックされることがあります。最適な体験のために、このアプリのバッテリー最適化を無効にしてください。",
+    openSettings: "設定を開く",
+    deviceGuide: "デバイスガイド",
+    dismiss: "閉じる",
+    batteryOptimizationSettings: "バッテリー最適化設定",
+    batteryOptimizationInstructions:
+      "すべての通知を受け取るために：\n\n1. リストからこのアプリを見つける\n2. 「最適化しない」または「許可」を選択\n3. アプリを再起動\n\n注意：手順はデバイスメーカーによって異なる場合があります。",
+    deviceSpecificInstructions: "デバイス別の手順",
+    deviceInstructionsText:
+      "Androidメーカーによって設定が異なります：\n\n• Samsung: 設定 → アプリ → [アプリ] → バッテリー → バッテリー使用量の最適化\n• Xiaomi: 設定 → アプリ → アプリ管理 → [アプリ] → バッテリーセーバー\n• OnePlus: 設定 → アプリ → [アプリ] → バッテリー → バッテリー最適化\n• Huawei: 設定 → アプリ → [アプリ] → バッテリー → アプリの起動",
+    gotIt: "了解",
+    notificationsDisabled: "通知が無効です",
+    notificationsDisabledMessage:
+      "重要な更新を受け取れません。設定で通知を有効にできます。",
+    notificationsNotWorking: "通知が機能していませんか？",
+    batteryOptimizationAlert:
+      "確実な通知のために、デバイス設定でこのアプリのバッテリー最適化を無効にしてください。",
+    later: "後で",
+    ok: "OK",
     cancel: "キャンセル",
-    /*password requirements*/
     passwordRequirements: "パスワードの要件",
     minLength: "最低8文字",
     hasNumber: "数字を少なくとも1つ含める",
@@ -446,6 +548,52 @@ const translations = {
     createNewPassword: "新しいパスワードを作成する",
     confirmLogout: "ログアウトを確認",
     logoutMessage: "ログアウトしてもよろしいですか？",
+    updateAvailable: "アップデートが利用可能です 🚀",
+    updateAvailableMessage:
+      "アプリの新しいバージョンが利用可能です。今すぐダウンロードしますか？",
+    download: "ダウンロード",
+    downloading: "ダウンロード中...",
+    downloadingMessage: "アップデートのダウンロード中にお待ちください。",
+    updateDownloaded: "アップデートがダウンロードされました！ ✅",
+    updateDownloadedMessage:
+      "アップデートが正常にダウンロードされました。変更を適用するために再起動しますか？",
+    restartNow: "今すぐ再起動",
+    restart: "再起動",
+    updateComplete: "アップデート完了",
+    updateCompleteMessage: "既に最新バージョンです。",
+    downloadFailed: "ダウンロードに失敗しました",
+    error: "エラー",
+    updateCheckFailed: "アップデート確認に失敗しました",
+    noUpdates: "アップデートはありません",
+    latestVersion: "最新バージョンです！",
+    checkForUpdates: "アップデートを確認",
+    checking: "確認中...",
+    updateFailed: "アップデートに失敗しました",
+    manualUpdateComplete:
+      "手動アップデートが完了しました。再起動して適用しますか？",
+    imageSaved: "保存しました",
+    imageSavedMessage: "画像をフォトライブラリに保存しました。",
+    downloadFailedImage: "ダウンロードに失敗しました",
+    unableToSaveInDevelopment:
+      "開発ビルドでは保存できません。本番ビルドを試すか、権限を確認してください。",
+    permissionDenied: "フォトライブラリへのアクセスが拒否されました。",
+    downloadError: "画像のダウンロードに失敗しました。",
+    detailedView: "詳細表示",
+    contractFile: "契約書.pdf",
+    temporaryPasswordIfRegistered:
+      "メールが登録されている場合、一時パスワードが送信されました。",
+    settingsHeader: "設定",
+    registrationCodeSent:
+      "この電話番号が登録されている場合、確認コードが送信されます",
+    verificationCodeVerified: "確認コードが正常に検証されました",
+    deviceTokenUpdated: "デバイストークンが正常に更新されました",
+    welcomeStudent: "ようこそ、学生",
+    signInWithGoogle: "Googleでログイン",
+    next: "次へ",
+    signIn: "ログイン",
+    back: "戻る",
+    copy: "コピー",
+    messageCopiedToClipboard: "メッセージがクリップボードにコピーされました",
   },
   uz: {
     /*sign in page*/
@@ -694,7 +842,11 @@ const translations = {
     imageSavedMessage: "Rasm gallereyaga saqlandi.",
     downloadFailedImage: "Yuklab olish muvaffaqiyatsiz",
     unableToSaveInDevelopment:
-      "Development buildda saqlab bo'lmaydi. Production buildni sinab ko'ring yoki ruxsatlarni tekshiring.",
+      "Bu buildda rasmni to'g'ridan-to'g'ri saqlab bo'lmaydi. Development build ilovasidan foydalaning.",
+    expoGoImageSaveMessage:
+      "Expo Go da rasmni to'g'ridan-to'g'ri galereyaga saqlab bo'lmaydi. Development build ilovasidan foydalaning yoki ulashish menyusidan saqlang.",
+    imageShareHint:
+      "Rasmni galereyaga saqlash uchun ulashish menyusidan ilovani tanlang.",
     permissionDenied: "Foto kutubxonasiga kirish ruxsati berilmadi.",
     downloadError: "Rasmni yuklab olishda xatolik.",
     /* mobile-students additional keys */
@@ -704,6 +856,7 @@ const translations = {
     signIn: "Kirish",
     back: "Orqaga",
     copy: "Nusxa",
+    messageCopiedToClipboard: "Xabar nusxalandi",
     emailRequired: "Iltimos, elektron pochtangizni kiriting.",
     forgotPasswordCodeSent: "Tasdiqlash kodi muvaffaqiyatli yuborildi.",
     forgotPasswordCodeResent:
@@ -985,7 +1138,11 @@ const translations = {
     imageSavedMessage: "Изображение сохранено в галерею.",
     downloadFailedImage: "Ошибка загрузки",
     unableToSaveInDevelopment:
-      "Невозможно сохранить в development сборке. Попробуйте production сборку или проверьте разрешения.",
+      "В этой сборке нельзя сохранить изображение напрямую. Используйте development build приложение.",
+    expoGoImageSaveMessage:
+      "В Expo Go прямое сохранение в галерею недоступно. Используйте development build или сохраните через меню «Поделиться».",
+    imageShareHint:
+      "Выберите приложение в меню «Поделиться», чтобы сохранить изображение в галерею.",
     permissionDenied: "Доступ к фотогалерее запрещен.",
     downloadError: "Ошибка загрузки изображения.",
     /* mobile-students additional keys */
@@ -995,6 +1152,7 @@ const translations = {
     signIn: "Войти",
     back: "Назад",
     copy: "Копировать",
+    messageCopiedToClipboard: "Сообщение скопировано в буфер обмена",
     emailRequired: "Пожалуйста, введите адрес электронной почты.",
     forgotPasswordCodeSent: "Код подтверждения успешно отправлен.",
     forgotPasswordCodeResent:

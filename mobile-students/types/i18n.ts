@@ -179,6 +179,8 @@ export type TranslationKeys = {
   imageSavedMessage: string;
   downloadFailedImage: string;
   unableToSaveInDevelopment: string;
+  expoGoImageSaveMessage: string;
+  imageShareHint: string;
   permissionDenied: string;
   downloadError: string;
   authenticationFailed: string;

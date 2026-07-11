@@ -6,6 +6,7 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { RootSiblingParent } from 'react-native-root-siblings';
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -15,8 +16,8 @@ import { ThemeModeProvider } from "@/contexts/theme-context";
 import { MessageProvider } from "@/contexts/message-context";
 
 export const unstable_settings = {
-  initialRouteName: "sign-in",
-  anchor: "sign-in",
+  initialRouteName: "index",
+  anchor: "index",
 };
 
 function RootLayoutContent() {
@@ -27,6 +28,8 @@ function RootLayoutContent() {
       <I18nProvider>
         <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
           <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="language-select" options={{ headerShown: false }} />
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
             <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
             <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
