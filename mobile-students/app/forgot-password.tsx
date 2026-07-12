@@ -29,6 +29,8 @@ import {
 } from "@/services/student-auth";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { getPasswordRules, validatePassword } from "@/utils/password-validation";
+import type { TranslationKeys } from "@/types/i18n";
+import { ApiError } from "@/services/api-client";
 
 type ForgotPasswordStep = "email" | "verify" | "password";
 const LEGACY_EXPIRY_KEY = "forgot_password_code_expiry";
@@ -37,6 +39,61 @@ const RESEND_COUNT_KEY = "student_forgot_password_resend_count";
 const EMAIL_KEY = "student_forgot_password_email";
 const STEP_KEY = "student_forgot_password_step";
 
+const BACKEND_ERROR_KEY_BY_MESSAGE: Record<string, keyof TranslationKeys> = {
+  "Invalid verification code": "invalidOtp",
+  "Verification code has expired": "otpExpired",
+  "OTP not verified or verification session expired":
+    "forgotPasswordSessionExpired",
+  "Password must contain at least 8 characters, 1 number, 1 special character, 1 uppercase, 1 lowercase":
+    "passwordRequirementsNotMet",
+  "Too many requests. Please try again later": "tooManyAttempts",
+  "Too many failed attempts. Please try again later": "tooManyAttempts",
+  "Email is not verified in the system. Please contact support.":
+    "emailVerificationFailed",
+  "Email verification failed. Please contact support.":
+    "emailVerificationFailed",
+  "Invalid email format": "invalidInput",
+};
+
+function resolveForgotPasswordErrorMessage(
+  error: unknown,
+  t: (key: keyof TranslationKeys) => string,
+  fallbackKey: keyof TranslationKeys
+): string {
+  const apiError = error as ApiError & {
+    message_key?: string;
+    responseData?: { code?: string; message_key?: string; error?: string };
+  };
+
+  const keyCandidate =
+    apiError?.code ||
+    apiError?.message_key ||
+    apiError?.responseData?.code ||
+    apiError?.responseData?.message_key;
+
+  if (keyCandidate) {
+    const translated = t(keyCandidate as keyof TranslationKeys);
+    if (translated && translated !== String(keyCandidate)) {
+      return translated;
+    }
+  }
+
+  const englishMessage =
+    apiError?.message ||
+    apiError?.responseData?.error ||
+    (error instanceof Error ? error.message : "");
+
+  const mappedKey = englishMessage
+    ? BACKEND_ERROR_KEY_BY_MESSAGE[englishMessage]
+    : undefined;
+
+  if (mappedKey) {
+    return t(mappedKey);
+  }
+
+  return t(fallbackKey);
+}
+
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
@@ -44,6 +101,7 @@ export default function ForgotPasswordScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const otpInputRef = useRef<OtpInputRef>(null);
   const autoSubmitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isVerifyingRef = useRef(false);
 
   const [step, setStep] = useState<ForgotPasswordStep>("email");
   const [email, setEmail] = useState(
@@ -262,12 +320,16 @@ export default function ForgotPasswordScreen() {
               String(nextResendCount + 1)
             )
           : response.message_key
-            ? t(response.message_key as any)
+            ? t(response.message_key as keyof TranslationKeys)
             : response.message || t("forgotPasswordCodeSent"),
         { duration: "long" }
       );
     } catch (e: any) {
-      const message = e?.message || t("verifyEmailError");
+      const message = resolveForgotPasswordErrorMessage(
+        e,
+        t,
+        "verifyEmailError"
+      );
       setError(message);
       showErrorToast(message);
     } finally {
@@ -280,6 +342,10 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleVerifyCode = async (submittedCode?: string) => {
+    if (isVerifyingRef.current || isLoading) {
+      return;
+    }
+
     if (autoSubmitTimeoutRef.current) {
       clearTimeout(autoSubmitTimeoutRef.current);
       autoSubmitTimeoutRef.current = null;
@@ -299,6 +365,7 @@ export default function ForgotPasswordScreen() {
     }
 
     try {
+      isVerifyingRef.current = true;
       setIsLoading(true);
       setError("");
 
@@ -313,16 +380,17 @@ export default function ForgotPasswordScreen() {
       await clearPersistedResendState();
       showSuccessToast(
         result.message_key
-          ? t(result.message_key as any)
-          : result.message || t("verificationCodeVerified" as any)
+          ? t(result.message_key as keyof TranslationKeys)
+          : result.message || t("verificationCodeVerified" as keyof TranslationKeys)
       );
     } catch (e: any) {
       otpInputRef.current?.clear();
       setVerificationCode("");
-      const message = e?.message || t("invalidOtp");
+      const message = resolveForgotPasswordErrorMessage(e, t, "invalidOtp");
       setError(message);
       showErrorToast(message);
     } finally {
+      isVerifyingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -358,7 +426,11 @@ export default function ForgotPasswordScreen() {
       await clearPersistedResendState();
       router.replace("/sign-in");
     } catch (e: any) {
-      const message = e?.message || t("savePasswordFailed");
+      const message = resolveForgotPasswordErrorMessage(
+        e,
+        t,
+        "savePasswordFailed"
+      );
       setError(message);
       showErrorToast(message);
     } finally {
@@ -503,6 +575,9 @@ export default function ForgotPasswordScreen() {
                       setError("");
                     }}
                     onFilled={(code: string) => {
+                      if (isVerifyingRef.current || isLoading) {
+                        return;
+                      }
                       setVerificationCode(code);
                       autoSubmitTimeoutRef.current = setTimeout(() => {
                         void handleVerifyCode(code);

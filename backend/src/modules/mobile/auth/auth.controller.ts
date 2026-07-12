@@ -5,6 +5,11 @@ import { createHash, randomBytes } from 'crypto';
 import { verifyToken, ExtendedRequest } from '../../../middlewares/mobileAuth';
 import { Parent, Student } from '../../../utils/cognito-client';
 import DB from '../../../utils/db-client';
+import {
+    deleteForgotPasswordSession,
+    getForgotPasswordSession,
+    setForgotPasswordSession,
+} from '../../../utils/forgot-password-session-store';
 import { IController } from '../../../utils/icontroller';
 import { MockCognitoClient } from '../../../utils/mock-cognito-client';
 import { config } from '../../../config';
@@ -17,10 +22,6 @@ class MobileAuthModuleController implements IController {
     private studentOAuthAttempts = new Map<string, {
         codeVerifier: string;
         expiresAt: number;
-    }>();
-    private forgotPasswordVerifiedIdentifiers = new Map<string, {
-        token: string;
-        expiresAt: number
     }>();
 
     // Add general rate limiting for all auth endpoints
@@ -601,7 +602,7 @@ class MobileAuthModuleController implements IController {
                 verification_code
             );
 
-            this.forgotPasswordVerifiedIdentifiers.set(fullPhoneNumber, {
+            await setForgotPasswordSession(fullPhoneNumber, {
                 token: result.resetToken,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -641,8 +642,7 @@ class MobileAuthModuleController implements IController {
                 ? phone_number
                 : `+${phone_number}`;
 
-            const stored =
-                this.forgotPasswordVerifiedIdentifiers.get(fullPhoneNumber);
+            const stored = await getForgotPasswordSession(fullPhoneNumber);
 
             // Token mavjudligi, muddati va qiymati tekshirilmoqda
             if (
@@ -650,7 +650,7 @@ class MobileAuthModuleController implements IController {
                 stored.expiresAt <= Date.now() ||
                 stored.token !== reset_token
             ) {
-                this.forgotPasswordVerifiedIdentifiers.delete(fullPhoneNumber);
+                await deleteForgotPasswordSession(fullPhoneNumber);
                 throw new ApiError(
                     401,
                     'OTP not verified or verification session expired'
@@ -664,7 +664,7 @@ class MobileAuthModuleController implements IController {
                 );
 
             // Muvaffaqiyatli bo'lgandan keyin o'chirish
-            this.forgotPasswordVerifiedIdentifiers.delete(fullPhoneNumber);
+            await deleteForgotPasswordSession(fullPhoneNumber);
 
             return res.status(200).json({ message: result.message }).end();
         } catch (e: any) {
@@ -1035,10 +1035,35 @@ class MobileAuthModuleController implements IController {
         }
 
         if (message.includes('phone number is registered')) {
-            return 'If the email is registered, a verification code has been sent.';
+            return 'Verification code sent successfully.';
         }
 
         return message;
+    }
+
+    private getStudentForgotPasswordMessageKey(
+        message?: string
+    ): string | undefined {
+        switch (message) {
+            case 'Invalid verification code':
+                return 'invalidOtp';
+            case 'Verification code has expired':
+                return 'otpExpired';
+            case 'OTP not verified or verification session expired':
+                return 'forgotPasswordSessionExpired';
+            case 'Password must contain at least 8 characters, 1 number, 1 special character, 1 uppercase, 1 lowercase':
+                return 'passwordRequirementsNotMet';
+            case 'Too many requests. Please try again later':
+            case 'Too many failed attempts. Please try again later':
+                return 'tooManyAttempts';
+            case 'Email is not verified in the system. Please contact support.':
+            case 'Email verification failed. Please contact support.':
+                return 'emailVerificationFailed';
+            case 'Invalid email format':
+                return 'invalidInput';
+            default:
+                return undefined;
+        }
     }
 
     studentForgotPasswordInitiate = async (
@@ -1055,9 +1080,8 @@ class MobileAuthModuleController implements IController {
 
             const normalizedEmail = this.normalizeEmail(email);
             const genericResponse = {
-                message_key: 'temporaryPasswordIfRegistered',
-                message:
-                    'If the email is registered, a verification code has been sent.',
+                message_key: 'forgotPasswordCodeSent',
+                message: 'Verification code sent successfully.',
             };
 
             const students = await DB.query(
@@ -1086,7 +1110,8 @@ class MobileAuthModuleController implements IController {
             } catch {
                 throw new ApiError(
                     400,
-                    'Email verification failed. Please contact support.'
+                    'Email verification failed. Please contact support.',
+                    'emailVerificationFailed'
                 );
             }
 
@@ -1102,21 +1127,23 @@ class MobileAuthModuleController implements IController {
                     return next(
                         new ApiError(
                             400,
-                            'Email verification failed. Please contact support.'
+                            'Email verification failed. Please contact support.',
+                            'emailVerificationFailed'
                         )
                     );
                 }
 
-                return next(new ApiError(400, 'Invalid email format'));
+                return next(
+                    new ApiError(400, 'Invalid email format', 'invalidInput')
+                );
             }
 
             if (e?.status === 404) {
                 return res
                     .status(200)
                     .json({
-                        message_key: 'temporaryPasswordIfRegistered',
-                        message:
-                            'If the email is registered, a verification code has been sent.',
+                        message_key: 'forgotPasswordCodeSent',
+                        message: 'Verification code sent successfully.',
                     })
                     .end();
             }
@@ -1125,7 +1152,8 @@ class MobileAuthModuleController implements IController {
                 return next(
                     new ApiError(
                         e.status,
-                        this.mapStudentForgotPasswordError(e.message)
+                        this.mapStudentForgotPasswordError(e.message),
+                        e.code
                     )
                 );
             }
@@ -1145,18 +1173,66 @@ class MobileAuthModuleController implements IController {
             if (!email || !verification_code) {
                 throw new ApiError(
                     400,
-                    'Email and verification code are required'
+                    'Email and verification code are required',
+                    'invalidInput'
                 );
             }
 
             const normalizedEmail = this.normalizeEmail(email);
-            const result = await this.studentCognitoClient.verifyForgotPasswordCode(
-                normalizedEmail,
-                verification_code
-            );
+            const normalizedCode = String(verification_code).trim();
 
-            this.forgotPasswordVerifiedIdentifiers.set(normalizedEmail, {
-                token: result.resetToken,
+            if (!/^\d{6}$/.test(normalizedCode)) {
+                throw new ApiError(
+                    400,
+                    'Invalid verification code',
+                    'invalidOtp'
+                );
+            }
+
+            // Validate OTP with Cognito without changing the real password.
+            // ConfirmForgotPassword requires a password argument; using an
+            // intentionally invalid password yields InvalidPasswordException
+            // when the code is valid, and CodeMismatch when it is not.
+            try {
+                await this.studentCognitoClient.confirmForgotPassword(
+                    normalizedEmail,
+                    normalizedCode,
+                    '!'
+                );
+                // Extremely unlikely with Cognito password policy, but if this
+                // somehow succeeds we still continue with the stored code flow.
+            } catch (e: any) {
+                const message = String(e?.message || '');
+                if (message.includes('Password must contain')) {
+                    // Valid code, password rejected by policy as intended.
+                } else if (e?.status === 404 || message.includes('Invalid verification code')) {
+                    throw new ApiError(
+                        400,
+                        'Invalid verification code',
+                        'invalidOtp'
+                    );
+                } else if (message.includes('expired')) {
+                    throw new ApiError(
+                        400,
+                        'Verification code has expired',
+                        'otpExpired'
+                    );
+                } else if (e?.status) {
+                    throw new ApiError(
+                        e.status,
+                        e.message,
+                        this.getStudentForgotPasswordMessageKey(e.message)
+                    );
+                } else {
+                    throw e;
+                }
+            }
+
+            const resetToken = randomBytes(32).toString('hex');
+
+            await setForgotPasswordSession(normalizedEmail, {
+                token: resetToken,
+                verificationCode: normalizedCode,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
 
@@ -1165,14 +1241,24 @@ class MobileAuthModuleController implements IController {
                 .json({
                     message_key: 'verificationCodeVerified',
                     message: 'Verification code verified successfully',
-                    reset_token: result.resetToken,
+                    reset_token: resetToken,
                 })
                 .end();
         } catch (e: any) {
             if (e?.status === 404) {
-                return next(new ApiError(400, 'Invalid verification code'));
+                return next(
+                    new ApiError(400, 'Invalid verification code', 'invalidOtp')
+                );
             }
-            if (e?.status) return next(new ApiError(e.status, e.message));
+            if (e?.status) {
+                return next(
+                    new ApiError(
+                        e.status,
+                        e.message,
+                        e.code || this.getStudentForgotPasswordMessageKey(e.message)
+                    )
+                );
+            }
             return next(e);
         }
     };
@@ -1188,37 +1274,48 @@ class MobileAuthModuleController implements IController {
             if (!email || !new_password || !reset_token) {
                 throw new ApiError(
                     400,
-                    'Email, new password and reset token are required'
+                    'Email, new password and reset token are required',
+                    'invalidInput'
                 );
             }
 
             const normalizedEmail = this.normalizeEmail(email);
-            const stored =
-                this.forgotPasswordVerifiedIdentifiers.get(normalizedEmail);
+            const stored = await getForgotPasswordSession(normalizedEmail);
 
             if (
                 !stored ||
                 stored.expiresAt <= Date.now() ||
-                stored.token !== reset_token
+                stored.token !== reset_token ||
+                !stored.verificationCode
             ) {
-                this.forgotPasswordVerifiedIdentifiers.delete(normalizedEmail);
+                await deleteForgotPasswordSession(normalizedEmail);
                 throw new ApiError(
                     401,
-                    'OTP not verified or verification session expired'
+                    'OTP not verified or verification session expired',
+                    'forgotPasswordSessionExpired'
                 );
             }
 
-            const result =
-                await this.studentCognitoClient.setPasswordAfterForgotPasswordVerification(
-                    normalizedEmail,
-                    new_password
-                );
+            // Official Cognito Forgot Password confirm: code + new password together.
+            const result = await this.studentCognitoClient.confirmForgotPassword(
+                normalizedEmail,
+                stored.verificationCode,
+                new_password
+            );
 
-            this.forgotPasswordVerifiedIdentifiers.delete(normalizedEmail);
+            await deleteForgotPasswordSession(normalizedEmail);
 
             return res.status(200).json({ message: result.message }).end();
         } catch (e: any) {
-            if (e?.status) return next(new ApiError(e.status, e.message));
+            if (e?.status) {
+                return next(
+                    new ApiError(
+                        e.status,
+                        e.message,
+                        e.code || this.getStudentForgotPasswordMessageKey(e.message)
+                    )
+                );
+            }
             return next(e);
         }
     };

@@ -44,6 +44,10 @@ const translations = {
     forgotPasswordCodeSent: "Verification code sent successfully.",
     forgotPasswordCodeResent:
       "Verification code resent successfully (Attempt {attempt}).",
+    forgotPasswordSessionExpired:
+      "Verification session expired. Please request a new code.",
+    emailVerificationFailed:
+      "Email verification failed. Please contact support.",
     temporaryPasswordSent: "Temporary password sent to your email.",
     verifyEmailError: "An error occurred while verifying the email address.",
     enterTemporaryPassword: "Enter temporary password",
@@ -475,6 +479,10 @@ const translations = {
     forgotPasswordCodeSent: "確認コードを正常に送信しました。",
     forgotPasswordCodeResent:
       "確認コードを再送信しました（{attempt}回目）。",
+    forgotPasswordSessionExpired:
+      "確認セッションの有効期限が切れました。新しいコードをリクエストしてください。",
+    emailVerificationFailed:
+      "メール確認に失敗しました。サポートにお問い合わせください。",
     temporaryPasswordSent: "仮パスワードをメールに送信しました。",
     verifyEmailError: "メールアドレスの確認中にエラーが発生しました。",
     enterTemporaryPassword: "仮パスワードを入力してください",
@@ -861,6 +869,10 @@ const translations = {
     forgotPasswordCodeSent: "Tasdiqlash kodi muvaffaqiyatli yuborildi.",
     forgotPasswordCodeResent:
       "Tasdiqlash kodi qayta yuborildi ({attempt}-urinish).",
+    forgotPasswordSessionExpired:
+      "Tasdiqlash sessiyasi muddati tugadi. Iltimos, yangi kod so'rang.",
+    emailVerificationFailed:
+      "Elektron pochtani tasdiqlash amalga oshmadi. Iltimos, qo'llab-quvvatlash xizmatiga murojaat qiling.",
     temporaryPasswordSent:
       "Vaqtinchalik parol elektron pochtangizga yuborildi.",
     verifyEmailError:
@@ -1157,6 +1169,10 @@ const translations = {
     forgotPasswordCodeSent: "Код подтверждения успешно отправлен.",
     forgotPasswordCodeResent:
       "Код подтверждения успешно отправлен повторно (попытка {attempt}).",
+    forgotPasswordSessionExpired:
+      "Сессия подтверждения истекла. Пожалуйста, запросите новый код.",
+    emailVerificationFailed:
+      "Не удалось подтвердить электронную почту. Пожалуйста, обратитесь в службу поддержки.",
     temporaryPasswordSent:
       "Временный пароль отправлен на вашу электронную почту.",
     verifyEmailError: "Произошла ошибка при проверке адреса электронной почты.",

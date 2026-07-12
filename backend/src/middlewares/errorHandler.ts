@@ -45,13 +45,18 @@ export function errorHandler(
         console.error(logMessage, { code, path: req.path, stack: err.stack });
     }
 
-    const response: ErrorResponse = {
+    const response: ErrorResponse & { message_key?: string } = {
         success: false,
         error: message,
         code,
         statusCode,
         details,
     };
+
+    // Expose translation-friendly keys for mobile clients.
+    if (code) {
+        response.message_key = code;
+    }
 
     // Include stack trace in development/test for debugging
     if (config.NODE_ENV !== 'production') {
