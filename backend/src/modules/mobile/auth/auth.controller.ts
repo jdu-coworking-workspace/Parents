@@ -5,6 +5,11 @@ import { createHash, randomBytes } from 'crypto';
 import { verifyToken, ExtendedRequest } from '../../../middlewares/mobileAuth';
 import { Parent, Student } from '../../../utils/cognito-client';
 import DB from '../../../utils/db-client';
+import {
+    deleteForgotPasswordSession,
+    getForgotPasswordSession,
+    setForgotPasswordSession,
+} from '../../../utils/forgot-password-session-store';
 import { IController } from '../../../utils/icontroller';
 import { MockCognitoClient } from '../../../utils/mock-cognito-client';
 import { config } from '../../../config';
@@ -17,10 +22,6 @@ class MobileAuthModuleController implements IController {
     private studentOAuthAttempts = new Map<string, {
         codeVerifier: string;
         expiresAt: number;
-    }>();
-    private forgotPasswordVerifiedPhones = new Map<string, {
-        token: string;
-        expiresAt: number
     }>();
 
     // Add general rate limiting for all auth endpoints
@@ -107,6 +108,21 @@ class MobileAuthModuleController implements IController {
             '/student/change-password',
             this.authLimiter,
             this.studentChangePassword
+        );
+        this.router.post(
+            '/student/forgot-password-initiate',
+            this.forgotPasswordLimiter,
+            this.studentForgotPasswordInitiate
+        );
+        this.router.post(
+            '/student/forgot-password-verify-code',
+            this.forgotPasswordLimiter,
+            this.studentForgotPasswordVerifyCode
+        );
+        this.router.post(
+            '/student/forgot-password-set-password',
+            this.forgotPasswordLimiter,
+            this.studentForgotPasswordSetPassword
         );
         this.router.post('/refresh-token', this.authLimiter, this.refreshToken);
         this.router.post(
@@ -586,7 +602,7 @@ class MobileAuthModuleController implements IController {
                 verification_code
             );
 
-            this.forgotPasswordVerifiedPhones.set(fullPhoneNumber, {
+            await setForgotPasswordSession(fullPhoneNumber, {
                 token: result.resetToken,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -626,8 +642,7 @@ class MobileAuthModuleController implements IController {
                 ? phone_number
                 : `+${phone_number}`;
 
-            const stored =
-                this.forgotPasswordVerifiedPhones.get(fullPhoneNumber);
+            const stored = await getForgotPasswordSession(fullPhoneNumber);
 
             // Token mavjudligi, muddati va qiymati tekshirilmoqda
             if (
@@ -635,7 +650,7 @@ class MobileAuthModuleController implements IController {
                 stored.expiresAt <= Date.now() ||
                 stored.token !== reset_token
             ) {
-                this.forgotPasswordVerifiedPhones.delete(fullPhoneNumber);
+                await deleteForgotPasswordSession(fullPhoneNumber);
                 throw new ApiError(
                     401,
                     'OTP not verified or verification session expired'
@@ -649,7 +664,7 @@ class MobileAuthModuleController implements IController {
                 );
 
             // Muvaffaqiyatli bo'lgandan keyin o'chirish
-            this.forgotPasswordVerifiedPhones.delete(fullPhoneNumber);
+            await deleteForgotPasswordSession(fullPhoneNumber);
 
             return res.status(200).json({ message: result.message }).end();
         } catch (e: any) {
@@ -664,6 +679,10 @@ class MobileAuthModuleController implements IController {
         if (typeof raw === 'object' && typeof raw.data === 'string')
             return raw.data.trim();
         return null;
+    }
+
+    private normalizeEmail(email: string): string {
+        return email.trim().toLowerCase();
     }
 
     deviceToken = async (
@@ -999,6 +1018,304 @@ class MobileAuthModuleController implements IController {
                 .end();
         } catch (e: any) {
             if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    private mapStudentForgotPasswordError(message: string): string {
+        if (
+            message ===
+            'Phone number is not verified in the system. Please contact support.'
+        ) {
+            return 'Email is not verified in the system. Please contact support.';
+        }
+
+        if (message === 'Invalid phone number format') {
+            return 'Invalid email format';
+        }
+
+        if (message.includes('phone number is registered')) {
+            return 'Verification code sent successfully.';
+        }
+
+        return message;
+    }
+
+    private getStudentForgotPasswordMessageKey(
+        message?: string
+    ): string | undefined {
+        switch (message) {
+            case 'Invalid verification code':
+                return 'invalidOtp';
+            case 'Verification code has expired':
+                return 'otpExpired';
+            case 'OTP not verified or verification session expired':
+                return 'forgotPasswordSessionExpired';
+            case 'Password must contain at least 8 characters, 1 number, 1 special character, 1 uppercase, 1 lowercase':
+                return 'passwordRequirementsNotMet';
+            case 'Too many requests. Please try again later':
+            case 'Too many failed attempts. Please try again later':
+                return 'tooManyAttempts';
+            case 'Email is not verified in the system. Please contact support.':
+            case 'Email verification failed. Please contact support.':
+                return 'emailVerificationFailed';
+            case 'Invalid email format':
+                return 'invalidInput';
+            default:
+                return undefined;
+        }
+    }
+
+    studentForgotPasswordInitiate = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { email } = req.body;
+
+            if (!email) {
+                throw new ApiError(400, 'Email is required');
+            }
+
+            const normalizedEmail = this.normalizeEmail(email);
+            const genericResponse = {
+                message_key: 'forgotPasswordCodeSent',
+                message: 'Verification code sent successfully.',
+            };
+
+            const students = await DB.query(
+                `SELECT st.email
+                 FROM Student AS st
+                 WHERE st.email = :email
+                 LIMIT 1`,
+                { email: normalizedEmail }
+            );
+
+            if (students.length === 0) {
+                return res.status(200).json(genericResponse).end();
+            }
+
+            try {
+                const verificationStatus =
+                    await this.studentCognitoClient.checkUserVerificationStatus(
+                        normalizedEmail
+                    );
+
+                if (!verificationStatus.emailVerified) {
+                    await this.studentCognitoClient.verifyEmail(normalizedEmail);
+                } else {
+                    console.log('Email already verified');
+                }
+            } catch {
+                throw new ApiError(
+                    400,
+                    'Email verification failed. Please contact support.',
+                    'emailVerificationFailed'
+                );
+            }
+
+            await this.studentCognitoClient.forgotPassword(normalizedEmail);
+
+            return res.status(200).json(genericResponse).end();
+        } catch (e: any) {
+            if (e?.name === 'InvalidParameterException') {
+                if (
+                    e?.message &&
+                    e.message.includes('no registered/verified')
+                ) {
+                    return next(
+                        new ApiError(
+                            400,
+                            'Email verification failed. Please contact support.',
+                            'emailVerificationFailed'
+                        )
+                    );
+                }
+
+                return next(
+                    new ApiError(400, 'Invalid email format', 'invalidInput')
+                );
+            }
+
+            if (e?.status === 404) {
+                return res
+                    .status(200)
+                    .json({
+                        message_key: 'forgotPasswordCodeSent',
+                        message: 'Verification code sent successfully.',
+                    })
+                    .end();
+            }
+
+            if (e?.status) {
+                return next(
+                    new ApiError(
+                        e.status,
+                        this.mapStudentForgotPasswordError(e.message),
+                        e.code
+                    )
+                );
+            }
+
+            return next(e);
+        }
+    };
+
+    studentForgotPasswordVerifyCode = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { email, verification_code } = req.body;
+
+            if (!email || !verification_code) {
+                throw new ApiError(
+                    400,
+                    'Email and verification code are required',
+                    'invalidInput'
+                );
+            }
+
+            const normalizedEmail = this.normalizeEmail(email);
+            const normalizedCode = String(verification_code).trim();
+
+            if (!/^\d{6}$/.test(normalizedCode)) {
+                throw new ApiError(
+                    400,
+                    'Invalid verification code',
+                    'invalidOtp'
+                );
+            }
+
+            // Validate OTP with Cognito without changing the real password.
+            // ConfirmForgotPassword requires a password argument; using an
+            // intentionally invalid password yields InvalidPasswordException
+            // when the code is valid, and CodeMismatch when it is not.
+            try {
+                await this.studentCognitoClient.confirmForgotPassword(
+                    normalizedEmail,
+                    normalizedCode,
+                    '!'
+                );
+                // Extremely unlikely with Cognito password policy, but if this
+                // somehow succeeds we still continue with the stored code flow.
+            } catch (e: any) {
+                const message = String(e?.message || '');
+                if (message.includes('Password must contain')) {
+                    // Valid code, password rejected by policy as intended.
+                } else if (e?.status === 404 || message.includes('Invalid verification code')) {
+                    throw new ApiError(
+                        400,
+                        'Invalid verification code',
+                        'invalidOtp'
+                    );
+                } else if (message.includes('expired')) {
+                    throw new ApiError(
+                        400,
+                        'Verification code has expired',
+                        'otpExpired'
+                    );
+                } else if (e?.status) {
+                    throw new ApiError(
+                        e.status,
+                        e.message,
+                        this.getStudentForgotPasswordMessageKey(e.message)
+                    );
+                } else {
+                    throw e;
+                }
+            }
+
+            const resetToken = randomBytes(32).toString('hex');
+
+            await setForgotPasswordSession(normalizedEmail, {
+                token: resetToken,
+                verificationCode: normalizedCode,
+                expiresAt: Date.now() + 10 * 60 * 1000,
+            });
+
+            return res
+                .status(200)
+                .json({
+                    message_key: 'verificationCodeVerified',
+                    message: 'Verification code verified successfully',
+                    reset_token: resetToken,
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status === 404) {
+                return next(
+                    new ApiError(400, 'Invalid verification code', 'invalidOtp')
+                );
+            }
+            if (e?.status) {
+                return next(
+                    new ApiError(
+                        e.status,
+                        e.message,
+                        e.code || this.getStudentForgotPasswordMessageKey(e.message)
+                    )
+                );
+            }
+            return next(e);
+        }
+    };
+
+    studentForgotPasswordSetPassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { email, new_password, reset_token } = req.body;
+
+            if (!email || !new_password || !reset_token) {
+                throw new ApiError(
+                    400,
+                    'Email, new password and reset token are required',
+                    'invalidInput'
+                );
+            }
+
+            const normalizedEmail = this.normalizeEmail(email);
+            const stored = await getForgotPasswordSession(normalizedEmail);
+
+            if (
+                !stored ||
+                stored.expiresAt <= Date.now() ||
+                stored.token !== reset_token ||
+                !stored.verificationCode
+            ) {
+                await deleteForgotPasswordSession(normalizedEmail);
+                throw new ApiError(
+                    401,
+                    'OTP not verified or verification session expired',
+                    'forgotPasswordSessionExpired'
+                );
+            }
+
+            // Official Cognito Forgot Password confirm: code + new password together.
+            const result = await this.studentCognitoClient.confirmForgotPassword(
+                normalizedEmail,
+                stored.verificationCode,
+                new_password
+            );
+
+            await deleteForgotPasswordSession(normalizedEmail);
+
+            return res.status(200).json({ message: result.message }).end();
+        } catch (e: any) {
+            if (e?.status) {
+                return next(
+                    new ApiError(
+                        e.status,
+                        e.message,
+                        e.code || this.getStudentForgotPasswordMessageKey(e.message)
+                    )
+                );
+            }
             return next(e);
         }
     };

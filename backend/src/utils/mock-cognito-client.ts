@@ -132,6 +132,14 @@ export class MockCognitoClient {
         };
     }
 
+    static async checkUserVerificationStatus(_username: string) {
+        return { phoneVerified: true, emailVerified: true };
+    }
+
+    static async verifyEmail(username: string) {
+        console.log('Mock: Email verified for %s', username);
+    }
+
     static async forgotPassword(identifier: string) {
         console.log('Mock: Forgot password initiated for %s', identifier); // Fixed: Use %s placeholder
 

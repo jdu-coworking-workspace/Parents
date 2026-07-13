@@ -31,6 +31,7 @@ function RootLayoutContent() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="language-select" options={{ headerShown: false }} />
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
             <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>

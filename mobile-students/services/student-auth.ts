@@ -6,6 +6,21 @@ type LoginInitiateResponse = {
     message_key?: string;
 };
 
+type ForgotPasswordInitiateResponse = {
+    message?: string;
+    message_key?: string;
+};
+
+type ForgotPasswordVerifyResponse = {
+    message: string;
+    message_key?: string;
+    reset_token: string;
+};
+
+type ForgotPasswordSetPasswordResponse = {
+    message: string;
+};
+
 export type StudentLoginResponse = {
     access_token: string;
     refresh_token: string | null;
@@ -70,6 +85,45 @@ export async function initiateStudentLogin(email: string): Promise<LoginInitiate
     return postJson<LoginInitiateResponse>('/student/login-initiate', {
         email,
     });
+}
+
+export async function initiateStudentForgotPassword(
+    email: string
+): Promise<ForgotPasswordInitiateResponse> {
+    return postJson<ForgotPasswordInitiateResponse>(
+        '/student/forgot-password-initiate',
+        {
+            email,
+        }
+    );
+}
+
+export async function verifyStudentForgotPasswordCode(
+    email: string,
+    verificationCode: string
+): Promise<ForgotPasswordVerifyResponse> {
+    return postJson<ForgotPasswordVerifyResponse>(
+        '/student/forgot-password-verify-code',
+        {
+            email,
+            verification_code: verificationCode,
+        }
+    );
+}
+
+export async function setStudentForgotPassword(
+    email: string,
+    newPassword: string,
+    resetToken: string
+): Promise<ForgotPasswordSetPasswordResponse> {
+    return postJson<ForgotPasswordSetPasswordResponse>(
+        '/student/forgot-password-set-password',
+        {
+            email,
+            new_password: newPassword,
+            reset_token: resetToken,
+        }
+    );
 }
 
 export async function loginStudent(
