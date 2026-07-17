@@ -475,7 +475,6 @@ const translations = {
     signIn: "ログイン",
     back: "戻る",
     copy: "コピー",
-    emailRequired: "メールアドレスを入力してください。",
     forgotPasswordCodeSent: "確認コードを正常に送信しました。",
     forgotPasswordCodeResent:
       "確認コードを再送信しました（{attempt}回目）。",
@@ -483,19 +482,6 @@ const translations = {
       "確認セッションの有効期限が切れました。新しいコードをリクエストしてください。",
     emailVerificationFailed:
       "メール確認に失敗しました。サポートにお問い合わせください。",
-    temporaryPasswordSent: "仮パスワードをメールに送信しました。",
-    verifyEmailError: "メールアドレスの確認中にエラーが発生しました。",
-    enterTemporaryPassword: "仮パスワードを入力してください",
-    savePasswordFailed:
-      "パスワードの保存に失敗しました。もう一度お試しください。",
-    emailNotFoundAdmin:
-      "メールアドレスが見つかりません。学校の管理者にお問い合わせください。",
-    googleAuthFailed: "Google認証に失敗しました。もう一度お試しください。",
-    googleCallbackFailed:
-      "Googleのコールバック処理に失敗しました。もう一度お試しください。",
-    oauthMissingParams:
-      "必要なログインデータが不足しています。もう一度お試しください。",
-    googleLoginFailed: "Googleログインに失敗しました。もう一度お試しください。",
     pageNotFound: "ページが見つかりません",
     pageNotFoundMessage:
       "お探しのページは存在しないか、アクセス権がありません。",
@@ -515,7 +501,6 @@ const translations = {
     noStudentsFound: "生徒が見つかりません",
     noStudentsDescription:
       "アカウントにまだ生徒が割り当てられていないようです。学校の管理者にお問い合わせいただくか、更新してみてください。",
-    refresh: "更新",
     needHelp: "ヘルプが必要ですか？",
     checkCorrectAccount: "正しいアカウントでログインしているか確認してください",
     contactSchool: "問題が解決しない場合は学校にお問い合わせください",
@@ -556,51 +541,6 @@ const translations = {
     createNewPassword: "新しいパスワードを作成する",
     confirmLogout: "ログアウトを確認",
     logoutMessage: "ログアウトしてもよろしいですか？",
-    updateAvailable: "アップデートが利用可能です 🚀",
-    updateAvailableMessage:
-      "アプリの新しいバージョンが利用可能です。今すぐダウンロードしますか？",
-    download: "ダウンロード",
-    downloading: "ダウンロード中...",
-    downloadingMessage: "アップデートのダウンロード中にお待ちください。",
-    updateDownloaded: "アップデートがダウンロードされました！ ✅",
-    updateDownloadedMessage:
-      "アップデートが正常にダウンロードされました。変更を適用するために再起動しますか？",
-    restartNow: "今すぐ再起動",
-    restart: "再起動",
-    updateComplete: "アップデート完了",
-    updateCompleteMessage: "既に最新バージョンです。",
-    downloadFailed: "ダウンロードに失敗しました",
-    error: "エラー",
-    updateCheckFailed: "アップデート確認に失敗しました",
-    noUpdates: "アップデートはありません",
-    latestVersion: "最新バージョンです！",
-    checkForUpdates: "アップデートを確認",
-    checking: "確認中...",
-    updateFailed: "アップデートに失敗しました",
-    manualUpdateComplete:
-      "手動アップデートが完了しました。再起動して適用しますか？",
-    imageSaved: "保存しました",
-    imageSavedMessage: "画像をフォトライブラリに保存しました。",
-    downloadFailedImage: "ダウンロードに失敗しました",
-    unableToSaveInDevelopment:
-      "開発ビルドでは保存できません。本番ビルドを試すか、権限を確認してください。",
-    permissionDenied: "フォトライブラリへのアクセスが拒否されました。",
-    downloadError: "画像のダウンロードに失敗しました。",
-    detailedView: "詳細表示",
-    contractFile: "契約書.pdf",
-    temporaryPasswordIfRegistered:
-      "メールが登録されている場合、一時パスワードが送信されました。",
-    settingsHeader: "設定",
-    registrationCodeSent:
-      "この電話番号が登録されている場合、確認コードが送信されます",
-    verificationCodeVerified: "確認コードが正常に検証されました",
-    deviceTokenUpdated: "デバイストークンが正常に更新されました",
-    welcomeStudent: "ようこそ、学生",
-    signInWithGoogle: "Googleでログイン",
-    next: "次へ",
-    signIn: "ログイン",
-    back: "戻る",
-    copy: "コピー",
     messageCopiedToClipboard: "メッセージがクリップボードにコピーされました",
   },
   uz: {
