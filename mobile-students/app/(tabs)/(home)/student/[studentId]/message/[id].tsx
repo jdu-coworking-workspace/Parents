@@ -187,21 +187,13 @@ export default function MessageDetailScreen() {
     <ThemedView
       style={[styles.container, { backgroundColor: pageBackgroundColor }]}
     >
-      <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
-        <View style={styles.titleRow}>
-          <ThemedText
-            style={[styles.title, { color: isDark ? "#FFFFFF" : "#111827" }]}
-          >
-            {message.title}
-          </ThemedText>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: getPriorityBadgeColor(message.priority) },
-            ]}
-          >
-            <ThemedText style={styles.badgeText}>
-              {getPriorityLabel(message.priority)}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
+          <View style={styles.titleRow}>
+            <ThemedText
+              style={[styles.title, { color: isDark ? "#FFFFFF" : "#111827" }]}
+            >
+              {message.title}
             </ThemedText>
             <View
               style={[
@@ -214,6 +206,7 @@ export default function MessageDetailScreen() {
               </ThemedText>
             </View>
           </View>
+
           {imageUrls.length > 0 && (
             <View style={styles.imageContainer}>
               {imageUrls.map((uri, index) => (
@@ -236,18 +229,19 @@ export default function MessageDetailScreen() {
               ))}
             </View>
           )}
-        <ThemedText
-          style={[styles.preview, { color: isDark ? "#E5E7EB" : "#1F2937" }]}
-        >
-          {message.content}
-        </ThemedText>
 
-        <View style={styles.footerRow}>
           <ThemedText
-            style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+            style={[styles.preview, { color: isDark ? "#E5E7EB" : "#1F2937" }]}
           >
-            {formattedTime}
+            {message.content}
           </ThemedText>
+
+          <View style={styles.footerRow}>
+            <ThemedText
+              style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+            >
+              {formattedTime}
+            </ThemedText>
 
             <Pressable onPress={handleCopy} style={styles.copyButton}>
               <Ionicons name="copy-outline" size={20} color="#0A84FF" />
