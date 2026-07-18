@@ -475,8 +475,8 @@ export default function ChangePasswordScreen() {
           style={styles.scrollView}
         >
           <View style={styles.headerBlock}>
-            <ThemedText style={styles.title}>{t("changePassword")}</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            <ThemedText disableScaling style={styles.title}>{t("changePassword")}</ThemedText>
+            <ThemedText disableScaling style={[styles.subtitle, { color: palette.muted }]}>
               {t("updateAccountPassword")}
             </ThemedText>
           </View>

@@ -15,6 +15,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { fetchStudentMessage } from '@/services/student-messages';
 import type { Message } from '@/types/message';
+import { useFontSize } from '@/contexts/font-size-context';
 
 function formatDateTime(value: string) {
   if (!value) {
@@ -48,6 +49,7 @@ export default function MessageDetailScreen() {
   const isDark = colorScheme === 'dark';
   const pageBackgroundColor = isDark ? '#111215' : '#fff';
   const { t } = useContext(I18nContext);
+  const { multiplier } = useFontSize();
 
   const { id } = useLocalSearchParams<{
     id?: string | string[];
@@ -129,11 +131,28 @@ export default function MessageDetailScreen() {
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
       <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
-        <View style={styles.titleRow}>
+        <View
+          style={[
+            styles.titleRow,
+            multiplier > 1
+              ? { flexDirection: 'column-reverse', alignItems: 'flex-start' }
+              : {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                },
+          ]}
+        >
           <ThemedText
             style={[
               styles.title,
-              { color: isDark ? '#FFFFFF' : '#111827' },
+              {
+                color: isDark ? '#FFFFFF' : '#111827',
+                textAlign: 'left',
+                flex: multiplier > 1 ? 0 : 1,
+                flexShrink: multiplier > 1 ? 0 : 1,
+                width: multiplier > 1 ? '100%' : 'auto',
+              },
             ]}
           >
             {message.title}
@@ -141,10 +160,26 @@ export default function MessageDetailScreen() {
           <View
             style={[
               styles.badge,
-              { backgroundColor: getPriorityBadgeColor(message.priority) },
+              {
+                backgroundColor: getPriorityBadgeColor(message.priority),
+                borderRadius: 4,
+                paddingHorizontal: 6 * multiplier,
+                paddingVertical: 4 * multiplier,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginLeft: multiplier > 1 ? 0 : 10,
+                alignSelf: multiplier > 1 ? 'flex-end' : 'center',
+              },
             ]}
           >
-            <ThemedText style={styles.badgeText}>
+            <ThemedText
+              style={{
+                color: '#FFFFFF',
+                fontSize: 11,
+                textAlign: 'center',
+                fontWeight: '500',
+              }}
+            >
               {getPriorityLabel(message.priority)}
             </ThemedText>
           </View>

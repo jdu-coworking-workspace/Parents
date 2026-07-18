@@ -134,11 +134,11 @@ export default function SetPasswordScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.title}>{t('createNewPasswordTitle')}</ThemedText>
+                <ThemedText disableScaling style={styles.title}>{t('createNewPasswordTitle')}</ThemedText>
               </View>
 
               <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>{t('enterNewPasswordText')}</ThemedText>
+                <ThemedText disableScaling style={styles.label}>{t('enterNewPasswordText')}</ThemedText>
                 <View style={styles.passwordContainer}>
                   <TextInput
                     value={newPassword}
@@ -179,7 +179,7 @@ export default function SetPasswordScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={styles.validationTitle}>{t('passwordStrength')}</ThemedText>
+                  <ThemedText disableScaling style={styles.validationTitle}>{t('passwordStrength')}</ThemedText>
 
                   <View style={styles.strengthRow}>
                     <View style={styles.strengthBarTrack}>
@@ -194,6 +194,7 @@ export default function SetPasswordScreen() {
                       />
                     </View>
                     <ThemedText
+                      disableScaling
                       style={[
                         styles.strengthLabel,
                         { color: passwordStrength.color },
@@ -218,6 +219,7 @@ export default function SetPasswordScreen() {
                           />
                           <View style={styles.ruleTextWrap}>
                             <ThemedText
+                              disableScaling
                               style={[
                                 styles.ruleText,
                                 {
@@ -239,6 +241,7 @@ export default function SetPasswordScreen() {
 
               {error ? (
                 <ThemedText
+                  disableScaling
                   style={[styles.feedbackText, { color: palette.error }]}
                 >
                   {error}
@@ -253,7 +256,7 @@ export default function SetPasswordScreen() {
                 onPress={handlePasswordSetup}
                 disabled={isLoading}
               >
-                <ThemedText style={styles.primaryButtonText}>{isLoading ? t('loading') : t('saveNewPassword')}</ThemedText>
+                <ThemedText disableScaling style={styles.primaryButtonText}>{isLoading ? t('loading') : t('saveNewPassword')}</ThemedText>
               </Pressable>
 
               <Pressable
@@ -264,7 +267,7 @@ export default function SetPasswordScreen() {
                 }}
                 disabled={isLoading}
               >
-                <ThemedText style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
+                <ThemedText disableScaling style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
               </Pressable>
             </ScrollView>
           </KeyboardAvoidingView>
