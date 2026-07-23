@@ -898,13 +898,17 @@ class MobileAuthModuleController implements IController {
     }
 
     private async getAuthenticatedStudent(token: string) {
-        const authUser = await this.studentCognitoClient.accessToken(token);
+        const authUser = await this.getStudentAuthUser(token);
         const students = await DB.query(
             `SELECT st.id, st.email, st.cognito_sub_id
              FROM Student AS st
              WHERE st.email = :email
+                OR st.cognito_sub_id = :cognito_sub_id
              LIMIT 1`,
-            { email: authUser.email }
+            {
+                email: authUser.email,
+                cognito_sub_id: authUser.sub_id,
+            }
         );
 
         if (students.length <= 0) {
