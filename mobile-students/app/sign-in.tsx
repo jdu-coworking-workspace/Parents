@@ -59,7 +59,7 @@ export default function SignInScreen() {
     primary: "#2563EB",
     muted: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
     error: "#DC2626",
-    info: "#2563EB",
+    info: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
   };
 
   const handleEmailNext = async () => {
@@ -78,7 +78,11 @@ export default function SignInScreen() {
       const serverText = response.message_key
         ? t(response.message_key as any)
         : response.message;
-      setInfo(serverText || t("temporaryPasswordSent"));
+      setInfo(
+        response.show_temporary_password_message
+          ? serverText || t("temporaryPasswordSent")
+          : "",
+      );
       setStep("password");
       setPassword("");
     } catch (e: any) {
@@ -301,6 +305,14 @@ export default function SignInScreen() {
                 </View>
               ) : null}
 
+              {info ? (
+                <ThemedText
+                  style={[styles.feedbackText, { color: palette.info }]}
+                >
+                  {info}
+                </ThemedText>
+              ) : null}
+
               {step !== "email" ? (
                 <Pressable
                   style={styles.forgotPasswordButton}
@@ -316,14 +328,6 @@ export default function SignInScreen() {
                     {t('forgotPasswordLink')}
                   </ThemedText>
                 </Pressable>
-              ) : null}
-
-              {info ? (
-                <ThemedText
-                  style={[styles.feedbackText, { color: palette.info }]}
-                >
-                  {info}
-                </ThemedText>
               ) : null}
 
               {error ? (
@@ -445,7 +449,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   feedbackText: {
-    marginTop: 8,
+    marginTop: 4,
+    marginBottom: 8,
     fontSize: 13,
   },
   googleButton: {
@@ -483,9 +488,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   forgotPasswordButton: {
-    alignSelf: "flex-end",
-    marginTop: -4,
+    alignSelf: "center",
+    marginTop: 0,
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
   forgotPasswordText: {
     fontSize: 14,

@@ -4,6 +4,7 @@ import type { StudentUser } from '@/types/auth';
 type LoginInitiateResponse = {
     message?: string;
     message_key?: string;
+    show_temporary_password_message?: boolean;
 };
 
 type ForgotPasswordInitiateResponse = {

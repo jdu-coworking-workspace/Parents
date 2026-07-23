@@ -1138,8 +1138,11 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
+            let showTemporaryPasswordMessage = false;
+
             try {
                 await this.studentCognitoClient.resendTemporaryPassword(email);
+                showTemporaryPasswordMessage = true;
             } catch (e: any) {
                 if (e?.status === 404) {
                     // User doesn't exist, register them
@@ -1151,6 +1154,7 @@ class MobileAuthModuleController implements IController {
                         );
 
                     await this.syncStudentCognitoSub(email, registeredStudent.sub_id);
+                    showTemporaryPasswordMessage = true;
                 } else if (e?.status === 400) {
                     // User already activated (status is not FORCE_CHANGE_PASSWORD)
                     // Return generic success message so they can proceed to login directly
@@ -1165,6 +1169,8 @@ class MobileAuthModuleController implements IController {
                     message_key: 'temporaryPasswordIfRegistered',
                     message:
                         'If the email is registered, a temporary password has been sent.',
+                    show_temporary_password_message:
+                        showTemporaryPasswordMessage,
                 })
                 .end();
         } catch (e: any) {
