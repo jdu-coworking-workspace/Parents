@@ -829,17 +829,7 @@ class MobileAuthModuleController implements IController {
         next: NextFunction
     ) => {
         try {
-            const authHeader = req.headers['authorization'];
-            if (!authHeader || !/^Bearer .+$/.test(authHeader)) {
-                return res
-                    .status(401)
-                    .json({
-                        message: 'Access token is missing or invalid.',
-                    })
-                    .end();
-            }
-
-            const token = authHeader.split(' ')[1];
+            const token = this.getBearerToken(req);
             const { previous_password, new_password } = req.body;
 
             if (!previous_password || !new_password) {
@@ -851,13 +841,12 @@ class MobileAuthModuleController implements IController {
                     .end();
             }
 
-            await this.studentCognitoClient.accessToken(token);
+            const { student } = await this.getAuthenticatedStudent(token);
 
             try {
-                await this.studentCognitoClient.changePassword(
-                    token,
-                    previous_password,
-                    new_password
+                await this.studentCognitoClient.login(
+                    student.email,
+                    previous_password
                 );
             } catch (e: any) {
                 if (e?.status === 401) {
@@ -870,6 +859,11 @@ class MobileAuthModuleController implements IController {
 
                 throw e;
             }
+
+            await this.studentCognitoClient.setPermanentPassword(
+                student.email,
+                new_password
+            );
 
             return res
                 .status(200)
@@ -918,35 +912,30 @@ class MobileAuthModuleController implements IController {
         return { authUser, student: students[0] };
     }
 
-    private async resolveStudentCognitoUserStatus(
-        authUser: { email: string; sub_id: string; username?: string },
-        student: { cognito_sub_id?: string }
-    ): Promise<{ username: string; status: string }> {
-        const candidates = [
-            authUser.username,
-            student.cognito_sub_id,
-            authUser.sub_id,
-            authUser.email,
-        ].filter((value): value is string => Boolean(value));
-
-        for (const username of [...new Set(candidates)]) {
-            try {
-                const status =
-                    await this.studentCognitoClient.getUserStatus(username);
-                return { username, status };
-            } catch (e: any) {
-                if (e?.status !== 404) {
-                    throw e;
-                }
+    private async getNativeStudentPasswordStatus(email: string): Promise<{
+        exists: boolean;
+        status: string;
+    }> {
+        try {
+            const status = await this.studentCognitoClient.getUserStatus(email);
+            return { exists: true, status };
+        } catch (e: any) {
+            if (e?.status === 404) {
+                return { exists: false, status: 'NOT_FOUND' };
             }
-        }
 
-        throw new ApiError(404, 'Cognito user not found');
+            throw e;
+        }
     }
 
-    private hasPermanentStudentPassword(status: string): boolean {
+    private hasPermanentStudentPassword(status: {
+        exists: boolean;
+        status: string;
+    }): boolean {
         return (
-            status !== 'EXTERNAL_PROVIDER' && status !== 'FORCE_CHANGE_PASSWORD'
+            status.exists &&
+            status.status !== 'EXTERNAL_PROVIDER' &&
+            status.status !== 'FORCE_CHANGE_PASSWORD'
         );
     }
 
@@ -957,19 +946,17 @@ class MobileAuthModuleController implements IController {
     ) => {
         try {
             const token = this.getBearerToken(req);
-            const { authUser, student } =
-                await this.getAuthenticatedStudent(token);
-            const { status } = await this.resolveStudentCognitoUserStatus(
-                authUser,
-                student
+            const { student } = await this.getAuthenticatedStudent(token);
+            const passwordStatus = await this.getNativeStudentPasswordStatus(
+                student.email
             );
 
             return res
                 .status(200)
                 .json({
                     has_cognito_password:
-                        this.hasPermanentStudentPassword(status),
-                    cognito_status: status,
+                        this.hasPermanentStudentPassword(passwordStatus),
+                    cognito_status: passwordStatus.status,
                 })
                 .end();
         } catch (e: any) {
@@ -997,12 +984,12 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
-            const { authUser, student } =
-                await this.getAuthenticatedStudent(token);
-            const { username, status } =
-                await this.resolveStudentCognitoUserStatus(authUser, student);
+            const { student } = await this.getAuthenticatedStudent(token);
+            const passwordStatus = await this.getNativeStudentPasswordStatus(
+                student.email
+            );
 
-            if (this.hasPermanentStudentPassword(status)) {
+            if (this.hasPermanentStudentPassword(passwordStatus)) {
                 throw new ApiError(
                     409,
                     'Student already has a permanent password',
@@ -1010,8 +997,16 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
+            if (!passwordStatus.exists) {
+                await this.studentCognitoClient.createUserWithoutMessage(
+                    student.email,
+                    student.email,
+                    ''
+                );
+            }
+
             await this.studentCognitoClient.setPermanentPassword(
-                username,
+                student.email,
                 new_password
             );
 

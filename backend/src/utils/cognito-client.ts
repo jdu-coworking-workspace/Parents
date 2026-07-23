@@ -182,6 +182,44 @@ class CognitoClient {
         }
     }
 
+    async createUserWithoutMessage(
+        identifier: string,
+        email: string | null,
+        phone_number: string
+    ): Promise<registerOutput> {
+        const params: AdminCreateUserCommandInput = {
+            UserPoolId: this.pool_id,
+            Username: identifier,
+            MessageAction: 'SUPPRESS',
+            UserAttributes: [
+                ...(email ? [{ Name: 'email', Value: email }] : []),
+                ...(phone_number
+                    ? [{ Name: 'phone_number', Value: phone_number }]
+                    : []),
+            ],
+        };
+
+        try {
+            const command = new AdminCreateUserCommand(params);
+            const data = await this.client.send(command);
+
+            return {
+                sub_id: data.User?.Username ?? '',
+            };
+        } catch (e: any) {
+            if (e.name === 'UsernameExistsException') {
+                return {
+                    sub_id: identifier,
+                };
+            }
+
+            throw {
+                status: 500,
+                message: 'Internal server error',
+            } as registerThrow;
+        }
+    }
+
     // Add this new method to your CognitoClient class
     async verifyPhoneNumber(username: string): Promise<void> {
         try {

@@ -81,6 +81,31 @@ export class MockCognitoClient {
         };
     }
 
+    static async createUserWithoutMessage(
+        identifier: string,
+        email: string,
+        _phoneNumber: string
+    ) {
+        const existing = mockDatabase.get(identifier);
+        if (existing) {
+            return {
+                sub_id: existing.sub_id ?? sub_id,
+            };
+        }
+
+        mockDatabase.set(identifier, {
+            email: email || identifier,
+            password: '',
+            sub_id,
+            username: identifier,
+            status: 'FORCE_CHANGE_PASSWORD',
+        });
+
+        return {
+            sub_id,
+        };
+    }
+
     static async changeTempPassword(
         identifier: string,
         tempPassword: string,
@@ -290,7 +315,11 @@ export class MockCognitoClient {
     static async login(email: string, password: string) {
         const user = mockDatabase.get(email); // Use Map.get()
         if (!user || user.password !== password) {
-            throw new Error('Invalid email or password');
+            const error = new Error('Invalid email or password') as Error & {
+                status?: number;
+            };
+            error.status = 401;
+            throw error;
         }
         user.accessToken = 'mockAccessToken';
         user.refreshToken = 'mockRefreshToken';
