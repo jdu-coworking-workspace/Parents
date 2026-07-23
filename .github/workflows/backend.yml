@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 753-login-with-google-qilgandagi-settings-pagedagi-change-password-navigationi-togirlash
     paths:
       - "backend/**"
 

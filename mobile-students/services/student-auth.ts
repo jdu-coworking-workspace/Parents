@@ -21,6 +21,11 @@ type ForgotPasswordSetPasswordResponse = {
     message: string;
 };
 
+type StudentPasswordStatusResponse = {
+    has_cognito_password: boolean;
+    cognito_status?: string;
+};
+
 export type StudentLoginResponse = {
     access_token: string;
     refresh_token: string | null;
@@ -170,6 +175,32 @@ export async function changeStudentPassword(
         { previous_password: string; new_password: string }
     >('/student/change-password', {
         previous_password: previousPassword,
+        new_password: newPassword,
+    }, {
+        suppressErrorLog: true,
+    });
+
+    return response.data;
+}
+
+export async function getStudentPasswordStatus(): Promise<StudentPasswordStatusResponse> {
+    const response = await api.get<StudentPasswordStatusResponse>(
+        '/student/password-status',
+        {
+            suppressErrorLog: true,
+        }
+    );
+
+    return response.data;
+}
+
+export async function createStudentFirstPassword(
+    newPassword: string
+): Promise<{ message?: string; message_key?: string }> {
+    const response = await api.post<
+        { message?: string; message_key?: string },
+        { new_password: string }
+    >('/student/first-password', {
         new_password: newPassword,
     }, {
         suppressErrorLog: true,

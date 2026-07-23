@@ -109,6 +109,16 @@ class MobileAuthModuleController implements IController {
             this.authLimiter,
             this.studentChangePassword
         );
+        this.router.get(
+            '/student/password-status',
+            this.authLimiter,
+            this.studentPasswordStatus
+        );
+        this.router.post(
+            '/student/first-password',
+            this.authLimiter,
+            this.studentCreateFirstPassword
+        );
         this.router.post(
             '/student/forgot-password-initiate',
             this.forgotPasswordLimiter,
@@ -870,6 +880,148 @@ class MobileAuthModuleController implements IController {
                 .end();
         } catch (e: any) {
             if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    private getBearerToken(req: Request): string {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !/^Bearer .+$/.test(authHeader)) {
+            throw new ApiError(
+                401,
+                'Access token is missing or invalid.',
+                'invalidAccessToken'
+            );
+        }
+
+        return authHeader.split(' ')[1];
+    }
+
+    private async getAuthenticatedStudent(token: string) {
+        const authUser = await this.studentCognitoClient.accessToken(token);
+        const students = await DB.query(
+            `SELECT st.id, st.email, st.cognito_sub_id
+             FROM Student AS st
+             WHERE st.email = :email
+             LIMIT 1`,
+            { email: authUser.email }
+        );
+
+        if (students.length <= 0) {
+            throw new ApiError(401, 'Student account not found');
+        }
+
+        return { authUser, student: students[0] };
+    }
+
+    private async resolveStudentCognitoUserStatus(
+        authUser: { email: string; sub_id: string; username?: string },
+        student: { cognito_sub_id?: string }
+    ): Promise<{ username: string; status: string }> {
+        const candidates = [
+            authUser.username,
+            student.cognito_sub_id,
+            authUser.sub_id,
+            authUser.email,
+        ].filter((value): value is string => Boolean(value));
+
+        for (const username of [...new Set(candidates)]) {
+            try {
+                const status =
+                    await this.studentCognitoClient.getUserStatus(username);
+                return { username, status };
+            } catch (e: any) {
+                if (e?.status !== 404) {
+                    throw e;
+                }
+            }
+        }
+
+        throw new ApiError(404, 'Cognito user not found');
+    }
+
+    private hasPermanentStudentPassword(status: string): boolean {
+        return (
+            status !== 'EXTERNAL_PROVIDER' && status !== 'FORCE_CHANGE_PASSWORD'
+        );
+    }
+
+    studentPasswordStatus = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const token = this.getBearerToken(req);
+            const { authUser, student } =
+                await this.getAuthenticatedStudent(token);
+            const { status } = await this.resolveStudentCognitoUserStatus(
+                authUser,
+                student
+            );
+
+            return res
+                .status(200)
+                .json({
+                    has_cognito_password:
+                        this.hasPermanentStudentPassword(status),
+                    cognito_status: status,
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) {
+                return next(new ApiError(e.status, e.message, e.code));
+            }
+            return next(e);
+        }
+    };
+
+    studentCreateFirstPassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const token = this.getBearerToken(req);
+            const { new_password } = req.body;
+
+            if (!new_password) {
+                throw new ApiError(
+                    400,
+                    'New password is required',
+                    'invalidInput'
+                );
+            }
+
+            const { authUser, student } =
+                await this.getAuthenticatedStudent(token);
+            const { username, status } =
+                await this.resolveStudentCognitoUserStatus(authUser, student);
+
+            if (this.hasPermanentStudentPassword(status)) {
+                throw new ApiError(
+                    409,
+                    'Student already has a permanent password',
+                    'passwordAlreadyExists'
+                );
+            }
+
+            await this.studentCognitoClient.setPermanentPassword(
+                username,
+                new_password
+            );
+
+            return res
+                .status(200)
+                .json({
+                    message_key: 'passwordCreatedSuccessfully',
+                    message: 'Password created successfully',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) {
+                return next(new ApiError(e.status, e.message, e.code));
+            }
             return next(e);
         }
     };

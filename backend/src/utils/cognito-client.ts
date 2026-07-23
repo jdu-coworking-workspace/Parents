@@ -455,6 +455,66 @@ class CognitoClient {
         }
     }
 
+    async getUserStatus(username: string): Promise<string> {
+        const params: AdminGetUserCommandInput = {
+            UserPoolId: this.pool_id,
+            Username: username,
+        };
+
+        try {
+            const command = new AdminGetUserCommand(params);
+            const userResult = await this.client.send(command);
+            return userResult.UserStatus ?? '';
+        } catch (e: any) {
+            if (e.name === 'UserNotFoundException') {
+                throw {
+                    status: 404,
+                    message: 'User not found',
+                };
+            }
+
+            throw {
+                status: 500,
+                message: 'Internal server error',
+            };
+        }
+    }
+
+    async setPermanentPassword(username: string, password: string) {
+        const params: AdminSetUserPasswordCommandInput = {
+            UserPoolId: this.pool_id,
+            Username: username,
+            Password: password,
+            Permanent: true,
+        };
+
+        try {
+            const command = new AdminSetUserPasswordCommand(params);
+            await this.client.send(command);
+
+            return {
+                message: 'Password set successfully',
+            };
+        } catch (e: any) {
+            if (e.name === 'InvalidPasswordException') {
+                throw {
+                    status: 400,
+                    message: e.message || 'Invalid password',
+                };
+            } else if (e.name === 'UserNotFoundException') {
+                throw {
+                    status: 404,
+                    message: 'User not found',
+                };
+            }
+
+            throw {
+                status: 500,
+                message: 'Failed to set password',
+            };
+        }
+    }
+
     async accessToken(accessToken: string): Promise<accessTokenOutput> {
         const params: GetUserCommandInput = {
             AccessToken: accessToken,
@@ -474,6 +534,7 @@ class CognitoClient {
                 sub_id:
                     userData.UserAttributes?.find(obj => obj.Name === 'sub')
                         ?.Value ?? '',
+                username: userData.Username ?? '',
             };
         } catch (e: any) {
             if (e.name === 'NotAuthorizedException') {
@@ -883,6 +944,7 @@ interface accessTokenOutput {
     email: string;
     phone_number: string;
     sub_id: string;
+    username: string;
 }
 
 interface accessTokenThrow {
