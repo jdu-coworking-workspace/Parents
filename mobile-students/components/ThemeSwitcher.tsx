@@ -19,7 +19,7 @@ export default function ThemeSwitcher() {
           color="#fff"
         />
       </View>
-      <ThemedText style={styles.label}>
+      <ThemedText disableScaling style={styles.label}>
         {currentColorScheme === 'light' ? t('lightMode') : t('darkMode')}
       </ThemedText>
       <View style={styles.rowSpacer} />

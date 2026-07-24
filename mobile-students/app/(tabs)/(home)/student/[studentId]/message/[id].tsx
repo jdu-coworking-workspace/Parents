@@ -105,12 +105,12 @@ export default function MessageDetailScreen() {
 
   const imageUrls = useMemo(
     () => getMessageImageUrls(message?.images ?? message?.image ?? null),
-    [message]
+    [message],
   );
 
   const imagesForZoomGallery = useMemo(
-    () => imageUrls.map(uri => ({ uri })),
-    [imageUrls]
+    () => imageUrls.map((uri) => ({ uri })),
+    [imageUrls],
   );
 
   const getPriorityLabel = (priority: Message['priority']) => {
@@ -183,69 +183,67 @@ export default function MessageDetailScreen() {
   }
 
   const localDateTime = utcDateTime.setZone(userTimeZone);
-  const formattedTime = localDateTime.toFormat('dd.MM.yyyy   HH:mm');
+  const formattedTime = localDateTime.toFormat("dd.MM.yyyy   HH:mm");
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
-      <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
-        <View
-          style={[
-            styles.titleRow,
-            multiplier > 1
-              ? { flexDirection: 'column-reverse', alignItems: 'flex-start' }
-              : {
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                },
-          ]}
-        >
-          <ThemedText
-            style={[
-              styles.title,
-              {
-                color: isDark ? '#FFFFFF' : '#111827',
-                textAlign: 'left',
-                flex: multiplier > 1 ? 0 : 1,
-                flexShrink: multiplier > 1 ? 0 : 1,
-                width: multiplier > 1 ? '100%' : 'auto',
-              },
-            ]}
-          >
-            {message.title}
-          </ThemedText>
+    <ThemedView
+      style={[styles.container, { backgroundColor: pageBackgroundColor }]}
+    >
+      <ScrollView
+        style={[styles.container, { backgroundColor: pageBackgroundColor }]}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
           <View
             style={[
-              styles.badge,
-              {
-                backgroundColor: getPriorityBadgeColor(message.priority),
-                borderRadius: 4,
-                paddingHorizontal: 6 * multiplier,
-                paddingVertical: 4 * multiplier,
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginLeft: multiplier > 1 ? 0 : 10,
-                alignSelf: multiplier > 1 ? 'flex-end' : 'center',
-              },
+              styles.titleRow,
+              multiplier > 1
+                ? { flexDirection: 'column-reverse', alignItems: 'flex-start' }
+                : {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  },
             ]}
           >
             <ThemedText
-              style={{
-                color: '#FFFFFF',
-                fontSize: 11,
-                textAlign: 'center',
-                fontWeight: '500',
-              }}
+              style={[
+                styles.title,
+                {
+                  color: isDark ? '#FFFFFF' : '#111827',
+                  textAlign: 'left',
+                  flex: multiplier > 1 ? 0 : 1,
+                  flexShrink: multiplier > 1 ? 0 : 1,
+                  width: multiplier > 1 ? '100%' : 'auto',
+                },
+              ]}
             >
-              {getPriorityLabel(message.priority)}
+              {message.title}
             </ThemedText>
             <View
               style={[
                 styles.badge,
-                { backgroundColor: getPriorityBadgeColor(message.priority) },
+                {
+                  backgroundColor: getPriorityBadgeColor(message.priority),
+                  borderRadius: 4,
+                  paddingHorizontal: 6 * multiplier,
+                  paddingVertical: 4 * multiplier,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginLeft: multiplier > 1 ? 0 : 10,
+                  alignSelf: multiplier > 1 ? 'flex-end' : 'center',
+                },
               ]}
             >
-              <ThemedText style={styles.badgeText}>
+              <ThemedText
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 11,
+                  textAlign: "center",
+                  fontWeight: "500",
+                }}
+              >
                 {getPriorityLabel(message.priority)}
               </ThemedText>
             </View>
@@ -282,15 +280,15 @@ export default function MessageDetailScreen() {
 
           <View style={styles.footerRow}>
             <ThemedText
-              style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+              style={[styles.date, { color: isDark ? "#6B7280" : "#6B7280" }]}
             >
               {formattedTime}
             </ThemedText>
 
             <Pressable onPress={handleCopy} style={styles.copyButton}>
-            <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-            <ThemedText style={styles.copyText}>Copy</ThemedText>
-          </Pressable>
+              <Ionicons name="copy-outline" size={20} color="#0A84FF" />
+              <ThemedText style={styles.copyText}>Copy</ThemedText>
+            </Pressable>
           </View>
         </View>
       </ScrollView>

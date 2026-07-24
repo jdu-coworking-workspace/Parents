@@ -206,7 +206,7 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.title}>
+                <ThemedText disableScaling style={styles.title}>
                   {t("welcomeStudent")}
                 </ThemedText>
               </View>
@@ -250,7 +250,7 @@ export default function SignInScreen() {
               </View>
 
               <View style={styles.inputBlock}>
-                <ThemedText style={styles.label}>{t("email")}</ThemedText>
+                <ThemedText disableScaling style={styles.label}>{t("email")}</ThemedText>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
@@ -273,7 +273,7 @@ export default function SignInScreen() {
 
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
-                  <ThemedText style={styles.label}>{t("password")}</ThemedText>
+                  <ThemedText disableScaling style={styles.label}>{t("password")}</ThemedText>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       value={password}
@@ -326,7 +326,7 @@ export default function SignInScreen() {
                   }
                   disabled={isLoading}
                 >
-                  <ThemedText style={[styles.forgotPasswordText, { color: palette.primary }]}>
+                  <ThemedText disableScaling style={[styles.forgotPasswordText, { color: palette.primary }]}>
                     {t('forgotPasswordLink')}
                   </ThemedText>
                 </Pressable>
@@ -354,7 +354,7 @@ export default function SignInScreen() {
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <ThemedText style={styles.primaryButtonText}>
+                  <ThemedText disableScaling style={styles.primaryButtonText}>
                     {step === "email" ? t("next") : t("signIn")}
                   </ThemedText>
                 )}
@@ -372,7 +372,7 @@ export default function SignInScreen() {
                   }}
                   disabled={isLoading}
                 >
-                  <ThemedText style={{ color: Colors[colorScheme].text }}>
+                  <ThemedText disableScaling style={{ color: Colors[colorScheme].text }}>
                     {t("back")}
                   </ThemedText>
                 </Pressable>

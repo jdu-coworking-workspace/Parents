@@ -493,7 +493,7 @@ export default function ForgotPasswordScreen() {
                   />
                 </Pressable>
                 <View style={styles.headerBlock}>
-                  <ThemedText style={styles.title}>
+                  <ThemedText disableScaling style={styles.title}>
                     {step === "password"
                       ? t("createNewPasswordTitle")
                       : t("resetPasswordTitle")}
@@ -504,7 +504,7 @@ export default function ForgotPasswordScreen() {
               {step === "email" ? (
                 <>
                   <View style={styles.inputBlock}>
-                    <ThemedText style={styles.label}>{t("email")}</ThemedText>
+                    <ThemedText disableScaling style={styles.label}>{t("email")}</ThemedText>
                     <TextInput
                       value={email}
                       onChangeText={(value) => {
@@ -544,7 +544,7 @@ export default function ForgotPasswordScreen() {
                     {isLoading ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <ThemedText style={styles.primaryButtonText}>
+                      <ThemedText disableScaling style={styles.primaryButtonText}>
                         {t("sendCode")}
                       </ThemedText>
                     )}
@@ -555,17 +555,19 @@ export default function ForgotPasswordScreen() {
               {step === "verify" ? (
                 <>
                   <ThemedText
+                    disableScaling
                     style={[styles.description, { color: palette.muted }]}
                   >
                     {t("verificationCodeSent")}
                   </ThemedText>
                   <ThemedText
+                    disableScaling
                     style={[styles.emailDisplay, { color: palette.primary }]}
                   >
                     {email.trim().toLowerCase()}
                   </ThemedText>
 
-                  <ThemedText style={styles.label}>
+                  <ThemedText disableScaling style={styles.label}>
                     {t("enterVerificationCode")}
                   </ThemedText>
 
@@ -617,6 +619,7 @@ export default function ForgotPasswordScreen() {
 
                   {countdown > 0 ? (
                     <ThemedText
+                      disableScaling
                       style={[styles.countdown, { color: palette.muted }]}
                     >
                       {t("codeWillExpire").replace(
@@ -642,6 +645,7 @@ export default function ForgotPasswordScreen() {
                           />
                         ) : null}
                         <ThemedText
+                          disableScaling
                           style={{
                             color:
                               canResend && !isLoading && !isResending
@@ -673,7 +677,7 @@ export default function ForgotPasswordScreen() {
                     {isLoading ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <ThemedText style={styles.primaryButtonText}>
+                      <ThemedText disableScaling style={styles.primaryButtonText}>
                         {t("verify")}
                       </ThemedText>
                     )}
@@ -684,13 +688,14 @@ export default function ForgotPasswordScreen() {
               {step === "password" ? (
                 <>
                   <ThemedText
+                    disableScaling
                     style={[styles.description, { color: palette.muted }]}
                   >
                     {t("enterNewPasswordText")}
                   </ThemedText>
 
                   <View style={styles.inputBlock}>
-                    <ThemedText style={styles.label}>{t("newPassword")}</ThemedText>
+                    <ThemedText disableScaling style={styles.label}>{t("newPassword")}</ThemedText>
                     <View style={styles.passwordContainer}>
                       <TextInput
                         value={newPassword}
@@ -737,7 +742,7 @@ export default function ForgotPasswordScreen() {
                         },
                       ]}
                     >
-                      <ThemedText style={styles.validationTitle}>
+                      <ThemedText disableScaling style={styles.validationTitle}>
                         {t("passwordStrength")}
                       </ThemedText>
 
@@ -754,6 +759,7 @@ export default function ForgotPasswordScreen() {
                           />
                         </View>
                         <ThemedText
+                          disableScaling
                           style={[
                             styles.strengthLabel,
                             { color: passwordStrength.color },
@@ -773,6 +779,7 @@ export default function ForgotPasswordScreen() {
                               style={styles.ruleIcon}
                             />
                             <ThemedText
+                              disableScaling
                               style={[
                                 styles.ruleText,
                                 {
@@ -791,7 +798,7 @@ export default function ForgotPasswordScreen() {
                   ) : null}
 
                   <View style={styles.inputBlock}>
-                    <ThemedText style={styles.label}>
+                    <ThemedText disableScaling style={styles.label}>
                       {t("confirmPassword")}
                     </ThemedText>
                     <View style={styles.passwordContainer}>
@@ -848,7 +855,7 @@ export default function ForgotPasswordScreen() {
                     {isLoading ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <ThemedText style={styles.primaryButtonText}>
+                      <ThemedText disableScaling style={styles.primaryButtonText}>
                         {t("saveNewPassword")}
                       </ThemedText>
                     )}
@@ -858,6 +865,7 @@ export default function ForgotPasswordScreen() {
 
               {error ? (
                 <ThemedText
+                  disableScaling
                   style={[styles.feedbackText, { color: palette.error }]}
                 >
                   {error}
