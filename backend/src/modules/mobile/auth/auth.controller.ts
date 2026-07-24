@@ -109,6 +109,16 @@ class MobileAuthModuleController implements IController {
             this.authLimiter,
             this.studentChangePassword
         );
+        this.router.get(
+            '/student/password-status',
+            this.authLimiter,
+            this.studentPasswordStatus
+        );
+        this.router.post(
+            '/student/first-password',
+            this.authLimiter,
+            this.studentCreateFirstPassword
+        );
         this.router.post(
             '/student/forgot-password-initiate',
             this.forgotPasswordLimiter,
@@ -602,7 +612,7 @@ class MobileAuthModuleController implements IController {
                 verification_code
             );
 
-            await setForgotPasswordSession(fullPhoneNumber, {
+            const forgotPasswordSession = await setForgotPasswordSession(fullPhoneNumber, {
                 token: result.resetToken,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -610,7 +620,7 @@ class MobileAuthModuleController implements IController {
             return res.status(200).json({
                 message_key: 'verificationCodeVerified',
                 message: 'Verification code verified successfully',
-                reset_token: result.resetToken,
+                reset_token: forgotPasswordSession.token,
             }).end();
 
         } catch (e: any) {
@@ -642,13 +652,15 @@ class MobileAuthModuleController implements IController {
                 ? phone_number
                 : `+${phone_number}`;
 
-            const stored = await getForgotPasswordSession(fullPhoneNumber);
+            const stored = await getForgotPasswordSession(
+                fullPhoneNumber,
+                reset_token
+            );
 
             // Token mavjudligi, muddati va qiymati tekshirilmoqda
             if (
                 !stored ||
-                stored.expiresAt <= Date.now() ||
-                stored.token !== reset_token
+                stored.expiresAt <= Date.now()
             ) {
                 await deleteForgotPasswordSession(fullPhoneNumber);
                 throw new ApiError(
@@ -819,17 +831,7 @@ class MobileAuthModuleController implements IController {
         next: NextFunction
     ) => {
         try {
-            const authHeader = req.headers['authorization'];
-            if (!authHeader || !/^Bearer .+$/.test(authHeader)) {
-                return res
-                    .status(401)
-                    .json({
-                        message: 'Access token is missing or invalid.',
-                    })
-                    .end();
-            }
-
-            const token = authHeader.split(' ')[1];
+            const token = this.getBearerToken(req);
             const { previous_password, new_password } = req.body;
 
             if (!previous_password || !new_password) {
@@ -841,13 +843,12 @@ class MobileAuthModuleController implements IController {
                     .end();
             }
 
-            await this.studentCognitoClient.accessToken(token);
+            const { student } = await this.getAuthenticatedStudent(token);
 
             try {
-                await this.studentCognitoClient.changePassword(
-                    token,
-                    previous_password,
-                    new_password
+                await this.studentCognitoClient.login(
+                    student.email,
+                    previous_password
                 );
             } catch (e: any) {
                 if (e?.status === 401) {
@@ -861,6 +862,11 @@ class MobileAuthModuleController implements IController {
                 throw e;
             }
 
+            await this.studentCognitoClient.setPermanentPassword(
+                student.email,
+                new_password
+            );
+
             return res
                 .status(200)
                 .json({
@@ -870,6 +876,153 @@ class MobileAuthModuleController implements IController {
                 .end();
         } catch (e: any) {
             if (e?.status) return next(new ApiError(e.status, e.message));
+            return next(e);
+        }
+    };
+
+    private getBearerToken(req: Request): string {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !/^Bearer .+$/.test(authHeader)) {
+            throw new ApiError(
+                401,
+                'Access token is missing or invalid.',
+                'invalidAccessToken'
+            );
+        }
+
+        return authHeader.split(' ')[1];
+    }
+
+    private async getAuthenticatedStudent(token: string) {
+        const authUser = await this.getStudentAuthUser(token);
+        const students = await DB.query(
+            `SELECT st.id, st.email, st.cognito_sub_id
+             FROM Student AS st
+             WHERE st.email = :email
+                OR st.cognito_sub_id = :cognito_sub_id
+             LIMIT 1`,
+            {
+                email: authUser.email,
+                cognito_sub_id: authUser.sub_id,
+            }
+        );
+
+        if (students.length <= 0) {
+            throw new ApiError(401, 'Student account not found');
+        }
+
+        return { authUser, student: students[0] };
+    }
+
+    private async getNativeStudentPasswordStatus(email: string): Promise<{
+        exists: boolean;
+        status: string;
+    }> {
+        try {
+            const status = await this.studentCognitoClient.getUserStatus(email);
+            return { exists: true, status };
+        } catch (e: any) {
+            if (e?.status === 404) {
+                return { exists: false, status: 'NOT_FOUND' };
+            }
+
+            throw e;
+        }
+    }
+
+    private hasPermanentStudentPassword(status: {
+        exists: boolean;
+        status: string;
+    }): boolean {
+        return (
+            status.exists &&
+            status.status !== 'EXTERNAL_PROVIDER' &&
+            status.status !== 'FORCE_CHANGE_PASSWORD'
+        );
+    }
+
+    studentPasswordStatus = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const token = this.getBearerToken(req);
+            const { student } = await this.getAuthenticatedStudent(token);
+            const passwordStatus = await this.getNativeStudentPasswordStatus(
+                student.email
+            );
+
+            return res
+                .status(200)
+                .json({
+                    has_cognito_password:
+                        this.hasPermanentStudentPassword(passwordStatus),
+                    cognito_status: passwordStatus.status,
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) {
+                return next(new ApiError(e.status, e.message, e.code));
+            }
+            return next(e);
+        }
+    };
+
+    studentCreateFirstPassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const token = this.getBearerToken(req);
+            const { new_password } = req.body;
+
+            if (!new_password) {
+                throw new ApiError(
+                    400,
+                    'New password is required',
+                    'invalidInput'
+                );
+            }
+
+            const { student } = await this.getAuthenticatedStudent(token);
+            const passwordStatus = await this.getNativeStudentPasswordStatus(
+                student.email
+            );
+
+            if (this.hasPermanentStudentPassword(passwordStatus)) {
+                throw new ApiError(
+                    409,
+                    'Student already has a permanent password',
+                    'passwordAlreadyExists'
+                );
+            }
+
+            if (!passwordStatus.exists) {
+                await this.studentCognitoClient.createUserWithoutMessage(
+                    student.email,
+                    student.email,
+                    ''
+                );
+            }
+
+            await this.studentCognitoClient.setPermanentPassword(
+                student.email,
+                new_password
+            );
+
+            return res
+                .status(200)
+                .json({
+                    message_key: 'passwordCreatedSuccessfully',
+                    message: 'Password created successfully',
+                })
+                .end();
+        } catch (e: any) {
+            if (e?.status) {
+                return next(new ApiError(e.status, e.message, e.code));
+            }
             return next(e);
         }
     };
@@ -987,8 +1140,11 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
+            let showTemporaryPasswordMessage = false;
+
             try {
                 await this.studentCognitoClient.resendTemporaryPassword(email);
+                showTemporaryPasswordMessage = true;
             } catch (e: any) {
                 if (e?.status === 404) {
                     // User doesn't exist, register them
@@ -1000,6 +1156,7 @@ class MobileAuthModuleController implements IController {
                         );
 
                     await this.syncStudentCognitoSub(email, registeredStudent.sub_id);
+                    showTemporaryPasswordMessage = true;
                 } else if (e?.status === 400) {
                     // User already activated (status is not FORCE_CHANGE_PASSWORD)
                     // Return generic success message so they can proceed to login directly
@@ -1014,6 +1171,8 @@ class MobileAuthModuleController implements IController {
                     message_key: 'temporaryPasswordIfRegistered',
                     message:
                         'If the email is registered, a temporary password has been sent.',
+                    show_temporary_password_message:
+                        showTemporaryPasswordMessage,
                 })
                 .end();
         } catch (e: any) {
@@ -1189,49 +1348,8 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
-            // Validate OTP with Cognito without changing the real password.
-            // ConfirmForgotPassword requires a password argument; using an
-            // intentionally invalid password yields InvalidPasswordException
-            // when the code is valid, and CodeMismatch when it is not.
-            try {
-                await this.studentCognitoClient.confirmForgotPassword(
-                    normalizedEmail,
-                    normalizedCode,
-                    '!'
-                );
-                // Extremely unlikely with Cognito password policy, but if this
-                // somehow succeeds we still continue with the stored code flow.
-            } catch (e: any) {
-                const message = String(e?.message || '');
-                if (message.includes('Password must contain')) {
-                    // Valid code, password rejected by policy as intended.
-                } else if (e?.status === 404 || message.includes('Invalid verification code')) {
-                    throw new ApiError(
-                        400,
-                        'Invalid verification code',
-                        'invalidOtp'
-                    );
-                } else if (message.includes('expired')) {
-                    throw new ApiError(
-                        400,
-                        'Verification code has expired',
-                        'otpExpired'
-                    );
-                } else if (e?.status) {
-                    throw new ApiError(
-                        e.status,
-                        e.message,
-                        this.getStudentForgotPasswordMessageKey(e.message)
-                    );
-                } else {
-                    throw e;
-                }
-            }
-
-            const resetToken = randomBytes(32).toString('hex');
-
-            await setForgotPasswordSession(normalizedEmail, {
-                token: resetToken,
+            const forgotPasswordSession = await setForgotPasswordSession(normalizedEmail, {
+                token: '',
                 verificationCode: normalizedCode,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -1241,7 +1359,7 @@ class MobileAuthModuleController implements IController {
                 .json({
                     message_key: 'verificationCodeVerified',
                     message: 'Verification code verified successfully',
-                    reset_token: resetToken,
+                    reset_token: forgotPasswordSession.token,
                 })
                 .end();
         } catch (e: any) {
@@ -1280,12 +1398,14 @@ class MobileAuthModuleController implements IController {
             }
 
             const normalizedEmail = this.normalizeEmail(email);
-            const stored = await getForgotPasswordSession(normalizedEmail);
+            const stored = await getForgotPasswordSession(
+                normalizedEmail,
+                reset_token
+            );
 
             if (
                 !stored ||
                 stored.expiresAt <= Date.now() ||
-                stored.token !== reset_token ||
                 !stored.verificationCode
             ) {
                 await deleteForgotPasswordSession(normalizedEmail);

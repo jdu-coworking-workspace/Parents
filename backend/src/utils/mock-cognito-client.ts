@@ -8,6 +8,8 @@ interface User {
     accessToken?: string;
     refreshToken?: string;
     sub_id?: string;
+    username?: string;
+    status?: string;
     resetCode?: string;
     resetCodeExpiry?: number;
 }
@@ -25,6 +27,8 @@ const mockDatabase: Map<string, User> = new Map([
             refreshToken: 'mockRefreshToken',
             password: 'password',
             sub_id: sub_id,
+            username: 'firdavsgaybullayev22@gmail.com',
+            status: 'CONFIRMED',
         },
     ],
 ]);
@@ -68,6 +72,33 @@ export class MockCognitoClient {
             password: tempPassword,
             tempPassword,
             sub_id,
+            username: identifier,
+            status: 'FORCE_CHANGE_PASSWORD',
+        });
+
+        return {
+            sub_id,
+        };
+    }
+
+    static async createUserWithoutMessage(
+        identifier: string,
+        email: string,
+        _phoneNumber: string
+    ) {
+        const existing = mockDatabase.get(identifier);
+        if (existing) {
+            return {
+                sub_id: existing.sub_id ?? sub_id,
+            };
+        }
+
+        mockDatabase.set(identifier, {
+            email: email || identifier,
+            password: '',
+            sub_id,
+            username: identifier,
+            status: 'FORCE_CHANGE_PASSWORD',
         });
 
         return {
@@ -102,6 +133,7 @@ export class MockCognitoClient {
         delete user.tempPassword;
         user.accessToken = 'mockAccessToken';
         user.refreshToken = 'mockRefreshToken';
+        user.status = 'CONFIRMED';
         mockDatabase.set(identifier, user);
 
         return {
@@ -125,6 +157,7 @@ export class MockCognitoClient {
 
         user.password = newPassword;
         delete user.tempPassword;
+        user.status = 'CONFIRMED';
         mockDatabase.set(identifier, user);
 
         return {
@@ -138,6 +171,39 @@ export class MockCognitoClient {
 
     static async verifyEmail(username: string) {
         console.log('Mock: Email verified for %s', username);
+    }
+
+    static async getUserStatus(username: string) {
+        const user = mockDatabase.get(username);
+        if (!user) {
+            const error = new Error('User not found') as Error & {
+                status?: number;
+            };
+            error.status = 404;
+            throw error;
+        }
+
+        return user.status ?? 'CONFIRMED';
+    }
+
+    static async setPermanentPassword(username: string, password: string) {
+        const user = mockDatabase.get(username);
+        if (!user) {
+            const error = new Error('User not found') as Error & {
+                status?: number;
+            };
+            error.status = 404;
+            throw error;
+        }
+
+        user.password = password;
+        delete user.tempPassword;
+        user.status = 'CONFIRMED';
+        mockDatabase.set(username, user);
+
+        return {
+            message: 'Password set successfully',
+        };
     }
 
     static async forgotPassword(identifier: string) {
@@ -249,7 +315,11 @@ export class MockCognitoClient {
     static async login(email: string, password: string) {
         const user = mockDatabase.get(email); // Use Map.get()
         if (!user || user.password !== password) {
-            throw new Error('Invalid email or password');
+            const error = new Error('Invalid email or password') as Error & {
+                status?: number;
+            };
+            error.status = 401;
+            throw error;
         }
         user.accessToken = 'mockAccessToken';
         user.refreshToken = 'mockRefreshToken';
@@ -302,6 +372,7 @@ export class MockCognitoClient {
             email: foundUser.email,
             phone_number: foundUser.phone_number ?? '',
             sub_id: foundUser.sub_id ?? '',
+            username: foundUser.username ?? foundUser.email,
         };
     }
 }

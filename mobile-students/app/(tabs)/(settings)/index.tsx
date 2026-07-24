@@ -29,6 +29,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { FontSizeSlider } from "@/components/FontSizeSlider";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { getStudentPasswordStatus } from "@/services/student-auth";
 
 // Mock data for student
 const mockStudentData = {
@@ -113,6 +114,7 @@ export default function SettingsScreen() {
   const [selectedLanguage, setSelectedLanguage] = useState(initialLabel);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
   const [previewFontSize, setPreviewFontSize] = useState(1.4);
+  const [isPasswordRouteLoading, setIsPasswordRouteLoading] = useState(false);
 
   // --- Font Size Modal animatsiyasi ---
   const screenHeight = Dimensions.get("window").height;
@@ -190,6 +192,31 @@ export default function SettingsScreen() {
     ]);
   }, [signOut, router, t]);
 
+  const handlePasswordPress = useCallback(async () => {
+    if (isPasswordRouteLoading) {
+      return;
+    }
+
+    try {
+      setIsPasswordRouteLoading(true);
+      const passwordStatus = await getStudentPasswordStatus();
+
+      if (passwordStatus.has_cognito_password) {
+        router.push("/(tabs)/(settings)/change-password" as any);
+        return;
+      }
+
+      router.push({
+        pathname: "/new-psswd",
+        params: { mode: "first-password" },
+      } as any);
+    } catch (error: any) {
+      Alert.alert(t("error"), error?.message || t("savePasswordFailed"));
+    } finally {
+      setIsPasswordRouteLoading(false);
+    }
+  }, [isPasswordRouteLoading, router, t]);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
@@ -260,7 +287,8 @@ export default function SettingsScreen() {
 
             <Pressable
               style={styles.row}
-              onPress={() => router.push('/(tabs)/(settings)/change-password' as any)}
+              onPress={handlePasswordPress}
+              disabled={isPasswordRouteLoading}
             >
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='lock-closed-outline' size={20} />

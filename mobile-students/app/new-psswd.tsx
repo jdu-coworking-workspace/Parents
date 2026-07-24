@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -20,8 +20,12 @@ import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { I18nContext } from '@/contexts/i18n-context';
+import { createStudentFirstPassword } from "@/services/student-auth";
+import { showSuccessToast } from "@/utils/toast";
 
 export default function SetPasswordScreen() {
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const isFirstPasswordMode = params.mode === "first-password";
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -38,16 +42,26 @@ export default function SetPasswordScreen() {
   const { t } = useContext(I18nContext);
 
   useEffect(() => {
-    if (!isAuthLoading && isSignedIn) {
+    if (!isFirstPasswordMode && !isAuthLoading && isSignedIn) {
       router.replace("/(tabs)/(home)");
     }
-  }, [isAuthLoading, isSignedIn, router]);
+  }, [isFirstPasswordMode, isAuthLoading, isSignedIn, router]);
 
   useEffect(() => {
-    if (!isAuthLoading && !isSignedIn && !firstLoginChallenge) {
+    if (
+      !isAuthLoading &&
+      !isSignedIn &&
+      (isFirstPasswordMode || !firstLoginChallenge)
+    ) {
       router.replace("/sign-in");
     }
-  }, [firstLoginChallenge, isAuthLoading, isSignedIn, router]);
+  }, [
+    firstLoginChallenge,
+    isFirstPasswordMode,
+    isAuthLoading,
+    isSignedIn,
+    router,
+  ]);
 
   const palette = {
     inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
@@ -87,7 +101,7 @@ export default function SetPasswordScreen() {
   const passwordBarWidth = (passwordScore / passwordRules.length);
 
   const handlePasswordSetup = async () => {
-    if (!firstLoginChallenge) {
+    if (!isFirstPasswordMode && !firstLoginChallenge) {
       router.replace("/sign-in");
       return;
     }
@@ -106,9 +120,18 @@ export default function SetPasswordScreen() {
       setIsLoading(true);
       setError("");
 
+      if (isFirstPasswordMode) {
+        await createStudentFirstPassword(newPassword);
+        router.replace("/(tabs)/(settings)");
+        setTimeout(() => {
+          showSuccessToast(t("passwordCreatedSuccessfully"));
+        }, 250);
+        return;
+      }
+
       await completeFirstLogin(
-        firstLoginChallenge.email,
-        firstLoginChallenge.tempPassword,
+        firstLoginChallenge!.email,
+        firstLoginChallenge!.tempPassword,
         newPassword,
       );
 
@@ -259,6 +282,11 @@ export default function SetPasswordScreen() {
               <Pressable
                 style={styles.secondaryButton}
                 onPress={() => {
+                  if (isFirstPasswordMode) {
+                    router.back();
+                    return;
+                  }
+
                   clearFirstLoginChallenge();
                   router.replace("/sign-in");
                 }}

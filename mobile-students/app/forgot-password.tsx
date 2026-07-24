@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -386,7 +385,7 @@ export default function ForgotPasswordScreen() {
     } catch (e: any) {
       otpInputRef.current?.clear();
       setVerificationCode("");
-      const message = resolveForgotPasswordErrorMessage(e, t, "invalidOtp");
+      const message = resolveForgotPasswordErrorMessage(e, t, "serverError");
       setError(message);
       showErrorToast(message);
     } finally {
@@ -462,18 +461,25 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ThemedView style={styles.screen}>
-        <SafeAreaView style={styles.safeArea}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.safeArea}
+    <ThemedView style={styles.screen}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.safeArea}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            alwaysBounceVertical
+            bounces
+            keyboardDismissMode={
+              Platform.OS === "ios" ? "interactive" : "on-drag"
+            }
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            onScrollBeginDrag={Keyboard.dismiss}
+            overScrollMode="always"
+            showsVerticalScrollIndicator={false}
           >
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
               <View style={styles.headerRow}>
                 <Pressable
                   onPress={handleGoBack}
@@ -857,11 +863,10 @@ export default function ForgotPasswordScreen() {
                   {error}
                 </ThemedText>
               ) : null}
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </ThemedView>
-    </TouchableWithoutFeedback>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
