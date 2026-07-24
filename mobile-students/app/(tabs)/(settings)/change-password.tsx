@@ -23,15 +23,10 @@ import { changeStudentPassword } from "@/services/student-auth";
 import { ApiError } from "@/services/api-client";
 import { showSuccessToast } from "@/utils/toast";
 import type { TranslationKeys } from "@/types/i18n";
+import { getPasswordRules } from "@/utils/password-validation";
 
 type PasswordFieldKey = "current" | "new" | "confirm";
 type FeedbackTone = "success" | "error";
-type PasswordRuleKey =
-  | "minLength"
-  | "hasNumber"
-  | "hasUppercase"
-  | "hasLowercase"
-  | "hasSpecialChar";
 
 type PasswordFieldProps = {
   label: string;
@@ -74,21 +69,6 @@ function usePasswordPalette(colorScheme: "light" | "dark") {
     successBorder: colorScheme === "dark" ? "#065F46" : "#BBF7D0",
     errorBorder: colorScheme === "dark" ? "#7F1D1D" : "#FECACA",
   };
-}
-
-function getPasswordRules(
-  password: string,
-): { key: PasswordRuleKey; passed: boolean }[] {
-  return [
-    { key: "minLength", passed: password.length >= 8 },
-    { key: "hasNumber", passed: /\d/.test(password) },
-    { key: "hasUppercase", passed: /[A-Z]/.test(password) },
-    { key: "hasLowercase", passed: /[a-z]/.test(password) },
-    {
-      key: "hasSpecialChar",
-      passed: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;'`~]/.test(password),
-    },
-  ];
 }
 
 function PasswordField({

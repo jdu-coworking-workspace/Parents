@@ -1,14 +1,22 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Alert,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
+  TouchableOpacity,
+  ToastAndroid,
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { DateTime } from 'luxon';
 
+import ZoomGallery from '@/components/ZoomGallery';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -16,38 +24,43 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { fetchStudentMessage } from '@/services/student-messages';
 import type { Message } from '@/types/message';
 import { useFontSize } from '@/contexts/font-size-context';
+import { getMessageImageUrls } from '@/utils/image-url';
 
-function formatDateTime(value: string) {
-  if (!value) {
-    return '';
+export type TranslationKeys = {
+  critical: string;
+  important: string;
+  ordinary: string;
+  loading: string;
+  failedToRetrieveMessage: string;
+  tryAgain: string;
+  copy: string;
+  messageCopiedToClipboard: string;
+};
+
+function showCopiedToast(message: string) {
+  if (Platform.OS === "android") {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+    return;
   }
-
-  const [datePart = '', timePart = ''] = value.split(' ');
-  const [year = '', month = '', day = ''] = datePart.split('-');
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}.${month}.${year}  ${timePart}`;
+  Alert.alert(message);
 }
 
-function getPriorityBadgeColor(priority: Message['priority']) {
-  if (priority === 'high') {
-    return '#FF2B2B';
+function getPriorityBadgeColor(priority: Message["priority"]) {
+  if (priority === "high") {
+    return "#FF2B2B";
   }
 
-  if (priority === 'medium') {
-    return '#F59E0B';
+  if (priority === "medium") {
+    return "#F59E0B";
   }
 
-  return '#16A34A';
+  return "#16A34A";
 }
 
 export default function MessageDetailScreen() {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const isDark = colorScheme === 'dark';
-  const pageBackgroundColor = isDark ? '#111215' : '#fff';
+  const colorScheme = useColorScheme() ?? "dark";
+  const isDark = colorScheme === "dark";
+  const pageBackgroundColor = isDark ? "#111215" : "#fff";
   const { t } = useContext(I18nContext);
   const { multiplier } = useFontSize();
 
@@ -61,6 +74,8 @@ export default function MessageDetailScreen() {
   const [message, setMessage] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [zoomVisible, setZoomVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const loadMessage = useCallback(async () => {
     if (!messageId) {
@@ -75,7 +90,7 @@ export default function MessageDetailScreen() {
       const post = await fetchStudentMessage(messageId);
       setMessage(post);
     } catch (error) {
-      console.error('Error loading student message:', error);
+      console.error("Error loading student message:", error);
       setIsError(true);
     } finally {
       setIsLoading(false);
@@ -85,7 +100,17 @@ export default function MessageDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadMessage();
-    }, [loadMessage])
+    }, [loadMessage]),
+  );
+
+  const imageUrls = useMemo(
+    () => getMessageImageUrls(message?.images ?? message?.image ?? null),
+    [message]
+  );
+
+  const imagesForZoomGallery = useMemo(
+    () => imageUrls.map(uri => ({ uri })),
+    [imageUrls]
   );
 
   const getPriorityLabel = (priority: Message['priority']) => {
@@ -100,15 +125,21 @@ export default function MessageDetailScreen() {
     }
 
     await Clipboard.setStringAsync(message.content);
+
+    // Assert the type to bypass the error
+    showCopiedToast(t("messageCopiedToClipboard" as keyof typeof t | any));
   };
 
   if (isLoading) {
     return (
       <ThemedView
-        style={[styles.centeredContainer, { backgroundColor: pageBackgroundColor }]}
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: pageBackgroundColor },
+        ]}
       >
         <ActivityIndicator size="large" color="#0A84FF" />
-        <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+        <ThemedText style={styles.loadingText}>{t("loading")}</ThemedText>
       </ThemedView>
     );
   }
@@ -116,17 +147,43 @@ export default function MessageDetailScreen() {
   if (isError || !message) {
     return (
       <ThemedView
-        style={[styles.centeredContainer, { backgroundColor: pageBackgroundColor }]}
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: pageBackgroundColor },
+        ]}
       >
         <ThemedText style={styles.errorText}>
-          {t('failedToRetrieveMessage')}
+          {t("failedToRetrieveMessage")}
         </ThemedText>
-        <Pressable style={styles.retryButton} onPress={() => void loadMessage()}>
-          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void loadMessage()}
+        >
+          <ThemedText style={styles.retryButtonText}>
+            {t("tryAgain")}
+          </ThemedText>
         </Pressable>
       </ThemedView>
     );
   }
+
+  const sentTimeString = message.sent_time;
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Handle both ISO format (demo data) and database format (regular data)
+  let utcDateTime;
+  if (sentTimeString.includes('T')) {
+    // ISO format: 2025-08-30T10:30:00Z
+    utcDateTime = DateTime.fromISO(sentTimeString, { zone: 'utc' });
+  } else {
+    // Database format: 2025-08-30 10:30
+    utcDateTime = DateTime.fromFormat(sentTimeString, 'yyyy-MM-dd HH:mm', {
+      zone: 'utc',
+    });
+  }
+
+  const localDateTime = utcDateTime.setZone(userTimeZone);
+  const formattedTime = localDateTime.toFormat('dd.MM.yyyy   HH:mm');
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
@@ -182,28 +239,68 @@ export default function MessageDetailScreen() {
             >
               {getPriorityLabel(message.priority)}
             </ThemedText>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: getPriorityBadgeColor(message.priority) },
+              ]}
+            >
+              <ThemedText style={styles.badgeText}>
+                {getPriorityLabel(message.priority)}
+              </ThemedText>
+            </View>
           </View>
-        </View>
 
-        <ThemedText
-          style={[styles.preview, { color: isDark ? '#E5E7EB' : '#1F2937' }]}
-        >
-          {message.content}
-        </ThemedText>
+          {imageUrls.length > 0 && (
+            <View style={styles.imageContainer}>
+              {imageUrls.map((uri, index) => (
+                <View key={`${uri}-${index}`} style={styles.imageItem}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCurrentImageIndex(index);
+                      setZoomVisible(true);
+                    }}
+                  >
+                    <View style={styles.imageWrapper}>
+                      <Image
+                        style={styles.image}
+                        source={{ uri }}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
-        <View style={styles.footerRow}>
           <ThemedText
-            style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+            style={[styles.preview, { color: isDark ? "#E5E7EB" : "#1F2937" }]}
           >
-            {formatDateTime(message.sent_time)}
+            {message.content}
           </ThemedText>
 
-          <Pressable onPress={handleCopy} style={styles.copyButton}>
+          <View style={styles.footerRow}>
+            <ThemedText
+              style={[styles.date, { color: isDark ? '#6B7280' : '#6B7280' }]}
+            >
+              {formattedTime}
+            </ThemedText>
+
+            <Pressable onPress={handleCopy} style={styles.copyButton}>
             <Ionicons name="copy-outline" size={20} color="#0A84FF" />
             <ThemedText style={styles.copyText}>Copy</ThemedText>
           </Pressable>
+          </View>
         </View>
-      </View>
+      </ScrollView>
+
+      <ZoomGallery
+        visible={zoomVisible}
+        images={imagesForZoomGallery}
+        initialIndex={currentImageIndex}
+        onRequestClose={() => setZoomVisible(false)}
+      />
     </ThemedView>
   );
 }
@@ -211,13 +308,16 @@ export default function MessageDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 14,
+    paddingBottom: 24,
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
   },
   loadingText: {
@@ -225,18 +325,18 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#005678',
+    backgroundColor: "#005678",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 16,
   },
   card: {
@@ -261,10 +361,24 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'lowercase',
+    fontWeight: "700",
+    textTransform: "lowercase",
+  },
+  imageContainer: {
+    marginTop: 12,
+  },
+  imageItem: {
+    marginBottom: 10,
+  },
+  imageWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: 260,
   },
   preview: {
     marginTop: 8,
@@ -280,8 +394,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingVertical: 4,
   },

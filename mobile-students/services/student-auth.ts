@@ -4,6 +4,27 @@ import type { StudentUser } from '@/types/auth';
 type LoginInitiateResponse = {
     message?: string;
     message_key?: string;
+    show_temporary_password_message?: boolean;
+};
+
+type ForgotPasswordInitiateResponse = {
+    message?: string;
+    message_key?: string;
+};
+
+type ForgotPasswordVerifyResponse = {
+    message: string;
+    message_key?: string;
+    reset_token: string;
+};
+
+type ForgotPasswordSetPasswordResponse = {
+    message: string;
+};
+
+type StudentPasswordStatusResponse = {
+    has_cognito_password: boolean;
+    cognito_status?: string;
 };
 
 export type StudentLoginResponse = {
@@ -72,6 +93,45 @@ export async function initiateStudentLogin(email: string): Promise<LoginInitiate
     });
 }
 
+export async function initiateStudentForgotPassword(
+    email: string
+): Promise<ForgotPasswordInitiateResponse> {
+    return postJson<ForgotPasswordInitiateResponse>(
+        '/student/forgot-password-initiate',
+        {
+            email,
+        }
+    );
+}
+
+export async function verifyStudentForgotPasswordCode(
+    email: string,
+    verificationCode: string
+): Promise<ForgotPasswordVerifyResponse> {
+    return postJson<ForgotPasswordVerifyResponse>(
+        '/student/forgot-password-verify-code',
+        {
+            email,
+            verification_code: verificationCode,
+        }
+    );
+}
+
+export async function setStudentForgotPassword(
+    email: string,
+    newPassword: string,
+    resetToken: string
+): Promise<ForgotPasswordSetPasswordResponse> {
+    return postJson<ForgotPasswordSetPasswordResponse>(
+        '/student/forgot-password-set-password',
+        {
+            email,
+            new_password: newPassword,
+            reset_token: resetToken,
+        }
+    );
+}
+
 export async function loginStudent(
     email: string,
     password: string
@@ -116,6 +176,32 @@ export async function changeStudentPassword(
         { previous_password: string; new_password: string }
     >('/student/change-password', {
         previous_password: previousPassword,
+        new_password: newPassword,
+    }, {
+        suppressErrorLog: true,
+    });
+
+    return response.data;
+}
+
+export async function getStudentPasswordStatus(): Promise<StudentPasswordStatusResponse> {
+    const response = await api.get<StudentPasswordStatusResponse>(
+        '/student/password-status',
+        {
+            suppressErrorLog: true,
+        }
+    );
+
+    return response.data;
+}
+
+export async function createStudentFirstPassword(
+    newPassword: string
+): Promise<{ message?: string; message_key?: string }> {
+    const response = await api.post<
+        { message?: string; message_key?: string },
+        { new_password: string }
+    >('/student/first-password', {
         new_password: newPassword,
     }, {
         suppressErrorLog: true,

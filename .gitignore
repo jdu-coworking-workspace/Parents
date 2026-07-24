@@ -18,3 +18,4 @@ deno.lock
 bun.lockb
 bun.lock
 backend/src/requests/
+backend/.data/

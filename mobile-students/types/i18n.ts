@@ -27,6 +27,7 @@ export type TranslationKeys = {
   resendCode: string;
   codeWillExpire: string;
   verify: string;
+  verificationCodeVerified: string;
   createNewPasswordTitle: string;
   passwordCreatedSuccessfully: string;
   enterNewPasswordText: string;
@@ -179,6 +180,8 @@ export type TranslationKeys = {
   imageSavedMessage: string;
   downloadFailedImage: string;
   unableToSaveInDevelopment: string;
+  expoGoImageSaveMessage: string;
+  imageShareHint: string;
   permissionDenied: string;
   downloadError: string;
   authenticationFailed: string;
@@ -195,6 +198,10 @@ export type TranslationKeys = {
   passwordTooShort: string;
   temporaryPasswordRequired: string;
   emailRequired: string;
+  forgotPasswordCodeSent: string;
+  forgotPasswordCodeResent: string;
+  forgotPasswordSessionExpired: string;
+  emailVerificationFailed: string;
   temporaryPasswordSent: string;
   verifyEmailError: string;
   enterTemporaryPassword: string;

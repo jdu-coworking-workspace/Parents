@@ -21,7 +21,7 @@ import { ThemedView } from "@/components/themed-view";
 import { initiateStudentLogin } from "@/services/student-auth";
 import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
-import { I18nContext } from '@/contexts/i18n-context';
+import { I18nContext } from "@/contexts/i18n-context";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 
 export default function SignInScreen() {
@@ -51,7 +51,7 @@ export default function SignInScreen() {
   }, [isAuthLoading, isSignedIn, router]);
 
   const colorScheme = useColorScheme() ?? "light";
-  const passwordPlaceholder = t('enterPassword');
+  const passwordPlaceholder = t("enterPassword");
 
   const palette = {
     inputBg: colorScheme === "dark" ? "#151718" : "#f8f9fa",
@@ -59,12 +59,12 @@ export default function SignInScreen() {
     primary: "#2563EB",
     muted: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
     error: "#DC2626",
-    info: "#2563EB",
+    info: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
   };
 
   const handleEmailNext = async () => {
     if (!email.trim()) {
-      setError(t('emailRequired'));
+      setError(t("emailRequired"));
       return;
     }
 
@@ -75,16 +75,22 @@ export default function SignInScreen() {
 
       const response = await initiateStudentLogin(email.trim().toLowerCase());
       // Prefer server-provided message_key for localization, fall back to server message or default
-      const serverText = response.message_key ? t(response.message_key as any) : response.message;
-      setInfo(serverText || t('temporaryPasswordSent'));
+      const serverText = response.message_key
+        ? t(response.message_key as any)
+        : response.message;
+      setInfo(
+        response.show_temporary_password_message
+          ? serverText || t("temporaryPasswordSent")
+          : "",
+      );
       setStep("password");
       setPassword("");
     } catch (e: any) {
       // Check if it's a 404 error (email not found in system)
       if (e?.status === 404) {
-        setError(t('emailNotFoundAdmin'));
+        setError(t("emailNotFoundAdmin"));
       } else {
-        setError(e?.message || t('verifyEmailError'));
+        setError(e?.message || t("verifyEmailError"));
       }
     } finally {
       setIsLoading(false);
@@ -93,7 +99,7 @@ export default function SignInScreen() {
 
   const handlePasswordSubmit = async () => {
     if (!password.trim()) {
-      setError(t('passwordRequired'));
+      setError(t("passwordRequired"));
       return;
     }
 
@@ -103,7 +109,7 @@ export default function SignInScreen() {
       setInfo("");
 
       await signIn(email.trim().toLowerCase(), password);
-      showSuccessToast("Muvaffaqiyatli kirdingiz");
+      showSuccessToast(t("loginSuccess"));
 
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
@@ -116,7 +122,11 @@ export default function SignInScreen() {
         return;
       }
 
-      setError(e?.message_key ? t(e.message_key as any) : (e?.message || t('loginFailed')));
+      setError(
+        e?.message_key
+          ? t(e.message_key as any)
+          : e?.message || t("loginFailed"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -124,17 +134,17 @@ export default function SignInScreen() {
 
   const handlePasswordSetup = async () => {
     if (!password.trim()) {
-      setError(t('enterTemporaryPassword'));
+      setError(t("enterTemporaryPassword"));
       return;
     }
 
     if (!newPassword.trim()) {
-      setError(t('enterNewPassword'));
+      setError(t("enterNewPassword"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(t('passwordsDoNotMatch'));
+      setError(t("passwordsDoNotMatch"));
       return;
     }
 
@@ -150,7 +160,7 @@ export default function SignInScreen() {
 
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
-      setError(e?.message || t('savePasswordFailed'));
+      setError(e?.message || t("savePasswordFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -163,19 +173,19 @@ export default function SignInScreen() {
       setInfo("");
 
       await signInWithGoogle();
-      showSuccessToast("Muvaffaqiyatli kirdingiz");
+      showSuccessToast(t("loginSuccess"));
       router.replace("/(tabs)/(home)");
     } catch (e: any) {
       const message =
         e?.message === "user_not_found"
-          ? t('emailNotFoundAdmin')
+          ? t("emailNotFoundAdmin")
           : e?.message === "oauth_error"
-            ? t('googleAuthFailed')
+            ? t("googleAuthFailed")
             : e?.message === "callback_error"
-              ? t('googleCallbackFailed')
+              ? t("googleCallbackFailed")
               : e?.message === "oauth_missing_params"
-                ? t('oauthMissingParams')
-                : t('googleLoginFailed');
+                ? t("oauthMissingParams")
+                : t("googleLoginFailed");
       setError(message);
     } finally {
       setIsLoading(false);
@@ -196,7 +206,9 @@ export default function SignInScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText disableScaling style={styles.title}>{t('welcomeStudent')}</ThemedText>
+                <ThemedText style={styles.title}>
+                  {t("welcomeStudent")}
+                </ThemedText>
               </View>
 
               <Pressable
@@ -219,7 +231,7 @@ export default function SignInScreen() {
                     { color: Colors[colorScheme].text },
                   ]}
                 >
-                  {t('signInWithGoogle')}
+                  {t("signInWithGoogle")}
                 </ThemedText>
               </Pressable>
 
@@ -238,11 +250,11 @@ export default function SignInScreen() {
               </View>
 
               <View style={styles.inputBlock}>
-                <ThemedText disableScaling style={styles.label}>{t('email')}</ThemedText>
+                <ThemedText style={styles.label}>{t("email")}</ThemedText>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
-                  placeholder={t('enterEmail')}
+                  placeholder={t("enterEmail")}
                   placeholderTextColor={palette.muted}
                   style={[
                     styles.input,
@@ -261,7 +273,7 @@ export default function SignInScreen() {
 
               {step !== "email" ? (
                 <View style={styles.inputBlock}>
-                  <ThemedText disableScaling style={styles.label}>{t('password')}</ThemedText>
+                  <ThemedText style={styles.label}>{t("password")}</ThemedText>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       value={password}
@@ -303,6 +315,23 @@ export default function SignInScreen() {
                 </ThemedText>
               ) : null}
 
+              {step !== "email" ? (
+                <Pressable
+                  style={styles.forgotPasswordButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/forgot-password",
+                      params: { email: email.trim().toLowerCase() },
+                    } as never)
+                  }
+                  disabled={isLoading}
+                >
+                  <ThemedText style={[styles.forgotPasswordText, { color: palette.primary }]}>
+                    {t('forgotPasswordLink')}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+
               {error ? (
                 <ThemedText
                   disableScaling
@@ -315,16 +344,18 @@ export default function SignInScreen() {
               <Pressable
                 style={[
                   styles.primaryButton,
-                  { backgroundColor: isLoading ? '#9CA3AF' : palette.primary },
+                  { backgroundColor: isLoading ? "#9CA3AF" : palette.primary },
                 ]}
-                onPress={step === 'email' ? handleEmailNext : handlePasswordSubmit}
+                onPress={
+                  step === "email" ? handleEmailNext : handlePasswordSubmit
+                }
                 disabled={isLoading}
-              >             
+              >
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <ThemedText disableScaling style={styles.primaryButtonText}>
-                    {step === 'email' ? t('next') : t('signIn')}
+                  <ThemedText style={styles.primaryButtonText}>
+                    {step === "email" ? t("next") : t("signIn")}
                   </ThemedText>
                 )}
               </Pressable>
@@ -341,7 +372,9 @@ export default function SignInScreen() {
                   }}
                   disabled={isLoading}
                 >
-                  <ThemedText disableScaling style={{ color: Colors[colorScheme].text }}>{t('back')}</ThemedText>
+                  <ThemedText style={{ color: Colors[colorScheme].text }}>
+                    {t("back")}
+                  </ThemedText>
                 </Pressable>
               ) : null}
             </ScrollView>
@@ -419,7 +452,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   feedbackText: {
-    marginTop: 8,
+    marginTop: 4,
+    marginBottom: 8,
     fontSize: 13,
   },
   googleButton: {
@@ -455,5 +489,16 @@ const styles = StyleSheet.create({
   secondaryButton: {
     marginTop: 12,
     alignItems: "center",
+  },
+  forgotPasswordButton: {
+    alignSelf: "center",
+    marginTop: 0,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textDecorationLine: "underline",
   },
 });

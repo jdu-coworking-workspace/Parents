@@ -156,7 +156,7 @@ export async function request<TResponse>(
             throw new ApiError(
                 data.error || data.message || 'Invalid credentials',
                 response.status,
-                undefined,
+                data.code || data.message_key,
                 data
             );
         }
@@ -170,7 +170,7 @@ export async function request<TResponse>(
             throw new ApiError(
                 data.error || data.message || 'Forbidden',
                 response.status,
-                undefined,
+                data.code || data.message_key,
                 data
             );
         }
@@ -179,7 +179,7 @@ export async function request<TResponse>(
             throw new ApiError(
                 data.error || data.message || 'Request failed',
                 response.status,
-                undefined,
+                data.code || data.message_key,
                 data
             );
         }
