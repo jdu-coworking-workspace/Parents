@@ -1346,45 +1346,6 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
-            // Validate OTP with Cognito without changing the real password.
-            // ConfirmForgotPassword requires a password argument; using an
-            // intentionally invalid password yields InvalidPasswordException
-            // when the code is valid, and CodeMismatch when it is not.
-            try {
-                await this.studentCognitoClient.confirmForgotPassword(
-                    normalizedEmail,
-                    normalizedCode,
-                    '!'
-                );
-                // Extremely unlikely with Cognito password policy, but if this
-                // somehow succeeds we still continue with the stored code flow.
-            } catch (e: any) {
-                const message = String(e?.message || '');
-                if (message.includes('Password must contain')) {
-                    // Valid code, password rejected by policy as intended.
-                } else if (e?.status === 404 || message.includes('Invalid verification code')) {
-                    throw new ApiError(
-                        400,
-                        'Invalid verification code',
-                        'invalidOtp'
-                    );
-                } else if (message.includes('expired')) {
-                    throw new ApiError(
-                        400,
-                        'Verification code has expired',
-                        'otpExpired'
-                    );
-                } else if (e?.status) {
-                    throw new ApiError(
-                        e.status,
-                        e.message,
-                        this.getStudentForgotPasswordMessageKey(e.message)
-                    );
-                } else {
-                    throw e;
-                }
-            }
-
             const resetToken = randomBytes(32).toString('hex');
 
             await setForgotPasswordSession(normalizedEmail, {
