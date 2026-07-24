@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    fontSize: 36 / 2,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
     flexShrink: 1,
@@ -268,17 +268,16 @@ const styles = StyleSheet.create({
   },
   preview: {
     marginTop: 8,
-    fontSize: 36 / 2,
-    lineHeight: 26,
+    fontSize: 16,
   },
   footerRow: {
-    marginTop: 44,
+    marginTop: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   date: {
-    fontSize: 32 / 2,
+    fontSize: 14,
   },
   copyButton: {
     flexDirection: 'row',
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
   },
   copyText: {
     color: '#0A84FF',
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '500',
   },
 });
