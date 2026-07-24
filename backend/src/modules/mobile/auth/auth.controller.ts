@@ -612,7 +612,7 @@ class MobileAuthModuleController implements IController {
                 verification_code
             );
 
-            await setForgotPasswordSession(fullPhoneNumber, {
+            const forgotPasswordSession = await setForgotPasswordSession(fullPhoneNumber, {
                 token: result.resetToken,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -620,7 +620,7 @@ class MobileAuthModuleController implements IController {
             return res.status(200).json({
                 message_key: 'verificationCodeVerified',
                 message: 'Verification code verified successfully',
-                reset_token: result.resetToken,
+                reset_token: forgotPasswordSession.token,
             }).end();
 
         } catch (e: any) {
@@ -652,13 +652,15 @@ class MobileAuthModuleController implements IController {
                 ? phone_number
                 : `+${phone_number}`;
 
-            const stored = await getForgotPasswordSession(fullPhoneNumber);
+            const stored = await getForgotPasswordSession(
+                fullPhoneNumber,
+                reset_token
+            );
 
             // Token mavjudligi, muddati va qiymati tekshirilmoqda
             if (
                 !stored ||
-                stored.expiresAt <= Date.now() ||
-                stored.token !== reset_token
+                stored.expiresAt <= Date.now()
             ) {
                 await deleteForgotPasswordSession(fullPhoneNumber);
                 throw new ApiError(
@@ -1346,10 +1348,8 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
-            const resetToken = randomBytes(32).toString('hex');
-
-            await setForgotPasswordSession(normalizedEmail, {
-                token: resetToken,
+            const forgotPasswordSession = await setForgotPasswordSession(normalizedEmail, {
+                token: '',
                 verificationCode: normalizedCode,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -1359,7 +1359,7 @@ class MobileAuthModuleController implements IController {
                 .json({
                     message_key: 'verificationCodeVerified',
                     message: 'Verification code verified successfully',
-                    reset_token: resetToken,
+                    reset_token: forgotPasswordSession.token,
                 })
                 .end();
         } catch (e: any) {
@@ -1398,12 +1398,14 @@ class MobileAuthModuleController implements IController {
             }
 
             const normalizedEmail = this.normalizeEmail(email);
-            const stored = await getForgotPasswordSession(normalizedEmail);
+            const stored = await getForgotPasswordSession(
+                normalizedEmail,
+                reset_token
+            );
 
             if (
                 !stored ||
                 stored.expiresAt <= Date.now() ||
-                stored.token !== reset_token ||
                 !stored.verificationCode
             ) {
                 await deleteForgotPasswordSession(normalizedEmail);

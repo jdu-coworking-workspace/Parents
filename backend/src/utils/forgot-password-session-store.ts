@@ -1,5 +1,6 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { createHmac, timingSafeEqual } from 'crypto';
+
+import { config } from '../config';
 
 export type ForgotPasswordSession = {
     token: string;
@@ -7,34 +8,77 @@ export type ForgotPasswordSession = {
     verificationCode?: string;
 };
 
-const STORE_DIR = path.join(process.cwd(), '.data');
-const STORE_FILE = path.join(STORE_DIR, 'forgot-password-sessions.json');
+type ForgotPasswordTokenPayload = {
+    identifier: string;
+    verificationCode?: string;
+    expiresAt: number;
+};
 
-type SessionRecord = Record<string, ForgotPasswordSession>;
-
-async function ensureStoreFile(): Promise<void> {
-    await fs.mkdir(STORE_DIR, { recursive: true });
-    try {
-        await fs.access(STORE_FILE);
-    } catch {
-        await fs.writeFile(STORE_FILE, '{}', 'utf8');
-    }
+function getSigningSecret(): string {
+    return (
+        process.env.FORGOT_PASSWORD_RESET_TOKEN_SECRET ||
+        config.SECRET_ACCESS_KEY ||
+        config.STUDENT_CLIENT_ID
+    );
 }
 
-async function readAll(): Promise<SessionRecord> {
-    await ensureStoreFile();
-    try {
-        const raw = await fs.readFile(STORE_FILE, 'utf8');
-        const parsed = JSON.parse(raw) as SessionRecord;
-        return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch {
-        return {};
-    }
+function base64UrlEncode(value: string): string {
+    return Buffer.from(value, 'utf8').toString('base64url');
 }
 
-async function writeAll(sessions: SessionRecord): Promise<void> {
-    await ensureStoreFile();
-    await fs.writeFile(STORE_FILE, JSON.stringify(sessions), 'utf8');
+function base64UrlDecode(value: string): string {
+    return Buffer.from(value, 'base64url').toString('utf8');
+}
+
+function sign(payload: string): string {
+    return createHmac('sha256', getSigningSecret())
+        .update(payload)
+        .digest('base64url');
+}
+
+function signaturesMatch(expected: string, actual: string): boolean {
+    const expectedBuffer = Buffer.from(expected, 'base64url');
+    const actualBuffer = Buffer.from(actual, 'base64url');
+
+    return (
+        expectedBuffer.length === actualBuffer.length &&
+        timingSafeEqual(expectedBuffer, actualBuffer)
+    );
+}
+
+function createToken(payload: ForgotPasswordTokenPayload): string {
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+    return `${encodedPayload}.${sign(encodedPayload)}`;
+}
+
+function parseToken(token: string): ForgotPasswordTokenPayload | null {
+    const [encodedPayload, signature, ...extra] = token.split('.');
+
+    if (!encodedPayload || !signature || extra.length > 0) {
+        return null;
+    }
+
+    if (!signaturesMatch(sign(encodedPayload), signature)) {
+        return null;
+    }
+
+    try {
+        const payload = JSON.parse(
+            base64UrlDecode(encodedPayload)
+        ) as ForgotPasswordTokenPayload;
+
+        if (
+            !payload ||
+            typeof payload.identifier !== 'string' ||
+            typeof payload.expiresAt !== 'number'
+        ) {
+            return null;
+        }
+
+        return payload;
+    } catch {
+        return null;
+    }
 }
 
 function isExpired(session: ForgotPasswordSession, now = Date.now()): boolean {
@@ -42,47 +86,46 @@ function isExpired(session: ForgotPasswordSession, now = Date.now()): boolean {
 }
 
 export async function getForgotPasswordSession(
-    identifier: string
+    identifier: string,
+    token?: string
 ): Promise<ForgotPasswordSession | null> {
-    const sessions = await readAll();
-    const session = sessions[identifier];
-
-    if (!session) {
+    if (!token) {
         return null;
     }
 
-    if (isExpired(session)) {
-        delete sessions[identifier];
-        await writeAll(sessions);
+    const payload = parseToken(token);
+
+    if (!payload || payload.identifier !== identifier) {
         return null;
     }
 
-    return session;
+    const session = {
+        token,
+        expiresAt: payload.expiresAt,
+        verificationCode: payload.verificationCode,
+    };
+
+    return isExpired(session) ? null : session;
 }
 
 export async function setForgotPasswordSession(
     identifier: string,
     session: ForgotPasswordSession
-): Promise<void> {
-    const sessions = await readAll();
+): Promise<ForgotPasswordSession> {
+    const signedSession = {
+        ...session,
+        token: createToken({
+            identifier,
+            verificationCode: session.verificationCode,
+            expiresAt: session.expiresAt,
+        }),
+    };
 
-    for (const [key, value] of Object.entries(sessions)) {
-        if (isExpired(value)) {
-            delete sessions[key];
-        }
-    }
-
-    sessions[identifier] = session;
-    await writeAll(sessions);
+    return signedSession;
 }
 
 export async function deleteForgotPasswordSession(
-    identifier: string
+    _identifier: string
 ): Promise<void> {
-    const sessions = await readAll();
-    if (!(identifier in sessions)) {
-        return;
-    }
-    delete sessions[identifier];
-    await writeAll(sessions);
+    // Stateless signed reset tokens do not require server-side cleanup.
 }

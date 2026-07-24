@@ -386,7 +386,7 @@ export default function ForgotPasswordScreen() {
     } catch (e: any) {
       otpInputRef.current?.clear();
       setVerificationCode("");
-      const message = resolveForgotPasswordErrorMessage(e, t, "invalidOtp");
+      const message = resolveForgotPasswordErrorMessage(e, t, "serverError");
       setError(message);
       showErrorToast(message);
     } finally {
