@@ -225,6 +225,7 @@ export default function SignInScreen() {
               >
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
                 <ThemedText
+                  disableScaling
                   style={[
                     styles.googleButtonText,
                     { color: Colors[colorScheme].text },
@@ -307,6 +308,7 @@ export default function SignInScreen() {
 
               {info ? (
                 <ThemedText
+                  disableScaling
                   style={[styles.feedbackText, { color: palette.info }]}
                 >
                   {info}
@@ -332,6 +334,7 @@ export default function SignInScreen() {
 
               {error ? (
                 <ThemedText
+                  disableScaling
                   style={[styles.feedbackText, { color: palette.error }]}
                 >
                   {error}

@@ -23,6 +23,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { fetchStudentMessage } from '@/services/student-messages';
 import type { Message } from '@/types/message';
+import { useFontSize } from '@/contexts/font-size-context';
 import { getMessageImageUrls } from '@/utils/image-url';
 
 export type TranslationKeys = {
@@ -61,6 +62,7 @@ export default function MessageDetailScreen() {
   const isDark = colorScheme === "dark";
   const pageBackgroundColor = isDark ? "#111215" : "#fff";
   const { t } = useContext(I18nContext);
+  const { multiplier } = useFontSize();
 
   const { id } = useLocalSearchParams<{
     id?: string | string[];
@@ -184,16 +186,58 @@ export default function MessageDetailScreen() {
   const formattedTime = localDateTime.toFormat('dd.MM.yyyy   HH:mm');
 
   return (
-    <ThemedView
-      style={[styles.container, { backgroundColor: pageBackgroundColor }]}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
-          <View style={styles.titleRow}>
+    <ThemedView style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
+      <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
+        <View
+          style={[
+            styles.titleRow,
+            multiplier > 1
+              ? { flexDirection: 'column-reverse', alignItems: 'flex-start' }
+              : {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                },
+          ]}
+        >
+          <ThemedText
+            style={[
+              styles.title,
+              {
+                color: isDark ? '#FFFFFF' : '#111827',
+                textAlign: 'left',
+                flex: multiplier > 1 ? 0 : 1,
+                flexShrink: multiplier > 1 ? 0 : 1,
+                width: multiplier > 1 ? '100%' : 'auto',
+              },
+            ]}
+          >
+            {message.title}
+          </ThemedText>
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: getPriorityBadgeColor(message.priority),
+                borderRadius: 4,
+                paddingHorizontal: 6 * multiplier,
+                paddingVertical: 4 * multiplier,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginLeft: multiplier > 1 ? 0 : 10,
+                alignSelf: multiplier > 1 ? 'flex-end' : 'center',
+              },
+            ]}
+          >
             <ThemedText
-              style={[styles.title, { color: isDark ? "#FFFFFF" : "#111827" }]}
+              style={{
+                color: '#FFFFFF',
+                fontSize: 11,
+                textAlign: 'center',
+                fontWeight: '500',
+              }}
             >
-              {message.title}
+              {getPriorityLabel(message.priority)}
             </ThemedText>
             <View
               style={[
@@ -244,9 +288,9 @@ export default function MessageDetailScreen() {
             </ThemedText>
 
             <Pressable onPress={handleCopy} style={styles.copyButton}>
-              <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-              <ThemedText style={styles.copyText}>{t('copy')}</ThemedText>
-            </Pressable>
+            <Ionicons name="copy-outline" size={20} color="#0A84FF" />
+            <ThemedText style={styles.copyText}>Copy</ThemedText>
+          </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -300,15 +344,16 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 12,
   },
   title: {
-    fontSize: 36 / 2,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: '700',
     flex: 1,
+    flexShrink: 1,
   },
   badge: {
     borderRadius: 6,
@@ -337,17 +382,16 @@ const styles = StyleSheet.create({
   },
   preview: {
     marginTop: 8,
-    fontSize: 36 / 2,
-    lineHeight: 26,
+    fontSize: 16,
   },
   footerRow: {
-    marginTop: 44,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   date: {
-    fontSize: 32 / 2,
+    fontSize: 14,
   },
   copyButton: {
     flexDirection: "row",
@@ -356,8 +400,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   copyText: {
-    color: "#0A84FF",
-    fontSize: 18,
-    fontWeight: "500",
+    color: '#0A84FF',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

@@ -2,6 +2,9 @@ import React, { useContext, useState } from "react";
 import { StyleSheet, View, Text } from "react-native";
 import Slider from "@react-native-community/slider";
 import { I18nContext } from "@/contexts/i18n-context";
+import { useFontSize } from "@/contexts/font-size-context";
+
+const FONT_SIZES = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2];
 
 interface FontSizeSliderProps {
   onPreviewChange?: (value: number) => void;
@@ -18,17 +21,35 @@ export const FontSizeSlider: React.FC<FontSizeSliderProps> = ({
   inactiveColor = "#C6C6C6",
   cardBackgroundColor = "#333335",
 }) => {
-  const [fontSize, setFontSize] = useState(1.4);
+  const { multiplier, setMultiplier } = useFontSize();
   const { t } = useContext(I18nContext);
+  const [previewMultiplier, setPreviewMultiplier] = useState<number | undefined>(undefined);
 
-  const handleValueChange = (value: number) => {
-    setFontSize(value);
-    onPreviewChange?.(value);
+  // Find current step index
+  const currentStep = FONT_SIZES.findIndex(size => size === multiplier);
+  const safeCurrentStep = currentStep >= 0 ? currentStep : 0;
+
+  const handleChange = (value: number) => {
+    const step = Math.round(value);
+    const fontSize = FONT_SIZES[step];
+    setPreviewMultiplier(fontSize);
+    onPreviewChange?.(fontSize);
   };
+
+  const handleComplete = (value: number) => {
+    const step = Math.round(value);
+    const fontSize = FONT_SIZES[step];
+    setMultiplier(fontSize);
+    setPreviewMultiplier(undefined);
+    onPreviewChange?.(fontSize);
+  };
+
+  const effectiveMultiplier = previewMultiplier ?? multiplier;
+  const sampleFontSize = 15 * effectiveMultiplier;
 
   return (
     <View style={styles.container}>
-      {/* Matn qutisi (Karta) */}
+      {/* Sample text preview card */}
       <View
         style={[styles.textContainer, { backgroundColor: cardBackgroundColor }]}
       >
@@ -37,8 +58,8 @@ export const FontSizeSlider: React.FC<FontSizeSliderProps> = ({
             styles.descriptionText,
             {
               color: textColor,
-              fontSize: 15 * fontSize,
-              lineHeight: 22 * fontSize,
+              fontSize: sampleFontSize,
+              lineHeight: sampleFontSize * 1.4,
             },
           ]}
         >
@@ -46,25 +67,26 @@ export const FontSizeSlider: React.FC<FontSizeSliderProps> = ({
         </Text>
       </View>
 
-      {/* Slider Qismi (Silliq) */}
+      {/* Slider with A labels */}
       <View style={styles.sliderRow}>
-        <Text style={[styles.label, { color: textColor }]}>A</Text>
+        <Text style={[styles.smallLabel, { color: textColor }]}>A</Text>
 
-        <Slider
-          style={styles.slider}
-          minimumValue={1.0}
-          maximumValue={2.2}
-          step={0.1}
-          value={fontSize}
-          onValueChange={handleValueChange}
-          minimumTrackTintColor={activeColor}
-          maximumTrackTintColor={inactiveColor}
-          thumbTintColor={activeColor}
-        />
+        <View style={styles.sliderWrapper}>
+          <Slider
+            style={styles.slider}
+            value={safeCurrentStep}
+            minimumValue={0}
+            maximumValue={FONT_SIZES.length - 1}
+            step={1}
+            onValueChange={handleChange}
+            onSlidingComplete={handleComplete}
+            minimumTrackTintColor={activeColor}
+            maximumTrackTintColor={inactiveColor}
+            thumbTintColor={activeColor}
+          />
+        </View>
 
-        <Text style={[styles.label, { color: textColor, fontSize: 24 }]}>
-          A
-        </Text>
+        <Text style={[styles.largeLabel, { color: textColor }]}>A</Text>
       </View>
     </View>
   );
@@ -91,18 +113,29 @@ const styles = StyleSheet.create({
   sliderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 40,
+    marginHorizontal: 20,
     justifyContent: "space-between",
   },
-  slider: {
+  sliderWrapper: {
     flex: 1,
     height: 40,
-    marginHorizontal: 10,
+    justifyContent: "center",
   },
-  label: {
+  slider: {
+    width: "100%",
+    height: 40,
+  },
+  smallLabel: {
     fontWeight: "500",
-    fontSize: 16,
+    fontSize: 14,
+    marginRight: 12,
+  },
+  largeLabel: {
+    fontWeight: "600",
+    fontSize: 24,
+    marginLeft: 12,
   },
 });
 
 export default FontSizeSlider;
+

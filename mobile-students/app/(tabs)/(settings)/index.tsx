@@ -93,8 +93,8 @@ const LanguageSelection: React.FC<
       activeOpacity={0.8}
     >
       <View style={styles.row}>
-        <ThemedText style={styles.flag}>{flag}</ThemedText>
-        <ThemedText style={{ fontSize: 16 }}>{language}</ThemedText>
+        <ThemedText disableScaling style={styles.flag}>{flag}</ThemedText>
+        <ThemedText disableScaling style={{ fontSize: 16 }}>{language}</ThemedText>
       </View>
       <RadioCircle selected={selected} />
     </TouchableOpacity>
@@ -228,7 +228,7 @@ export default function SettingsScreen() {
           style={[styles.container, { backgroundColor: colors.background }]}
         >
           <View style={styles.infoCard}>
-            <ThemedText style={styles.sectionTitle}>
+            <ThemedText disableScaling style={styles.sectionTitle}>
               {t("personalInfo")}
             </ThemedText>
             <View style={styles.infoRow}>
@@ -242,11 +242,12 @@ export default function SettingsScreen() {
                   />
                   <View>
                     <ThemedText
+                      disableScaling
                       style={[styles.profileInitial, { color: colors.icon }]}
                     >
                       {t("name")}
                     </ThemedText>
-                    <ThemedText style={styles.profileText}>
+                    <ThemedText disableScaling style={styles.profileText}>
                       {displayName}
                     </ThemedText>
                   </View>
@@ -262,11 +263,12 @@ export default function SettingsScreen() {
                 />
                 <View>
                   <ThemedText
+                    disableScaling
                     style={[styles.profileInitial, { color: colors.icon }]}
                   >
                     {t("emailaddress")}
                   </ThemedText>
-                  <ThemedText style={styles.profileText}>
+                  <ThemedText disableScaling style={styles.profileText}>
                     {user?.email ?? ""}
                   </ThemedText>
                 </View>
@@ -275,12 +277,12 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.infoCard}>
-            <ThemedText style={styles.sectionTitle}>{t("settings")}</ThemedText>
+            <ThemedText disableScaling style={styles.sectionTitle}>{t("settings")}</ThemedText>
             <Pressable onPress={handlePresentModal} style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
                 <Ionicons color="#fff" name="language-outline" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>{t("language")}</ThemedText>
+              <ThemedText disableScaling style={styles.rowLabel}>{t("language")}</ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
@@ -293,7 +295,7 @@ export default function SettingsScreen() {
               <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
                 <Ionicons color='#fff' name='lock-closed-outline' size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>
+              <ThemedText disableScaling style={styles.rowLabel}>
                 {t("changePassword")}
               </ThemedText>
               <View style={styles.rowSpacer} />
@@ -307,7 +309,7 @@ export default function SettingsScreen() {
               <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
                 <Ionicons color="#fff" name="text" size={20} />
               </View>
-              <ThemedText style={styles.rowLabel}>{t("textSize")}</ThemedText>
+              <ThemedText disableScaling style={styles.rowLabel}>{t("textSize")}</ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
@@ -354,6 +356,7 @@ export default function SettingsScreen() {
             ]}
           >
             <ThemedText
+              disableScaling
               style={{
                 marginTop: 18,
                 marginBottom: 18,

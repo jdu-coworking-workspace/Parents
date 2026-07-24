@@ -14,6 +14,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { I18nProvider } from "@/contexts/i18n-context";
 import { ThemeModeProvider } from "@/contexts/theme-context";
 import { MessageProvider } from "@/contexts/message-context";
+import { FontSizeProvider } from "@/contexts/font-size-context";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -47,7 +48,9 @@ export default function RootLayout() {
     <ThemeModeProvider>
       <AuthProvider>
         <MessageProvider>
-          <RootLayoutContent />
+          <FontSizeProvider>
+            <RootLayoutContent />
+          </FontSizeProvider>
         </MessageProvider>
       </AuthProvider>
     </ThemeModeProvider>
