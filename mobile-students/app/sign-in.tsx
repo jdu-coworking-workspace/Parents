@@ -19,6 +19,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { initiateStudentLogin } from "@/services/student-auth";
+import DemoModeService from "@/services/demo-mode-service";
 import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 import { I18nContext } from "@/contexts/i18n-context";
@@ -72,6 +73,13 @@ export default function SignInScreen() {
       setIsLoading(true);
       setError("");
       setInfo("");
+
+      if (DemoModeService.isDemoEmail(email)) {
+        await DemoModeService.simulateNetworkDelay();
+        setStep("password");
+        setPassword("");
+        return;
+      }
 
       const response = await initiateStudentLogin(email.trim().toLowerCase());
       // Prefer server-provided message_key for localization, fall back to server message or default

@@ -102,7 +102,7 @@ const LanguageSelection: React.FC<
 };
 
 export default function SettingsScreen() {
-  const { signOut, user } = useAuth();
+  const { signOut, user, isDemoMode } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
@@ -197,6 +197,11 @@ export default function SettingsScreen() {
       return;
     }
 
+    if (isDemoMode) {
+      Alert.alert(t("error"), "Password changes are unavailable for demo accounts.");
+      return;
+    }
+
     try {
       setIsPasswordRouteLoading(true);
       const passwordStatus = await getStudentPasswordStatus();
@@ -215,7 +220,7 @@ export default function SettingsScreen() {
     } finally {
       setIsPasswordRouteLoading(false);
     }
-  }, [isPasswordRouteLoading, router, t]);
+  }, [isDemoMode, isPasswordRouteLoading, router, t]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
