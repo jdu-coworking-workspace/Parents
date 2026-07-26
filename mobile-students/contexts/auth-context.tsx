@@ -14,6 +14,7 @@ import {
   getStudentGoogleLoginUrl,
   parseStudentGoogleCallbackUrl,
 } from "@/services/student-auth";
+import DemoModeService from "@/services/demo-mode-service";
 import {
   clearSession,
   loadSession,
@@ -35,6 +36,7 @@ interface AuthContextType {
   refreshToken: string | null;
   isLoading: boolean;
   isSignedIn: boolean;
+  isDemoMode: boolean;
   firstLoginChallenge: FirstLoginChallenge | null;
   setFirstLoginChallenge: (challenge: FirstLoginChallenge) => void;
   clearFirstLoginChallenge: () => void;
@@ -62,11 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [firstLoginChallenge, setFirstLoginChallenge] =
     useState<FirstLoginChallenge | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const pushTokenRef = useRef<string | null>(null);
   const pushSetupStartedRef = useRef(false);
   const lastUploadedPushTokenRef = useRef<string | null>(null);
   const isAuthenticatedRef = useRef(false);
+  const isDemoModeRef = useRef(false);
   const signOutRef = useRef<() => Promise<void>>(async () => {});
 
   const persistSession = async (response: {
@@ -91,6 +95,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       const session = await loadSession();
+      const demoActive = await DemoModeService.isDemoModeActive();
+      isDemoModeRef.current = demoActive;
+      setIsDemoMode(demoActive);
 
       if (session) {
         setAccessToken(session.accessToken);
@@ -112,9 +119,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setAuthCallbacks({
       onUnauthorized: () => {
+        if (isDemoModeRef.current) {
+          return;
+        }
+
         void signOutRef.current();
       },
       onForbidden: () => {
+        if (isDemoModeRef.current) {
+          return;
+        }
+
         void signOutRef.current();
       },
     });
@@ -124,8 +139,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticatedRef.current = !!accessToken && !!user;
   }, [accessToken, user]);
 
+  useEffect(() => {
+    isDemoModeRef.current = isDemoMode;
+  }, [isDemoMode]);
+
   const syncPushToken = async (token: string) => {
     if (!isAuthenticatedRef.current) {
+      return;
+    }
+
+    if (isDemoModeRef.current) {
       return;
     }
 
@@ -186,7 +209,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      if (DemoModeService.isDemoCredentials(email, password)) {
+        await DemoModeService.enableDemoMode();
+        isDemoModeRef.current = true;
+        setIsDemoMode(true);
+        await DemoModeService.simulateNetworkDelay();
+        await persistSession(DemoModeService.getDemoSessionData());
+        return;
+      }
+
       const response = await loginStudent(email, password);
+      await DemoModeService.disableDemoMode();
+      isDemoModeRef.current = false;
+      setIsDemoMode(false);
       await persistSession(response);
     } catch (error: any) {
       // Don't log expected 403 error (NEW_PASSWORD_REQUIRED challenge) - it's handled by caller
@@ -208,6 +243,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const response = parseStudentGoogleCallbackUrl(result.url);
+    await DemoModeService.disableDemoMode();
+    isDemoModeRef.current = false;
+    setIsDemoMode(false);
     await persistSession(response);
   };
 
@@ -222,6 +260,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tempPassword,
         newPassword,
       );
+      await DemoModeService.disableDemoMode();
+      isDemoModeRef.current = false;
+      setIsDemoMode(false);
       await persistSession(response);
     } catch (error: any) {
       console.error("Complete first login error:", error);
@@ -232,10 +273,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await clearSession();
+      await DemoModeService.disableDemoMode();
 
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
+      isDemoModeRef.current = false;
+      setIsDemoMode(false);
 
       router.replace("/sign-in");
     } catch (error) {
@@ -251,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshToken,
     isLoading,
     isSignedIn: !!accessToken && !!user,
+    isDemoMode,
     firstLoginChallenge,
     setFirstLoginChallenge,
     clearFirstLoginChallenge: () => setFirstLoginChallenge(null),
