@@ -16,16 +16,57 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 
 import { I18nContext } from '@/contexts/i18n-context';
 
 type Img = { uri: string };
+
+const DOWNLOAD_DIRECTORY_KEY = 'student-notification-download-directory';
+
+function getDownloadFileName(uri: string): string {
+  const fallbackName = `image-${Date.now()}.jpg`;
+
+  try {
+    const url = new URL(uri);
+    const lastSegment = url.pathname.split('/').filter(Boolean).pop();
+
+    if (lastSegment) {
+      return decodeURIComponent(lastSegment.split('?')[0]) || fallbackName;
+    }
+  } catch {
+    // Keep the timestamped fallback for non-URL sources.
+  }
+
+  return fallbackName;
+}
+
+function splitFileName(fileName: string) {
+  const safeName = fileName.replace(/[\\/:*?"<>|]/g, '-');
+  const extensionIndex = safeName.lastIndexOf('.');
+  const suffix = Date.now();
+
+  if (extensionIndex <= 0 || extensionIndex === safeName.length - 1) {
+    return { name: `${safeName}-${suffix}`, mimeType: 'image/jpeg' };
+  }
+
+  const extension = safeName.slice(extensionIndex + 1).toLowerCase();
+  const mimeType =
+    extension === 'png'
+      ? 'image/png'
+      : extension === 'webp'
+        ? 'image/webp'
+        : 'image/jpeg';
+
+  return {
+    name: `${safeName.slice(0, extensionIndex)}-${suffix}`,
+    mimeType,
+  };
+}
 
 interface Props {
   visible: boolean;
@@ -152,8 +193,6 @@ export default function ZoomGallery({
 
   const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
-  const isExpoGo = Constants.executionEnvironment === 'storeClient';
-
   const shareDownloadedImage = useCallback(
     async (localUri: string) => {
       const canShare = await Sharing.isAvailableAsync();
@@ -169,61 +208,91 @@ export default function ZoomGallery({
     [t]
   );
 
-  const saveToLibrary = useCallback(
-    async (localUri: string) => {
-      const { status, canAskAgain } =
-        await MediaLibrary.requestPermissionsAsync(true, ['photo']);
+  const requestAndroidDownloadDirectory = useCallback(async () => {
+    const initialUri =
+      FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+        initialUri
+      );
 
-      if (status !== 'granted') {
-        if (canAskAgain) {
-          const retry = await MediaLibrary.requestPermissionsAsync(true, [
-            'photo',
-          ]);
-          if (retry.status !== 'granted') {
-            throw new Error(t('permissionDenied'));
-          }
-        } else {
-          throw new Error(t('permissionDenied'));
-        }
+    if (!permissions.granted) {
+      throw new Error(t('permissionDenied'));
+    }
+
+    await AsyncStorage.setItem(DOWNLOAD_DIRECTORY_KEY, permissions.directoryUri);
+    return permissions.directoryUri;
+  }, [t]);
+
+  const saveToAndroidDirectory = useCallback(
+    async (localUri: string, fileName: string) => {
+      const { name, mimeType } = splitFileName(fileName);
+      let directoryUri = await AsyncStorage.getItem(DOWNLOAD_DIRECTORY_KEY);
+
+      if (!directoryUri) {
+        directoryUri = await requestAndroidDownloadDirectory();
       }
 
-      await MediaLibrary.saveToLibraryAsync(localUri);
+      const base64 = await FileSystem.readAsStringAsync(localUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      try {
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          directoryUri,
+          name,
+          mimeType
+        );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          base64,
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+      } catch {
+        await AsyncStorage.removeItem(DOWNLOAD_DIRECTORY_KEY);
+        const freshDirectoryUri = await requestAndroidDownloadDirectory();
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          freshDirectoryUri,
+          name,
+          mimeType
+        );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          base64,
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+      }
     },
-    [t]
+    [requestAndroidDownloadDirectory]
   );
 
   const downloadCurrent = useCallback(async () => {
     try {
       if (!current) return;
 
+      const filename = getDownloadFileName(current);
+
       if (Platform.OS === 'web') {
         const anchor = document.createElement('a');
         anchor.href = current;
-        anchor.download = `image-${Date.now()}.jpg`;
+        anchor.download = filename;
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
         return;
       }
 
-      const filename = `image-${Date.now()}.jpg`;
       const localPath = (FileSystem.cacheDirectory || '') + filename;
       const downloadResult = await FileSystem.downloadAsync(current, localPath, {});
 
-      if (isExpoGo) {
-        await shareDownloadedImage(downloadResult.uri);
-        Alert.alert(t('download'), t('imageShareHint'));
+      if (Platform.OS === 'android') {
+        await saveToAndroidDirectory(downloadResult.uri, filename);
+        Alert.alert(t('imageSaved'), t('imageSavedMessage'));
         return;
       }
 
-      try {
-        await saveToLibrary(downloadResult.uri);
-        Alert.alert(t('imageSaved'), t('imageSavedMessage'));
-      } catch (libraryError) {
-        console.warn('MediaLibrary save failed, falling back to share:', libraryError);
-        await shareDownloadedImage(downloadResult.uri);
-        Alert.alert(t('download'), t('imageShareHint'));
-      }
+      await shareDownloadedImage(downloadResult.uri);
+      Alert.alert(t('download'), t('imageShareHint'));
     } catch (err: any) {
       console.error('Download error:', err);
 
@@ -245,7 +314,7 @@ export default function ZoomGallery({
 
       Alert.alert(t('downloadFailedImage'), errorMessage);
     }
-  }, [current, isExpoGo, saveToLibrary, shareDownloadedImage, t]);
+  }, [current, saveToAndroidDirectory, shareDownloadedImage, t]);
 
   return (
     <Modal

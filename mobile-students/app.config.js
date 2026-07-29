@@ -162,17 +162,6 @@ module.exports = ({ config }) => {
       ],
       "expo-secure-store",
       "expo-web-browser",
-      [
-        "expo-media-library",
-        {
-          photosPermission:
-            "We need access to your photo library to save images to your gallery.",
-          savePhotosPermission:
-            "We need access to your photo library to save images to your gallery.",
-          isAccessMediaLocationEnabled: false,
-          granularPermissions: ["photo"],
-        },
-      ],
     ],
     experiments: {
       typedRoutes: true,
