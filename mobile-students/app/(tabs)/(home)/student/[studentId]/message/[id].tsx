@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Dimensions,
   Platform,
   Pressable,
   ScrollView,
@@ -76,6 +77,16 @@ export default function MessageDetailScreen() {
   const [isError, setIsError] = useState(false);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
+
+  const screenWidth = Dimensions.get('window').width;
+  const imageContainerWidth = screenWidth - 32; // scrollContent paddingHorizontal: 16 * 2
+
+  const handleImageLoad = useCallback((uri: string, width: number, height: number) => {
+    setImageAspectRatios((prev) =>
+      prev[uri] ? prev : { ...prev, [uri]: width / height }
+    );
+  }, []);
 
   const loadMessage = useCallback(async () => {
     if (!messageId) {
@@ -251,24 +262,35 @@ export default function MessageDetailScreen() {
 
           {imageUrls.length > 0 && (
             <View style={styles.imageContainer}>
-              {imageUrls.map((uri, index) => (
-                <View key={`${uri}-${index}`} style={styles.imageItem}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setCurrentImageIndex(index);
-                      setZoomVisible(true);
-                    }}
-                  >
-                    <View style={styles.imageWrapper}>
-                      <Image
-                        style={styles.image}
-                        source={{ uri }}
-                        resizeMode="cover"
-                      />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              ))}
+              {imageUrls.map((uri, index) => {
+                const aspectRatio = imageAspectRatios[uri];
+                const computedHeight = aspectRatio
+                  ? imageContainerWidth / aspectRatio
+                  : 260;
+
+                return (
+                  <View key={`${uri}-${index}`} style={styles.imageItem}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setCurrentImageIndex(index);
+                        setZoomVisible(true);
+                      }}
+                    >
+                      <View style={styles.imageWrapper}>
+                        <Image
+                          style={[styles.image, { height: computedHeight }]}
+                          source={{ uri }}
+                          resizeMode="contain"
+                          onLoad={(e) => {
+                            const { width, height } = e.nativeEvent.source;
+                            handleImageLoad(uri, width, height);
+                          }}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           )}
 
@@ -376,7 +398,6 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 260,
   },
   preview: {
     marginTop: 8,
