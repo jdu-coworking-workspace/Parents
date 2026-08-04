@@ -1,6 +1,7 @@
 import { useCallback, useContext, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Pressable,
   Image,
   RefreshControl,
@@ -178,6 +179,21 @@ export default function StudentMessagesScreen() {
         isMountedRef.current = false;
       };
     }, [loadMessages, refreshUnreadCount])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => {
+        backHandler.remove();
+      };
+    }, [])
   );
 
   const handleOpenMessage = (message: Message) => {
