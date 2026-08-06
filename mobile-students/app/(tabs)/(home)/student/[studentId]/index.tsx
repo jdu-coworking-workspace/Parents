@@ -1,4 +1,4 @@
-import { useCallback, useContext, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -22,6 +22,7 @@ import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/studen
 import type { Message } from '@/types/message';
 
 const PAGE_SIZE = 10;
+const FOCUS_POLL_INTERVAL_MS = 20_000;
 
 function getImportanceLabel(
   priority: Message['priority'],
@@ -76,11 +77,14 @@ export default function StudentMessagesScreen() {
   const [isError, setIsError] = useState(false);
   const [hasMore, setHasMore] = useState(false);
 
-  const { setUnreadCount } = useMessageContext();
+  const { setUnreadCount, refreshVersion } = useMessageContext();
 
   const readButNotSentMessageIDs = useRef<number[]>([]);
   const isMountedRef = useRef(true);
+  const isFocusedRef = useRef(false);
+  const isFetchingRef = useRef(false);
   const messagesRef = useRef<Message[]>([]);
+  const lastHandledRefreshVersion = useRef(refreshVersion);
 
   messagesRef.current = messages;
 
@@ -101,20 +105,29 @@ export default function StudentMessagesScreen() {
     async ({
       refresh = false,
       loadMore = false,
+      silent = false,
     }: {
       refresh?: boolean;
       loadMore?: boolean;
+      silent?: boolean;
     } = {}) => {
-      try {
-        if (refresh) {
-          setIsRefreshing(true);
-        } else if (loadMore) {
-          setIsLoadingMore(true);
-        } else {
-          setIsLoading(true);
-        }
+      if (isFetchingRef.current && silent) {
+        return;
+      }
 
-        setIsError(false);
+      try {
+        isFetchingRef.current = true;
+
+        if (!silent) {
+          if (refresh) {
+            setIsRefreshing(true);
+          } else if (loadMore) {
+            setIsLoadingMore(true);
+          } else {
+            setIsLoading(true);
+          }
+          setIsError(false);
+        }
 
         const currentMessages = messagesRef.current;
         const lastMessage =
@@ -137,7 +150,7 @@ export default function StudentMessagesScreen() {
         }
 
         setMessages(prev => {
-          if (refresh || !loadMore) {
+          if (refresh || silent || !loadMore) {
             return fetched;
           }
 
@@ -148,13 +161,15 @@ export default function StudentMessagesScreen() {
           return [...prev, ...nextMessages];
         });
         setHasMore(fetched.length >= PAGE_SIZE);
+        setIsError(false);
       } catch (error) {
         console.error('Error loading student messages:', error);
-        if (isMountedRef.current) {
+        if (isMountedRef.current && !silent) {
           setIsError(true);
         }
       } finally {
-        if (isMountedRef.current) {
+        isFetchingRef.current = false;
+        if (isMountedRef.current && !silent) {
           setIsLoading(false);
           setIsRefreshing(false);
           setIsLoadingMore(false);
@@ -164,21 +179,54 @@ export default function StudentMessagesScreen() {
     []
   );
 
+  const syncInbox = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      await loadMessages({ refresh: true, silent });
+      await refreshUnreadCount();
+    },
+    [loadMessages, refreshUnreadCount]
+  );
+
   useFocusEffect(
     useCallback(() => {
       isMountedRef.current = true;
+      isFocusedRef.current = true;
+
       const initLoad = async () => {
-        await loadMessages();
+        const hasCached = messagesRef.current.length > 0;
+        await loadMessages({ refresh: hasCached, silent: false });
         await refreshUnreadCount();
       };
 
       void initLoad();
 
+      const pollId = setInterval(() => {
+        if (isFocusedRef.current) {
+          void syncInbox({ silent: true });
+        }
+      }, FOCUS_POLL_INTERVAL_MS);
+
       return () => {
+        isFocusedRef.current = false;
+        clearInterval(pollId);
         isMountedRef.current = false;
       };
-    }, [loadMessages, refreshUnreadCount])
+    }, [loadMessages, refreshUnreadCount, syncInbox])
   );
+
+  // Push / AppState → refresh while staying on Messages
+  useEffect(() => {
+    if (refreshVersion === lastHandledRefreshVersion.current) {
+      return;
+    }
+    lastHandledRefreshVersion.current = refreshVersion;
+
+    if (!isFocusedRef.current) {
+      return;
+    }
+
+    void syncInbox({ silent: true });
+  }, [refreshVersion, syncInbox]);
 
   const handleOpenMessage = (message: Message) => {
     if (!message.viewed_at) {
