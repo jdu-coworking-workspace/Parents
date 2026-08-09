@@ -4,31 +4,45 @@ import { Colors } from '@/constants/Colors';
 import { useSession } from '@/contexts/auth-context';
 import { I18nContext } from '@/contexts/i18n-context';
 import { Redirect, Tabs } from 'expo-router';
+import type { Href } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { useThemeMode } from '@rneui/themed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LANGUAGE_SELECTED_KEY = 'languageSelected';
+const LANGUAGE_SELECT_ROUTE = '/language-select' as Href;
 
 export default function TabLayout() {
   const { language, i18n } = useContext(I18nContext);
   const { mode } = useThemeMode();
   const { session, isLoading } = useSession();
-  const [hasEverLoggedIn, setHasEverLoggedIn] = useState<boolean | null>(null);
+  const [languageSelected, setLanguageSelected] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkLoginHistory = async () => {
+    let isMounted = true;
+
+    const checkLanguageSelection = async () => {
       try {
-        const hasLoggedIn = await AsyncStorage.getItem('hasEverLoggedIn');
-        setHasEverLoggedIn(hasLoggedIn === 'true');
+        const selected = await AsyncStorage.getItem(LANGUAGE_SELECTED_KEY);
+        if (isMounted) {
+          setLanguageSelected(selected === 'true');
+        }
       } catch (error) {
-        console.error('Error checking login history:', error);
-        setHasEverLoggedIn(false);
+        console.error('Error checking language selection:', error);
+        if (isMounted) {
+          setLanguageSelected(false);
+        }
       }
     };
 
-    checkLoginHistory();
+    void checkLanguageSelection();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  if (isLoading || hasEverLoggedIn === null) {
+  if (isLoading || languageSelected === null) {
     return (
       <ThemedText style={{ alignContent: 'center', justifyContent: 'center' }}>
         Loading...
@@ -37,10 +51,11 @@ export default function TabLayout() {
   }
 
   if (!session) {
-    if (!hasEverLoggedIn) {
-      return <Redirect href='/language-select' />;
-    }
-    return <Redirect href='/sign-in' />;
+    return (
+      <Redirect
+        href={languageSelected ? '/sign-in' : LANGUAGE_SELECT_ROUTE}
+      />
+    );
   }
 
   return (
