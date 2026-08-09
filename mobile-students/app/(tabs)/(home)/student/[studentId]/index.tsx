@@ -232,22 +232,6 @@ export default function StudentMessagesScreen() {
     );
   }
 
-  if (isError && messages.length === 0) {
-    return (
-      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
-        <ThemedText style={styles.errorText}>
-          {t('errorLoadingMessages')}
-        </ThemedText>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => void loadMessages({ refresh: true })}
-        >
-          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
-        </Pressable>
-      </ThemedView>
-    );
-  }
-
   if (messages.length === 0) {
     const iconColor = colorScheme === 'dark' ? '#FFFFFF' : '#3B81F6';
 
