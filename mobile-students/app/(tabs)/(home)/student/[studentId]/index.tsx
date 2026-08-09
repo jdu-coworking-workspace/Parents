@@ -16,7 +16,7 @@ import { DateTime } from 'luxon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { BrandColors, Colors } from '@/constants/theme';
+import { BrandColors, Colors, colors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useMessageContext } from '@/contexts/message-context';
 import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
@@ -380,6 +380,12 @@ export default function StudentMessagesScreen() {
                 </View>
               </View>
 
+              {message.group_name ? (
+                <View style={styles.groupRow}>
+                  <ThemedText style={styles.groupBadge}>{message.group_name}</ThemedText>
+                </View>
+              ) : null}
+
               <ThemedText
                 numberOfLines={2}
                 ellipsizeMode="tail"
@@ -576,6 +582,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     flex: 1,
     marginRight: 20,
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    gap: 10,
+  },
+  groupBadge: {
+    backgroundColor: colors.success,
+    color: 'white',
+    padding: 5,
+    borderRadius: 5,
+    fontSize: 12,
+    overflow: 'hidden',
   },
   preview: {
     fontSize: 16,
