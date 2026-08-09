@@ -75,11 +75,15 @@ export class ForbiddenError extends ApiError {
     }
 }
 
-let onUnauthorized: (() => void) | null = null;
+let onUnauthorized:
+    | ((shouldAttemptRefresh: boolean) => boolean | Promise<boolean>)
+    | null = null;
 let onForbidden: (() => void) | null = null;
 
 export const setAuthCallbacks = (callbacks: {
-    onUnauthorized?: () => void;
+    onUnauthorized?: (
+        shouldAttemptRefresh: boolean
+    ) => boolean | Promise<boolean>;
     onForbidden?: () => void;
 }) => {
     onUnauthorized = callbacks.onUnauthorized || null;
@@ -116,7 +120,8 @@ const buildHeaders = async (
 
 export async function request<TResponse>(
     endpoint: string,
-    options: RequestOptionsWithBody = {}
+    options: RequestOptionsWithBody = {},
+    authRetryAttempted = false
 ): Promise<ResponseEnvelope<TResponse>> {
     const {
         method = 'GET',
@@ -149,7 +154,16 @@ export async function request<TResponse>(
 
         if (response.status === 401) {
             if (requiresAuth) {
-                onUnauthorized?.();
+                if (!authRetryAttempted) {
+                    const shouldRetry = (await onUnauthorized?.(true)) === true;
+
+                    if (shouldRetry) {
+                        return request<TResponse>(endpoint, options, true);
+                    }
+                } else {
+                    await onUnauthorized?.(false);
+                }
+
                 throw new UnauthorizedError();
             }
 
