@@ -1,5 +1,6 @@
 import { mobileStudentPostRepository } from './student-post.repository';
-import { config } from '../../../config';
+
+const STUDENT_POSTS_PER_PAGE = 5;
 
 export class MobileStudentPostService {
     async listPosts(params: {
@@ -26,7 +27,7 @@ export class MobileStudentPostService {
             studentId: params.studentId,
             lastPostId: params.lastPostId,
             lastSentAt: params.lastSentAt,
-            limit: config.PER_PAGE,
+            limit: STUDENT_POSTS_PER_PAGE,
         });
     }
 
@@ -35,7 +36,10 @@ export class MobileStudentPostService {
     }
 
     async viewPost(params: { postStudentId: number; studentId: number }) {
-        if (!Number.isInteger(params.postStudentId) || params.postStudentId <= 0) {
+        if (
+            !Number.isInteger(params.postStudentId) ||
+            params.postStudentId <= 0
+        ) {
             throw {
                 status: 400,
                 message: 'Invalid post id',
@@ -55,7 +59,9 @@ export class MobileStudentPostService {
         }
 
         if (!post[0].viewed_at) {
-            await mobileStudentPostRepository.markViewedById(params.postStudentId);
+            await mobileStudentPostRepository.markViewedById(
+                params.postStudentId
+            );
         }
     }
 
@@ -63,10 +69,11 @@ export class MobileStudentPostService {
         postStudentIds: number[];
         studentId: number;
     }) {
-        const posts = await mobileStudentPostRepository.listUnreadPostStudentIds({
-            studentId: params.studentId,
-            postIds: params.postStudentIds,
-        });
+        const posts =
+            await mobileStudentPostRepository.listUnreadPostStudentIds({
+                studentId: params.studentId,
+                postIds: params.postStudentIds,
+            });
 
         if (posts.length === 0) {
             throw {

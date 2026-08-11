@@ -4,10 +4,16 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import * as Notifications from 'expo-notifications';
+
+import { useAuth } from '@/contexts/auth-context';
+import { fetchStudentUnreadCount } from '@/services/student-messages';
+
+const UNREAD_CHECK_INTERVAL_MS = 3000;
 
 type MessageContextType = {
   unreadCount: number;
@@ -28,8 +34,10 @@ export const MessageProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const { isSignedIn } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshVersion, setRefreshVersion] = useState(0);
+  const lastServerUnreadRef = useRef<number | null>(null);
 
   const bumpRefresh = useCallback(() => {
     setRefreshVersion(version => version + 1);
@@ -65,6 +73,43 @@ export const MessageProvider = ({
       responseSubscription.remove();
     };
   }, [bumpRefresh]);
+
+  // Cheap unread check: only fetch the list when a new message actually arrives
+  useEffect(() => {
+    if (!isSignedIn) {
+      lastServerUnreadRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkUnread = async () => {
+      if (AppState.currentState !== 'active') return;
+
+      try {
+        const count = await fetchStudentUnreadCount();
+        if (cancelled) return;
+
+        const previous = lastServerUnreadRef.current;
+        lastServerUnreadRef.current = count;
+        setUnreadCount(count);
+
+        if (previous !== null && count > previous) {
+          bumpRefresh();
+        }
+      } catch {
+        // Ignore transient unread-check errors
+      }
+    };
+
+    void checkUnread();
+    const intervalId = setInterval(checkUnread, UNREAD_CHECK_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [isSignedIn, bumpRefresh]);
 
   const value = useMemo(
     () => ({

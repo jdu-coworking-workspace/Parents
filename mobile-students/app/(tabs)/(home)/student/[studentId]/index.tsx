@@ -22,8 +22,21 @@ import { useMessageContext } from '@/contexts/message-context';
 import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
 import type { Message } from '@/types/message';
 
-const PAGE_SIZE = 10;
-const FOCUS_POLL_INTERVAL_MS = 20_000;
+const PAGE_SIZE = 5;
+
+function mergeIncomingMessages(prev: Message[], incoming: Message[]): Message[] {
+  if (prev.length === 0) {
+    return incoming;
+  }
+
+  const prevIds = new Set(prev.map(message => message.id));
+  const incomingById = new Map(incoming.map(message => [message.id, message]));
+
+  const newMessages = incoming.filter(message => !prevIds.has(message.id));
+  const updatedPrev = prev.map(message => incomingById.get(message.id) ?? message);
+
+  return [...newMessages, ...updatedPrev];
+}
 
 function getImportanceLabel(
   priority: Message['priority'],
@@ -82,12 +95,18 @@ export default function StudentMessagesScreen() {
 
   const readButNotSentMessageIDs = useRef<number[]>([]);
   const isMountedRef = useRef(true);
-  const isFocusedRef = useRef(false);
   const isFetchingRef = useRef(false);
   const messagesRef = useRef<Message[]>([]);
   const lastHandledRefreshVersion = useRef(refreshVersion);
 
   messagesRef.current = messages;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Fetch and update unread count
   const refreshUnreadCount = useCallback(async () => {
@@ -151,17 +170,24 @@ export default function StudentMessagesScreen() {
         }
 
         setMessages(prev => {
-          if (refresh || silent || !loadMore) {
-            return fetched;
+          if (loadMore) {
+            const existingIds = new Set(prev.map(message => message.id));
+            const nextMessages = fetched.filter(
+              message => !existingIds.has(message.id)
+            );
+            return [...prev, ...nextMessages];
           }
 
-          const existingIds = new Set(prev.map(message => message.id));
-          const nextMessages = fetched.filter(
-            message => !existingIds.has(message.id)
-          );
-          return [...prev, ...nextMessages];
+          if (refresh || silent) {
+            return mergeIncomingMessages(prev, fetched);
+          }
+
+          return fetched;
         });
-        setHasMore(fetched.length >= PAGE_SIZE);
+
+        if (loadMore || (!refresh && !silent)) {
+          setHasMore(fetched.length >= PAGE_SIZE);
+        }
         setIsError(false);
       } catch (error) {
         console.error('Error loading student messages:', error);
@@ -190,39 +216,28 @@ export default function StudentMessagesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      isMountedRef.current = true;
-      isFocusedRef.current = true;
-
       const initLoad = async () => {
         const hasCached = messagesRef.current.length > 0;
-        await loadMessages({ refresh: hasCached, silent: false });
+        if (hasCached) {
+          await loadMessages({ refresh: true, silent: true });
+        } else {
+          await loadMessages();
+        }
         await refreshUnreadCount();
       };
 
       void initLoad();
-
-      const pollId = setInterval(() => {
-        if (isFocusedRef.current) {
-          void syncInbox({ silent: true });
-        }
-      }, FOCUS_POLL_INTERVAL_MS);
-
-      return () => {
-        isFocusedRef.current = false;
-        clearInterval(pollId);
-        isMountedRef.current = false;
-      };
-    }, [loadMessages, refreshUnreadCount, syncInbox])
+    }, [loadMessages, refreshUnreadCount])
   );
 
-  // Push / AppState → refresh while staying on Messages
+  // Push / AppState / new unread → merge newest messages, keep loaded pages
   useEffect(() => {
     if (refreshVersion === lastHandledRefreshVersion.current) {
       return;
     }
     lastHandledRefreshVersion.current = refreshVersion;
 
-    if (!isFocusedRef.current) {
+    if (!isMountedRef.current) {
       return;
     }
 
@@ -236,6 +251,24 @@ export default function StudentMessagesScreen() {
       };
 
       const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => {
+        backHandler.remove();
+      };
+    }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
 
       return () => {
         backHandler.remove();
@@ -413,7 +446,13 @@ export default function StudentMessagesScreen() {
 
               {message.group_name ? (
                 <View style={styles.groupRow}>
+<<<<<<< HEAD
                   <ThemedText style={styles.groupBadge}>{message.group_name}</ThemedText>
+=======
+                  <ThemedText style={styles.groupBadge}>
+                    {message.group_name}
+                  </ThemedText>
+>>>>>>> 9d9681d (Real time time and other fixes)
                 </View>
               ) : null}
 

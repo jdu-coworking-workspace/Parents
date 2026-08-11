@@ -10,7 +10,7 @@ import type { StudentLoginResponse } from '@/services/student-auth';
 import type { ListMessagesRequest, Message } from '@/types/message';
 
 const DEMO_MODE_KEY = 'student_demo_mode_enabled';
-const DEMO_PAGE_SIZE = 10;
+const DEMO_PAGE_SIZE = 5;
 
 class DemoModeService {
   private static instance: DemoModeService;
