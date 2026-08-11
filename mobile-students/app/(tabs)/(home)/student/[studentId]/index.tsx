@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Pressable,
   Image,
   RefreshControl,
@@ -15,7 +16,7 @@ import { DateTime } from 'luxon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { BrandColors, Colors } from '@/constants/theme';
+import { BrandColors, Colors, colors } from '@/constants/theme';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useMessageContext } from '@/contexts/message-context';
 import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
@@ -227,6 +228,20 @@ export default function StudentMessagesScreen() {
 
     void syncInbox({ silent: true });
   }, [refreshVersion, syncInbox]);
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => {
+        backHandler.remove();
+      };
+    }, [])
+  );
 
   const handleOpenMessage = (message: Message) => {
     if (!message.viewed_at) {
@@ -260,22 +275,6 @@ export default function StudentMessagesScreen() {
       <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
         <ActivityIndicator size="large" color={BrandColors[colorScheme]} />
         <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  if (isError && messages.length === 0) {
-    return (
-      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
-        <ThemedText style={styles.errorText}>
-          {t('errorLoadingMessages')}
-        </ThemedText>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => void loadMessages({ refresh: true })}
-        >
-          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
-        </Pressable>
       </ThemedView>
     );
   }
@@ -411,6 +410,12 @@ export default function StudentMessagesScreen() {
                   </ThemedText>
                 </View>
               </View>
+
+              {message.group_name ? (
+                <View style={styles.groupRow}>
+                  <ThemedText style={styles.groupBadge}>{message.group_name}</ThemedText>
+                </View>
+              ) : null}
 
               <ThemedText
                 numberOfLines={2}
@@ -608,6 +613,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     flex: 1,
     marginRight: 20,
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    gap: 10,
+  },
+  groupBadge: {
+    backgroundColor: colors.success,
+    color: 'white',
+    padding: 5,
+    borderRadius: 5,
+    fontSize: 12,
+    overflow: 'hidden',
   },
   preview: {
     fontSize: 16,
