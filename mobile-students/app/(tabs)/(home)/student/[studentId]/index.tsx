@@ -243,20 +243,6 @@ export default function StudentMessagesScreen() {
 
     void syncInbox({ silent: true });
   }, [refreshVersion, syncInbox]);
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => {
-        BackHandler.exitApp();
-        return true;
-      };
-
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      return () => {
-        backHandler.remove();
-      };
-    }, [])
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -308,6 +294,22 @@ export default function StudentMessagesScreen() {
       <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
         <ActivityIndicator size="large" color={BrandColors[colorScheme]} />
         <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (isError && messages.length === 0) {
+    return (
+      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
+        <ThemedText style={styles.errorText}>
+          {t('errorLoadingMessages')}
+        </ThemedText>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void loadMessages({ refresh: true })}
+        >
+          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+        </Pressable>
       </ThemedView>
     );
   }
@@ -446,13 +448,9 @@ export default function StudentMessagesScreen() {
 
               {message.group_name ? (
                 <View style={styles.groupRow}>
-<<<<<<< HEAD
-                  <ThemedText style={styles.groupBadge}>{message.group_name}</ThemedText>
-=======
                   <ThemedText style={styles.groupBadge}>
                     {message.group_name}
                   </ThemedText>
->>>>>>> 9d9681d (Real time time and other fixes)
                 </View>
               ) : null}
 
