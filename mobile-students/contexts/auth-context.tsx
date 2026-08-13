@@ -13,6 +13,7 @@ import {
   loginStudent,
   getStudentGoogleLoginUrl,
   parseStudentGoogleCallbackUrl,
+  refreshStudentAccessToken,
 } from "@/services/student-auth";
 import DemoModeService from "@/services/demo-mode-service";
 import {
@@ -71,6 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lastUploadedPushTokenRef = useRef<string | null>(null);
   const isAuthenticatedRef = useRef(false);
   const isDemoModeRef = useRef(false);
+  const refreshTokenRef = useRef<string | null>(null);
+  const userRef = useRef<StudentUser | null>(null);
+  const refreshPromiseRef = useRef<Promise<boolean> | null>(null);
+  const sessionGenerationRef = useRef(0);
   const signOutRef = useRef<() => Promise<void>>(async () => {});
 
   const persistSession = async (response: {
@@ -78,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh_token?: string | null;
     user: StudentUser;
   }) => {
+    sessionGenerationRef.current += 1;
+
     await saveSession({
       accessToken: response.access_token,
       refreshToken: response.refresh_token ?? null,
@@ -87,7 +94,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(response.access_token);
     setRefreshToken(response.refresh_token ?? null);
     setUser(response.user);
+    refreshTokenRef.current = response.refresh_token ?? null;
+    userRef.current = response.user;
     setFirstLoginChallenge(null);
+  };
+
+  const refreshSession = async (): Promise<boolean> => {
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+
+    refreshPromiseRef.current = (async () => {
+      try {
+        const currentRefreshToken = refreshTokenRef.current;
+        const currentUser = userRef.current;
+        const currentSessionGeneration = sessionGenerationRef.current;
+
+        if (!currentRefreshToken || !currentUser || isDemoModeRef.current) {
+          return false;
+        }
+
+        const response = await refreshStudentAccessToken(currentRefreshToken);
+
+        if (
+          sessionGenerationRef.current !== currentSessionGeneration ||
+          refreshTokenRef.current !== currentRefreshToken ||
+          userRef.current?.id !== currentUser.id
+        ) {
+          return false;
+        }
+
+        await saveSession({
+          accessToken: response.access_token,
+          refreshToken: response.refresh_token ?? currentRefreshToken,
+          user: currentUser,
+        });
+
+        if (sessionGenerationRef.current !== currentSessionGeneration) {
+          if (!refreshTokenRef.current && !userRef.current) {
+            await clearSession();
+          }
+
+          return false;
+        }
+
+        setAccessToken(response.access_token);
+        setRefreshToken(response.refresh_token ?? currentRefreshToken);
+        setUser(currentUser);
+        refreshTokenRef.current = response.refresh_token ?? currentRefreshToken;
+        userRef.current = currentUser;
+
+        return true;
+      } catch (error) {
+        console.error("Error refreshing student session:", error);
+        return false;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    })();
+
+    return refreshPromiseRef.current;
   };
 
   // Restore token on app startup
@@ -100,9 +166,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsDemoMode(demoActive);
 
       if (session) {
+        sessionGenerationRef.current += 1;
         setAccessToken(session.accessToken);
         setRefreshToken(session.refreshToken);
         setUser(session.user);
+        refreshTokenRef.current = session.refreshToken;
+        userRef.current = session.user;
       }
     } catch (error) {
       console.error("Error restoring token:", error);
@@ -118,12 +187,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setAuthCallbacks({
-      onUnauthorized: () => {
+      onUnauthorized: async (shouldAttemptRefresh) => {
         if (isDemoModeRef.current) {
-          return;
+          return false;
         }
 
-        void signOutRef.current();
+        if (!shouldAttemptRefresh) {
+          void signOutRef.current();
+          return false;
+        }
+
+        const refreshed = await refreshSession();
+
+        if (!refreshed) {
+          void signOutRef.current();
+        }
+
+        return refreshed;
       },
       onForbidden: () => {
         if (isDemoModeRef.current) {
@@ -137,7 +217,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isAuthenticatedRef.current = !!accessToken && !!user;
-  }, [accessToken, user]);
+    refreshTokenRef.current = refreshToken;
+    userRef.current = user;
+  }, [accessToken, refreshToken, user]);
 
   useEffect(() => {
     isDemoModeRef.current = isDemoMode;
@@ -272,6 +354,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      sessionGenerationRef.current += 1;
+      refreshPromiseRef.current = null;
+      refreshTokenRef.current = null;
+      userRef.current = null;
+
       await clearSession();
       await DemoModeService.disableDemoMode();
 
