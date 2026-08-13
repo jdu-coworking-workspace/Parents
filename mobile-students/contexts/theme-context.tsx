@@ -1,98 +1,132 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
-  useState,
   useEffect,
-  ReactNode,
+  useMemo,
+  useState,
+  type ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appearance } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
+
+import { Colors } from '@/constants/theme';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+type ColorScheme = 'light' | 'dark';
 
 interface ThemeModeContextProps {
   themeMode: ThemeMode;
   toggleTheme: () => void;
   setThemeMode: (mode: ThemeMode) => void;
-  currentColorScheme: 'light' | 'dark';
+  currentColorScheme: ColorScheme;
 }
 
 const ThemeModeContext = createContext<ThemeModeContextProps | undefined>(
   undefined
 );
 
+const STORAGE_KEY = 'themeMode';
+
+function resolveSystemScheme(): ColorScheme {
+  return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
+}
+
+function resolveScheme(mode: ThemeMode, systemScheme: ColorScheme): ColorScheme {
+  return mode === 'system' ? systemScheme : mode;
+}
+
+function applyNativeAppearance(mode: ThemeMode, scheme: ColorScheme) {
+  if (typeof Appearance.setColorScheme === 'function') {
+    Appearance.setColorScheme(mode === 'system' ? null : mode);
+  }
+SystemUI.setBackgroundColorAsync(Colors[scheme].background).catch(err =>
+  console.warn('Failed to set system UI background:', err)
+);
+}
+
 export const ThemeModeProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
-  const [currentColorScheme, setCurrentColorScheme] = useState<'light' | 'dark'>('light');
-  const storageKey = 'themeMode';
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const [systemScheme, setSystemScheme] = useState<ColorScheme>(resolveSystemScheme);
+  const [isThemeReady, setIsThemeReady] = useState(false);
 
-  // ✅ Load saved theme (or system default)
+  const currentColorScheme = resolveScheme(themeMode, systemScheme);
+
   useEffect(() => {
+    let cancelled = false;
+
     const loadTheme = async () => {
       try {
-        const saved = await AsyncStorage.getItem(storageKey);
-        if (saved === 'light' || saved === 'dark' || saved === 'system') {
-          setThemeMode(saved);
-        } else {
-          setThemeMode('system');
-        }
+        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        if (cancelled) return;
+
+        const nextMode: ThemeMode =
+          saved === 'light' || saved === 'dark' || saved === 'system'
+            ? saved
+            : 'system';
+
+        setSystemScheme(resolveSystemScheme());
+        setThemeModeState(nextMode);
       } catch (err) {
         console.warn('Failed to load theme:', err);
-        setThemeMode('system');
+      } finally {
+        if (!cancelled) {
+          setIsThemeReady(true);
+        }
       }
     };
-    loadTheme();
+
+    void loadTheme();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // ✅ Update color scheme based on theme mode
   useEffect(() => {
-    const updateColorScheme = () => {
-      if (themeMode === 'system') {
-        const system = Appearance.getColorScheme();
-        setCurrentColorScheme(system === 'dark' ? 'dark' : 'light');
-      } else {
-        setCurrentColorScheme(themeMode);
-      }
-    };
-
-    updateColorScheme();
-
-    // Listen for system appearance changes
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      if (themeMode === 'system') {
-        setCurrentColorScheme(colorScheme === 'dark' ? 'dark' : 'light');
-      }
+      setSystemScheme(colorScheme === 'dark' ? 'dark' : 'light');
     });
 
     return () => subscription.remove();
-  }, [themeMode]);
+  }, []);
 
-  // ✅ Save theme when changed
   useEffect(() => {
-    AsyncStorage.setItem(storageKey, themeMode).catch(err =>
+    if (!isThemeReady) return;
+
+    AsyncStorage.setItem(STORAGE_KEY, themeMode).catch(err =>
       console.warn('Failed to save theme:', err)
     );
-  }, [themeMode]);
+  }, [themeMode, isThemeReady]);
 
-  const toggleTheme = () => {
-    if (themeMode === 'system') {
-      setThemeMode(currentColorScheme === 'light' ? 'dark' : 'light');
-    } else {
-      setThemeMode(currentColorScheme === 'light' ? 'dark' : 'light');
-    }
-  };
+  useEffect(() => {
+    if (!isThemeReady) return;
+    applyNativeAppearance(themeMode, currentColorScheme);
+  }, [themeMode, currentColorScheme, isThemeReady]);
+
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    setThemeModeState(mode);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeMode(currentColorScheme === 'light' ? 'dark' : 'light');
+  }, [currentColorScheme, setThemeMode]);
+
+  const value = useMemo(
+    () => ({
+      themeMode,
+      toggleTheme,
+      setThemeMode,
+      currentColorScheme,
+    }),
+    [themeMode, toggleTheme, setThemeMode, currentColorScheme]
+  );
 
   return (
-    <ThemeModeContext.Provider
-      value={{
-        themeMode,
-        toggleTheme,
-        setThemeMode,
-        currentColorScheme,
-      }}
-    >
+    <ThemeModeContext.Provider value={value}>
       {children}
     </ThemeModeContext.Provider>
   );

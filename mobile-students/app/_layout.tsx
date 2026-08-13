@@ -36,7 +36,7 @@ function RootLayoutContent() {
             <Stack.Screen name="new-psswd" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
-          <StatusBar style="auto" />
+          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
         </ThemeProvider>
       </I18nProvider>
     </RootSiblingParent>

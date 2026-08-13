@@ -1,4 +1,4 @@
-import { useCallback, useContext, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -22,7 +22,21 @@ import { useMessageContext } from '@/contexts/message-context';
 import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
 import type { Message } from '@/types/message';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
+
+function mergeIncomingMessages(prev: Message[], incoming: Message[]): Message[] {
+  if (prev.length === 0) {
+    return incoming;
+  }
+
+  const prevIds = new Set(prev.map(message => message.id));
+  const incomingById = new Map(incoming.map(message => [message.id, message]));
+
+  const newMessages = incoming.filter(message => !prevIds.has(message.id));
+  const updatedPrev = prev.map(message => incomingById.get(message.id) ?? message);
+
+  return [...newMessages, ...updatedPrev];
+}
 
 function getImportanceLabel(
   priority: Message['priority'],
@@ -77,13 +91,22 @@ export default function StudentMessagesScreen() {
   const [isError, setIsError] = useState(false);
   const [hasMore, setHasMore] = useState(false);
 
-  const { setUnreadCount } = useMessageContext();
+  const { setUnreadCount, refreshVersion } = useMessageContext();
 
   const readButNotSentMessageIDs = useRef<number[]>([]);
   const isMountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
   const messagesRef = useRef<Message[]>([]);
+  const lastHandledRefreshVersion = useRef(refreshVersion);
 
   messagesRef.current = messages;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Fetch and update unread count
   const refreshUnreadCount = useCallback(async () => {
@@ -102,20 +125,29 @@ export default function StudentMessagesScreen() {
     async ({
       refresh = false,
       loadMore = false,
+      silent = false,
     }: {
       refresh?: boolean;
       loadMore?: boolean;
+      silent?: boolean;
     } = {}) => {
-      try {
-        if (refresh) {
-          setIsRefreshing(true);
-        } else if (loadMore) {
-          setIsLoadingMore(true);
-        } else {
-          setIsLoading(true);
-        }
+      if (isFetchingRef.current && silent) {
+        return;
+      }
 
-        setIsError(false);
+      try {
+        isFetchingRef.current = true;
+
+        if (!silent) {
+          if (refresh) {
+            setIsRefreshing(true);
+          } else if (loadMore) {
+            setIsLoadingMore(true);
+          } else {
+            setIsLoading(true);
+          }
+          setIsError(false);
+        }
 
         const currentMessages = messagesRef.current;
         const lastMessage =
@@ -138,24 +170,33 @@ export default function StudentMessagesScreen() {
         }
 
         setMessages(prev => {
-          if (refresh || !loadMore) {
-            return fetched;
+          if (loadMore) {
+            const existingIds = new Set(prev.map(message => message.id));
+            const nextMessages = fetched.filter(
+              message => !existingIds.has(message.id)
+            );
+            return [...prev, ...nextMessages];
           }
 
-          const existingIds = new Set(prev.map(message => message.id));
-          const nextMessages = fetched.filter(
-            message => !existingIds.has(message.id)
-          );
-          return [...prev, ...nextMessages];
+          if (refresh || silent) {
+            return mergeIncomingMessages(prev, fetched);
+          }
+
+          return fetched;
         });
-        setHasMore(fetched.length >= PAGE_SIZE);
+
+        if (loadMore || (!refresh && !silent)) {
+          setHasMore(fetched.length >= PAGE_SIZE);
+        }
+        setIsError(false);
       } catch (error) {
         console.error('Error loading student messages:', error);
-        if (isMountedRef.current) {
+        if (isMountedRef.current && !silent) {
           setIsError(true);
         }
       } finally {
-        if (isMountedRef.current) {
+        isFetchingRef.current = false;
+        if (isMountedRef.current && !silent) {
           setIsLoading(false);
           setIsRefreshing(false);
           setIsLoadingMore(false);
@@ -165,21 +206,46 @@ export default function StudentMessagesScreen() {
     []
   );
 
+  const syncInbox = useCallback(
+  async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (silent && isFetchingRef.current) {
+      return;
+    }
+    await loadMessages({ refresh: true, silent });
+    await refreshUnreadCount();
+  },
+    [loadMessages, refreshUnreadCount]
+  );
+
   useFocusEffect(
     useCallback(() => {
-      isMountedRef.current = true;
       const initLoad = async () => {
-        await loadMessages();
+        const hasCached = messagesRef.current.length > 0;
+        if (hasCached) {
+          await loadMessages({ refresh: true, silent: true });
+        } else {
+          await loadMessages();
+        }
         await refreshUnreadCount();
       };
 
       void initLoad();
-
-      return () => {
-        isMountedRef.current = false;
-      };
     }, [loadMessages, refreshUnreadCount])
   );
+
+  // Push / AppState / new unread → merge newest messages, keep loaded pages
+  useEffect(() => {
+    if (refreshVersion === lastHandledRefreshVersion.current) {
+      return;
+    }
+    lastHandledRefreshVersion.current = refreshVersion;
+
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    void syncInbox({ silent: true });
+  }, [refreshVersion, syncInbox]);
 
   useFocusEffect(
     useCallback(() => {
@@ -188,7 +254,10 @@ export default function StudentMessagesScreen() {
         return true;
       };
 
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
 
       return () => {
         backHandler.remove();
@@ -228,6 +297,22 @@ export default function StudentMessagesScreen() {
       <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
         <ActivityIndicator size="large" color={BrandColors[colorScheme]} />
         <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (isError && messages.length === 0) {
+    return (
+      <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
+        <ThemedText style={styles.errorText}>
+          {t('errorLoadingMessages')}
+        </ThemedText>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => void loadMessages({ refresh: true })}
+        >
+          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+        </Pressable>
       </ThemedView>
     );
   }
@@ -366,7 +451,9 @@ export default function StudentMessagesScreen() {
 
               {message.group_name ? (
                 <View style={styles.groupRow}>
-                  <ThemedText style={styles.groupBadge}>{message.group_name}</ThemedText>
+                  <ThemedText style={styles.groupBadge}>
+                    {message.group_name}
+                  </ThemedText>
                 </View>
               ) : null}
 

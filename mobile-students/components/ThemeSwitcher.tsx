@@ -7,25 +7,28 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { useThemeModeContext } from '@/contexts/theme-context';
 
 export default function ThemeSwitcher() {
-  const { toggleTheme, currentColorScheme } = useThemeModeContext();
+  const { setThemeMode, currentColorScheme } = useThemeModeContext();
   const { t } = useContext(I18nContext);
+  const isDark = currentColorScheme === 'dark';
 
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
         <Ionicons
-          name={currentColorScheme === 'light' ? 'sunny' : 'moon'}
+          name={isDark ? 'moon' : 'sunny'}
           size={20}
           color="#fff"
         />
       </View>
       <ThemedText disableScaling style={styles.label}>
-        {currentColorScheme === 'light' ? t('lightMode') : t('darkMode')}
+        {isDark ? t('darkMode') : t('lightMode')}
       </ThemedText>
       <View style={styles.rowSpacer} />
       <Switch
-        value={currentColorScheme === 'dark'}
-        onValueChange={toggleTheme}
+        value={isDark}
+        onValueChange={nextIsDark => {
+          setThemeMode(nextIsDark ? 'dark' : 'light');
+        }}
         trackColor={{
           false: '#D1D5DB',
           true: '#226fc9',
