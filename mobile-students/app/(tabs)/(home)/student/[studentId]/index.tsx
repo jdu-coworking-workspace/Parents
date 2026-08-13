@@ -207,10 +207,13 @@ export default function StudentMessagesScreen() {
   );
 
   const syncInbox = useCallback(
-    async ({ silent = false }: { silent?: boolean } = {}) => {
-      await loadMessages({ refresh: true, silent });
-      await refreshUnreadCount();
-    },
+  async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (silent && isFetchingRef.current) {
+      return;
+    }
+    await loadMessages({ refresh: true, silent });
+    await refreshUnreadCount();
+  },
     [loadMessages, refreshUnreadCount]
   );
 

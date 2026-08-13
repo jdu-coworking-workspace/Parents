@@ -41,7 +41,9 @@ function applyNativeAppearance(mode: ThemeMode, scheme: ColorScheme) {
   if (typeof Appearance.setColorScheme === 'function') {
     Appearance.setColorScheme(mode === 'system' ? null : mode);
   }
-  void SystemUI.setBackgroundColorAsync(Colors[scheme].background);
+SystemUI.setBackgroundColorAsync(Colors[scheme].background).catch(err =>
+  console.warn('Failed to set system UI background:', err)
+);
 }
 
 export const ThemeModeProvider: React.FC<{ children: ReactNode }> = ({
