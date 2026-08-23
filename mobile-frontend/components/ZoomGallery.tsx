@@ -16,13 +16,56 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { I18nContext } from '@/contexts/i18n-context';
 
 type Img = { uri: string };
+
+const DOWNLOAD_DIRECTORY_KEY = 'parent-notification-download-directory';
+
+function getDownloadFileName(uri: string): string {
+  const fallbackName = `image-${Date.now()}.jpg`;
+
+  try {
+    const url = new URL(uri);
+    const lastSegment = url.pathname.split('/').filter(Boolean).pop();
+
+    if (lastSegment) {
+      return decodeURIComponent(lastSegment.split('?')[0]) || fallbackName;
+    }
+  } catch {
+    // Keep the timestamped fallback for non-URL sources.
+  }
+
+  return fallbackName;
+}
+
+function splitFileName(fileName: string) {
+  const safeName = fileName.replace(/[\\/:*?"<>|]/g, '-');
+  const extensionIndex = safeName.lastIndexOf('.');
+  const suffix = Date.now();
+
+  if (extensionIndex <= 0 || extensionIndex === safeName.length - 1) {
+    return { name: `${safeName}-${suffix}`, mimeType: 'image/jpeg' };
+  }
+
+  const extension = safeName.slice(extensionIndex + 1).toLowerCase();
+  const mimeType =
+    extension === 'png'
+      ? 'image/png'
+      : extension === 'webp'
+        ? 'image/webp'
+        : 'image/jpeg';
+
+  return {
+    name: `${safeName.slice(0, extensionIndex)}-${suffix}`,
+    mimeType,
+  };
+}
 
 interface Props {
   visible: boolean;
@@ -188,48 +231,82 @@ export default function ZoomGallery({
   // Combine gestures
   const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
-  const saveToLibrary = useCallback(
+  const shareDownloadedImage = useCallback(
     async (localUri: string) => {
-      // For Android 13+ (API 33+), we need different permissions
-      try {
-        const { status, canAskAgain } =
-          await MediaLibrary.requestPermissionsAsync();
-
-        if (status !== 'granted') {
-          if (canAskAgain) {
-            const retry = await MediaLibrary.requestPermissionsAsync();
-            if (retry.status !== 'granted') {
-              throw new Error(
-                i18n[language].permissionDenied ||
-                  'Permission denied. Please enable photo access in Settings.'
-              );
-            }
-          } else {
-            throw new Error(
-              i18n[language].permissionDenied ||
-                'Permission denied. Please enable photo access in Settings.'
-            );
-          }
-        }
-
-        // save to library
-        await MediaLibrary.saveToLibraryAsync(localUri);
-      } catch (error: any) {
-        // If MediaLibrary fails, try alternative approach for Android
-        if (Platform.OS === 'android') {
-          console.warn(
-            'MediaLibrary failed, trying FileSystem approach:',
-            error
-          );
-          throw new Error(
-            i18n[language].unableToSaveInDevelopment ||
-              'Unable to save image. This may be due to Android permission restrictions in development builds. Please try a production build.'
-          );
-        }
-        throw error;
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        throw new Error(
+          i18n[language].downloadError || 'Could not save the image.'
+        );
       }
+
+      await Sharing.shareAsync(localUri, {
+        mimeType: 'image/jpeg',
+        dialogTitle: i18n[language].download || 'Download',
+      });
     },
     [i18n, language]
+  );
+
+  const requestAndroidDownloadDirectory = useCallback(async () => {
+    const initialUri =
+      FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+        initialUri
+      );
+
+    if (!permissions.granted) {
+      throw new Error(i18n[language].permissionDenied || 'Permission denied.');
+    }
+
+    await AsyncStorage.setItem(
+      DOWNLOAD_DIRECTORY_KEY,
+      permissions.directoryUri
+    );
+    return permissions.directoryUri;
+  }, [i18n, language]);
+
+  const saveToAndroidDirectory = useCallback(
+    async (localUri: string, fileName: string) => {
+      const { name, mimeType } = splitFileName(fileName);
+      let directoryUri = await AsyncStorage.getItem(DOWNLOAD_DIRECTORY_KEY);
+
+      if (!directoryUri) {
+        directoryUri = await requestAndroidDownloadDirectory();
+      }
+
+      const base64 = await FileSystem.readAsStringAsync(localUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      try {
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          directoryUri,
+          name,
+          mimeType
+        );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          base64,
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+      } catch {
+        await AsyncStorage.removeItem(DOWNLOAD_DIRECTORY_KEY);
+        const freshDirectoryUri = await requestAndroidDownloadDirectory();
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          freshDirectoryUri,
+          name,
+          mimeType
+        );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          base64,
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+      }
+    },
+    [requestAndroidDownloadDirectory]
   );
 
   const downloadCurrent = useCallback(async () => {
@@ -248,7 +325,7 @@ export default function ZoomGallery({
       }
 
       // Native download
-      const filename = `image-${Date.now()}.jpg`;
+      const filename = getDownloadFileName(current);
       const localPath = (FileSystem.cacheDirectory || '') + filename;
 
       // Download the image
@@ -258,12 +335,19 @@ export default function ZoomGallery({
         {}
       );
 
-      // Save to gallery
-      await saveToLibrary(downloadResult.uri);
+      if (Platform.OS === 'android') {
+        await saveToAndroidDirectory(downloadResult.uri, filename);
+        Alert.alert(
+          i18n[language].imageSaved || 'Saved',
+          i18n[language].imageSavedMessage || 'Image saved.'
+        );
+        return;
+      }
 
+      await shareDownloadedImage(downloadResult.uri);
       Alert.alert(
-        i18n[language].imageSaved || 'Saved',
-        i18n[language].imageSavedMessage || 'Image saved to your Photos.'
+        i18n[language].download || 'Download',
+        'Image is ready to save or share.'
       );
     } catch (err: any) {
       console.error('Download error:', err);
@@ -275,15 +359,15 @@ export default function ZoomGallery({
       if (err?.message?.includes('Permission denied')) {
         errorMessage =
           i18n[language].permissionDenied ||
-          'Permission denied. Please allow photo access in your device settings.';
+          'Permission denied. Please choose a folder to save the image.';
       } else if (err?.message?.includes('development builds')) {
         errorMessage =
           i18n[language].unableToSaveInDevelopment ||
           'Unable to save in development build. Try a production build or check permissions.';
       } else if (Platform.OS === 'android') {
         errorMessage =
-          i18n[language].permissionDenied ||
-          'Unable to save image. Please ensure photo permissions are granted in Settings.';
+          i18n[language].downloadError ||
+          'Unable to save image. Please choose a folder and try again.';
       }
 
       Alert.alert(
@@ -291,7 +375,7 @@ export default function ZoomGallery({
         errorMessage
       );
     }
-  }, [current, saveToLibrary, i18n, language]);
+  }, [current, saveToAndroidDirectory, shareDownloadedImage, i18n, language]);
 
   const Header = (
     <View
