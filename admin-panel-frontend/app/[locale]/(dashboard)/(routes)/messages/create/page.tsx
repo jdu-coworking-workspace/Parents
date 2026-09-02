@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import localImageLoader from "@/lib/localImageLoader";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ import { toast } from "@/components/ui/use-toast";
 import Post from "@/types/post";
 import useApiMutation from "@/lib/useApiMutation";
 import DraftsDialog, { DraftData } from "@/components/DraftsDialog";
-import { X, Send } from "lucide-react";
+import { ImagePlus, X, Send } from "lucide-react";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,26 @@ import { postCreateSchema } from "@/lib/validationSchemas";
 import { useSearchParams } from "next/navigation";
 
 const formSchema = postCreateSchema;
+
+function AudienceIcon({
+  src,
+  className,
+}: {
+  src: string;
+  className?: string;
+}) {
+  return (
+    <Image
+      loader={localImageLoader}
+      src={src}
+      alt=""
+      width={56}
+      height={56}
+      className={className}
+      aria-hidden
+    />
+  );
+}
 
 interface CreatePostPayload {
   title: string;
@@ -321,7 +342,7 @@ export default function SendMessagePage() {
           ref={formRef}
           className="space-y-4"
         >
-          <Tabs
+                    <Tabs
             value={audienceTab}
             onValueChange={(value) => {
               setAudienceTab(value as AudienceTab);
@@ -330,8 +351,20 @@ export default function SendMessagePage() {
             }}
           >
             <TabsList className="mt-2 [&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white dark:[&_[data-state=active]]:bg-white dark:[&_[data-state=active]]:text-black">
-              <TabsTrigger value="parents">{tPosts("parents")}</TabsTrigger>
-              <TabsTrigger value="students">{tPosts("students")}</TabsTrigger>
+              <TabsTrigger value="parents" className="group flex items-center gap-2">
+                <AudienceIcon
+                  src="/assets/parents-icon.png"
+                  className="h-5 w-5 group-data-[state=active]:brightness-0 group-data-[state=active]:invert dark:group-data-[state=active]:invert-0"
+                />
+                {tPosts("parents")}
+              </TabsTrigger>
+              <TabsTrigger value="students" className="group flex items-center gap-2">
+                <AudienceIcon
+                  src="/assets/group-recipients-icon.png"
+                  className="h-5 w-5 group-data-[state=active]:brightness-0 group-data-[state=active]:invert dark:group-data-[state=active]:invert-0"
+                />
+                {tPosts("students")}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -370,7 +403,19 @@ export default function SendMessagePage() {
             name="description"
             render={({ field, formState }) => (
               <FormItem>
-                <FormLabel>{t("yourMessage")}</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>{t("yourMessage")}</FormLabel>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("picture")}
+                    title={t("picture")}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImagePlus className="h-5 w-5" />
+                  </Button>
+                </div>
                 <FormControl>
                   <Textarea
                     rows={5}
