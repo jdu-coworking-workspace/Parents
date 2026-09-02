@@ -4,6 +4,7 @@ export const ErrorKeys = {
     invalid_file_type: 'invalid_file_type',
     file_too_large: 'file_too_large',
     file_missing: 'file_missing',
+    too_many_images: 'too_many_images',
 
     // Validation errors
     invalid_email: 'invalid_email',
