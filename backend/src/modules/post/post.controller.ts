@@ -195,8 +195,11 @@ export class PostModuleController implements IController {
         next: NextFunction
     ) => {
         const { throwInError, withCSV } = req.body;
+        const rawAudience = req.body?.audience || req.query?.audience;
         const throwInErrorBool = throwInError === 'true';
         const withCSVBool = withCSV === 'true';
+        const audience = isValidAudience(rawAudience) ? rawAudience : 'parents';
+        const shouldAttachParents = audience === 'parents';
 
         if (!req.file || !req.file.buffer) {
             return res
@@ -297,12 +300,13 @@ export class PostModuleController implements IController {
 
             for (const post of validPosts) {
                 const postInsert = await DB.execute(
-                    `INSERT INTO Post (title, description, priority, admin_id, school_id)
-                     VALUE (:title, :description, :priority, :admin_id, :school_id);`,
+                    `INSERT INTO Post (title, description, priority, audience, admin_id, school_id)
+                     VALUES (:title, :description, :priority, :audience, :admin_id, :school_id);`,
                     {
                         title: post.title,
                         description: post.description,
                         priority: post.priority,
+                        audience,
                         admin_id: req.user.id,
                         school_id: req.user.school_id,
                     }
@@ -310,44 +314,61 @@ export class PostModuleController implements IController {
                 const postId = postInsert.insertId;
 
                 if (post.student_numbers.length) {
-                    const studentRows = await DB.query(
-                        `SELECT id, student_number FROM Student WHERE student_number IN (:student_numbers) GROUP BY student_number`,
-                        { student_numbers: post.student_numbers }
-                    );
-                    for (const st of studentRows as any[]) {
+                    const placeholders = post.student_numbers
+                        .map(() => '?')
+                        .join(',');
+                    const studentRows = (await DB.query(
+                        `SELECT id, student_number FROM Student WHERE student_number IN (${placeholders}) AND school_id = ? GROUP BY student_number`,
+                        [...post.student_numbers, req.user.school_id]
+                    )) as any[];
+
+                    for (const st of studentRows) {
                         const post_student = await DB.execute(
                             `INSERT INTO PostStudent (post_id, student_id) VALUES (:post_id, :student_id)`,
                             { post_id: postId, student_id: st.id }
                         );
-                        const parents = await DB.query(
-                            `SELECT parent_id FROM StudentParent WHERE student_id = :sid`,
-                            { sid: st.id }
-                        );
-                        if ((parents as any[]).length) {
-                            const values = (parents as any[])
-                                .map(
-                                    (p: any) =>
-                                        `(${post_student.insertId}, ${p.parent_id})`
-                                )
-                                .join(',');
-                            await DB.execute(
-                                `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${values}`
-                            );
+
+                        if (shouldAttachParents) {
+                            const parents = (await DB.query(
+                                `SELECT parent_id FROM StudentParent WHERE student_id = :sid`,
+                                { sid: st.id }
+                            )) as any[];
+
+                            if (parents.length) {
+                                const parentPlaceholders = parents
+                                    .map(() => '(?, ?)')
+                                    .join(', ');
+                                const parentValues = parents.flatMap(
+                                    (p: any) => [
+                                        post_student.insertId,
+                                        p.parent_id,
+                                    ]
+                                );
+                                await DB.execute(
+                                    `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${parentPlaceholders}`,
+                                    parentValues
+                                );
+                            }
                         }
                     }
                 }
 
                 if (post.group_names.length) {
-                    const groups = await DB.query(
-                        `SELECT id, name FROM StudentGroup WHERE name IN (:names) AND school_id = :sid`,
-                        { names: post.group_names, sid: req.user.school_id }
-                    );
-                    for (const g of groups as any[]) {
-                        const members = await DB.query(
+                    const groupPlaceholders = post.group_names
+                        .map(() => '?')
+                        .join(',');
+                    const groups = (await DB.query(
+                        `SELECT id, name FROM StudentGroup WHERE name IN (${groupPlaceholders}) AND school_id = ?`,
+                        [...post.group_names, req.user.school_id]
+                    )) as any[];
+
+                    for (const g of groups) {
+                        const members = (await DB.query(
                             `SELECT student_id FROM GroupMember WHERE group_id = :gid`,
                             { gid: g.id }
-                        );
-                        for (const mem of members as any[]) {
+                        )) as any[];
+
+                        for (const mem of members) {
                             const post_student = await DB.execute(
                                 `INSERT INTO PostStudent (post_id, student_id, group_id) VALUES (:post_id, :student_id, :group_id)`,
                                 {
@@ -356,20 +377,28 @@ export class PostModuleController implements IController {
                                     group_id: g.id,
                                 }
                             );
-                            const parents = await DB.query(
-                                `SELECT parent_id FROM StudentParent WHERE student_id = :sid`,
-                                { sid: mem.student_id }
-                            );
-                            if ((parents as any[]).length) {
-                                const values = (parents as any[])
-                                    .map(
-                                        (p: any) =>
-                                            `(${post_student.insertId}, ${p.parent_id})`
-                                    )
-                                    .join(',');
-                                await DB.execute(
-                                    `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${values}`
-                                );
+
+                            if (shouldAttachParents) {
+                                const parents = (await DB.query(
+                                    `SELECT parent_id FROM StudentParent WHERE student_id = :sid`,
+                                    { sid: mem.student_id }
+                                )) as any[];
+
+                                if (parents.length) {
+                                    const parentPlaceholders = parents
+                                        .map(() => '(?, ?)')
+                                        .join(', ');
+                                    const parentValues = parents.flatMap(
+                                        (p: any) => [
+                                            post_student.insertId,
+                                            p.parent_id,
+                                        ]
+                                    );
+                                    await DB.execute(
+                                        `INSERT INTO PostParent (post_student_id, parent_id) VALUES ${parentPlaceholders}`,
+                                        parentValues
+                                    );
+                                }
                             }
                         }
                     }

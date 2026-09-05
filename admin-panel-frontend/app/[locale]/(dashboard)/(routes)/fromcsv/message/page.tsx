@@ -46,11 +46,20 @@ import { convertToUtf8IfNeeded, download } from "@/lib/utils";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 import { Download } from "lucide-react";
-import { getCsvUploadSchema } from "@/lib/validationSchemas";
+import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getMessageCsvUploadSchema } from "@/lib/validationSchemas";
 
 export default function MessageFromCSV() {
   const t = useTranslations("fromcsv");
-  const formSchema = getCsvUploadSchema();
+  const tPosts = useTranslations("posts");
+  const formSchema = getMessageCsvUploadSchema();
+  const searchParams = useSearchParams();
+  const audienceParam = searchParams.get("audience");
+  const [audienceTab, setAudienceTab] = useState<"parents" | "students">(
+    audienceParam === "students" ? "students" : "parents"
+  );
 
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -59,7 +68,7 @@ export default function MessageFromCSV() {
     mode: "onChange",
   });
   const { mutate, error, isPending } = useFormMutation<{ message: string }>(
-    `post/upload`,
+    `post/upload?audience=${audienceTab}`,
     "POST",
     ["uploadPosts"],
     {
@@ -72,7 +81,7 @@ export default function MessageFromCSV() {
           title: t("postsUploaded"),
           description: t(data?.message),
         });
-        router.push("/messages");
+        router.push(`/messages?audience=${audienceTab}`);
       },
     }
   );
@@ -82,10 +91,15 @@ export default function MessageFromCSV() {
     const formData = new FormData();
 
     const utf8Blob = await convertToUtf8IfNeeded(file);
+    const convertedFile = new File([utf8Blob], file.name, {
+      type: "text/csv",
+      lastModified: Date.now(),
+    });
 
-    formData.append("file", utf8Blob);
+    formData.append("file", convertedFile);
     formData.append("throwInError", "false");
     formData.append("withCSV", "true");
+    formData.append("audience", audienceTab);
 
     mutate(formData);
   };
@@ -121,10 +135,21 @@ export default function MessageFromCSV() {
           >
             {t("downloadTemplate")}
           </Button>
-          <BackButton href={`/messages/create`} />
+          <BackButton href={`/messages/create?audience=${audienceTab}`} />
         </div>
       </PageHeader>
-      <Card className="p-5 space-y-2">
+      <Card className="p-5 space-y-4">
+        <Tabs
+          value={audienceTab}
+          onValueChange={(value) => {
+            setAudienceTab(value as "parents" | "students");
+          }}
+        >
+          <TabsList className="[&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white dark:[&_[data-state=active]]:bg-white dark:[&_[data-state=active]]:text-black">
+            <TabsTrigger value="parents">{tPosts("parents")}</TabsTrigger>
+            <TabsTrigger value="students">{tPosts("students")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Form {...form}>
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
@@ -177,6 +202,7 @@ export default function MessageFromCSV() {
           <Button
             size="sm"
             variant="outline"
+            disabled={!errors?.csvFile}
             onClick={() =>
               errors?.csvFile && download(errors?.csvFile, "errors.csv")
             }
