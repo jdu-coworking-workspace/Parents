@@ -184,6 +184,11 @@ export const getCsvUploadSchema = () =>
     mode: uploadValidation.uploadMode,
   });
 
+export const getMessageCsvUploadSchema = () =>
+  z.object({
+    csvFile: uploadValidation.csvFile,
+  });
+
 export const getKintoneParentSchema = () =>
   z.object({
     subdomain: uploadValidation.kintoneSubdomain,
