@@ -275,16 +275,15 @@ export default function SendMessagePage() {
 
   const handleSelectedDraft = (draft: DraftData) => {
     const draftImage = typeof draft.image === "string" ? draft.image : "";
-    const isDataUrl = draftImage.startsWith("data:");
     form.reset({
       title: draft.title,
       description: draft.description,
       priority: (draft.priority as "high" | "medium" | "low") || "low",
-      image: isDataUrl ? "" : draftImage,
+      image: draftImage,
     });
 
     setFileKey((prev) => prev + 1);
-    setImagePreview(isDataUrl ? draftImage : "");
+    setImagePreview("");
     setFileName("");
     setSelectedGroups((draft.groups as unknown as Group[]) || []);
     setSelectedStudents((draft.students as unknown as Student[]) || []);
