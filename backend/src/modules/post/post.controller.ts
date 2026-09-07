@@ -11,7 +11,6 @@ import { IController } from '../../utils/icontroller';
 import { postService } from './post.service';
 import { ApiError } from '../../errors/ApiError';
 import DB from '../../utils/db-client';
-import { Images3Client } from '../../utils/s3-client';
 import {
     isValidString,
     isValidArrayId,
@@ -20,7 +19,6 @@ import {
     isValidId,
     isValidStudentNumber,
 } from '../../utils/validate';
-import { randomImageName } from '../../utils/helper';
 import { stringify } from 'csv-stringify/sync';
 import {
     createBaseResponse,
@@ -32,38 +30,7 @@ import {
     handleCSVUpload,
 } from '../../utils/csv-upload';
 import { ErrorKeys, createErrorResponse } from '../../utils/error-codes';
-
-function getImageExtensionFromMime(mimeType: string): string | null {
-    switch (mimeType) {
-        case 'image/jpeg':
-        case 'image/jpg':
-            return '.jpg';
-        case 'image/png':
-            return '.png';
-        case 'image/gif':
-            return '.gif';
-        case 'image/webp':
-            return '.webp';
-        case 'image/svg+xml':
-            return '.svg';
-        default:
-            return null;
-    }
-}
-
-function parseImageDataUrl(image: string): {
-    buffer: Buffer;
-    mimeType: string;
-    extension: string;
-} | null {
-    const matches = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) return null;
-    const mimeType = matches[1].toLowerCase();
-    const extension = getImageExtensionFromMime(mimeType);
-    if (!extension) return null;
-    const buffer = Buffer.from(matches[2], 'base64');
-    return { buffer, mimeType, extension };
-}
+import { collectImageInputs, resolveImageInputs } from './image-utils';
 
 export class PostModuleController implements IController {
     public router: Router = Router();
@@ -144,8 +111,10 @@ export class PostModuleController implements IController {
         next: NextFunction
     ) => {
         const image = req.body?.image;
+        const images = req.body?.images;
+        const inputs = collectImageInputs(image, images);
 
-        if (!image || typeof image !== 'string') {
+        if (inputs.length === 0) {
             return res
                 .status(400)
                 .json(createErrorResponse(ErrorKeys.file_missing))
@@ -153,38 +122,26 @@ export class PostModuleController implements IController {
         }
 
         try {
-            const parsed = parseImageDataUrl(image);
-            if (!parsed) {
-                return res
-                    .status(400)
-                    .json(createErrorResponse('invalid_image_format'))
-                    .end();
+            const uploadedNames = await resolveImageInputs(inputs);
+
+            if (uploadedNames.length === 1 && !Array.isArray(images)) {
+                return res.status(200).json({ image: uploadedNames[0] }).end();
             }
 
-            if (parsed.buffer.length > 10 * 1024 * 1024) {
-                return res
-                    .status(400)
-                    .json(createErrorResponse('image_size_too_large'))
-                    .end();
-            }
-
-            const imageName = randomImageName() + parsed.extension;
-            const imagePath = `images/${imageName}`;
-            const uploaded = await Images3Client.uploadFile(
-                parsed.buffer,
-                parsed.mimeType,
-                imagePath
-            );
-
-            if (!uploaded) {
-                return res
-                    .status(500)
-                    .json(createErrorResponse(ErrorKeys.server_error))
-                    .end();
-            }
-
-            return res.status(200).json({ image: imageName }).end();
+            return res
+                .status(200)
+                .json({
+                    image: uploadedNames[0],
+                    images: uploadedNames,
+                })
+                .end();
         } catch (e: any) {
+            if (e instanceof ApiError) {
+                return res
+                    .status(e.statusCode)
+                    .json(createErrorResponse(e.message))
+                    .end();
+            }
             next(e);
         }
     };
@@ -445,6 +402,7 @@ export class PostModuleController implements IController {
                 students,
                 groups,
                 image,
+                images,
             } = req.body;
 
             if (!title || !isValidString(title)) {
@@ -469,6 +427,7 @@ export class PostModuleController implements IController {
                     students,
                     groups,
                     image,
+                    images,
                 },
                 req.user.id,
                 req.user.school_id
@@ -565,7 +524,7 @@ export class PostModuleController implements IController {
                 throw new ApiError(400, 'invalid_or_missing_post_id');
             }
 
-            const { title, description, priority, image } = req.body;
+            const { title, description, priority, image, images } = req.body;
 
             if (!title || !isValidString(title)) {
                 throw new ApiError(400, 'invalid_or_missing_title');
@@ -579,7 +538,7 @@ export class PostModuleController implements IController {
 
             const result = await postService.updatePost(
                 parseInt(postId),
-                { title, description, priority, image },
+                { title, description, priority, image, images },
                 req.user.school_id
             );
 

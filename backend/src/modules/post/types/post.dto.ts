@@ -17,6 +17,7 @@ export interface PostBasicData {
 
 export interface PostDetailData extends PostBasicData {
     image: string | null;
+    images: string[];
     read_count: number;
     unread_count: number;
 }
@@ -46,7 +47,8 @@ export interface CreatePostRequest {
     audience?: 'parents' | 'students';
     students?: number[];
     groups?: number[];
-    image?: string; // base64
+    image?: string; // base64 or uploaded filename
+    images?: string[]; // multiple base64 or uploaded filenames
 }
 
 export interface CreatePostResponse {
@@ -105,7 +107,8 @@ export interface UpdatePostRequest {
     title: string;
     description: string;
     priority: string;
-    image?: string | null; // base64 or null to remove
+    image?: string | null; // base64, filename, or null/'' to remove
+    images?: string[]; // full replacement set of images
 }
 
 export interface UpdatePostResponse {

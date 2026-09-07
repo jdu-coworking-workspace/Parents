@@ -1,4 +1,8 @@
 import DB from '../../../utils/db-client';
+import {
+    attachGalleryImages,
+    POST_IMAGE_JSON_SUBQUERY,
+} from '../../post/image-utils';
 
 export class MobileStudentPostRepository {
     async listPosts(params: {
@@ -8,12 +12,13 @@ export class MobileStudentPostRepository {
         limit: number;
     }): Promise<any[]> {
         if (params.lastPostId === 0) {
-            return await DB.query(
+            const rows = await DB.query(
                 `SELECT ps.id,
                         po.title,
                         po.description                              AS content,
                         po.priority,
                         po.image,
+                        ${POST_IMAGE_JSON_SUBQUERY},
                         DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                         DATE_FORMAT(ps.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                         DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,
@@ -30,14 +35,17 @@ export class MobileStudentPostRepository {
                     limit: params.limit,
                 }
             );
+
+            return (rows as any[]).map(attachGalleryImages);
         }
 
-        return await DB.query(
+        const rows = await DB.query(
             `SELECT ps.id,
                     po.title,
                     po.description                              AS content,
                     po.priority,
                     po.image,
+                    ${POST_IMAGE_JSON_SUBQUERY},
                     DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                     DATE_FORMAT(ps.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                     DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,
@@ -60,6 +68,8 @@ export class MobileStudentPostRepository {
                 limit: params.limit,
             }
         );
+
+        return (rows as any[]).map(attachGalleryImages);
     }
 
     async listUnreadPostStudentIds(params: {
@@ -107,12 +117,13 @@ export class MobileStudentPostRepository {
         postStudentId: string;
         studentId: number;
     }): Promise<any[]> {
-        return await DB.query(
+        const rows = await DB.query(
             `SELECT ps.id,
                     po.title,
                     po.description                              AS content,
                     po.priority,
                     po.image,
+                    ${POST_IMAGE_JSON_SUBQUERY},
                     DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                     DATE_FORMAT(ps.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                     DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,
@@ -129,6 +140,8 @@ export class MobileStudentPostRepository {
                 student_id: params.studentId,
             }
         );
+
+        return (rows as any[]).map(attachGalleryImages);
     }
 
     async findPostStudentForView(params: {

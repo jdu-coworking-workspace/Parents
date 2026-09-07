@@ -7,7 +7,7 @@
 
 import { postRepository } from './post.repository';
 import { ApiError } from '../../errors/ApiError';
-import { generatePaginationLinks, randomImageName } from '../../utils/helper';
+import { generatePaginationLinks } from '../../utils/helper';
 import { Images3Client } from '../../utils/s3-client';
 import DB from '../../utils/db-client';
 import type {
@@ -23,6 +23,13 @@ import type {
     DeleteMultiplePostsResponse,
 } from './types/post.dto';
 import { config } from '../../config';
+import {
+    collectImageInputs,
+    isSafeUploadedImageName,
+    mergePostImageList,
+    resolveImageInput,
+    resolveImageInputs,
+} from './image-utils';
 
 // Helper: Get all descendant group IDs
 async function getAllDescendantGroupIds(
@@ -62,12 +69,11 @@ async function getAllDescendantGroupIds(
 }
 
 export class PostService {
-    private isSafeUploadedImageName(imageName: string): boolean {
-        if (!imageName || typeof imageName !== 'string') return false;
-        if (imageName.length > 100) return false;
-        if (imageName.includes('/') || imageName.includes('\\')) return false;
-
-        return /^[a-f0-9]{64}\.(?:jpg|png|gif|webp|svg)$/i.test(imageName);
+    private async deleteStoredImages(imageNames: string[]): Promise<void> {
+        const uniqueNames = Array.from(new Set(imageNames.filter(Boolean)));
+        await Promise.all(
+            uniqueNames.map(name => Images3Client.deleteFile('images/' + name))
+        );
     }
 
     /**
@@ -86,57 +92,15 @@ export class PostService {
             students,
             groups,
             image,
+            images,
         } = request;
 
         const shouldAttachParents = audience === 'parents';
 
-        let imageName: string | null = null;
-        if (image && typeof image === 'string') {
-            const trimmed = image.trim();
-
-            if (trimmed.startsWith('data:')) {
-                // data URL format: data:image/<mime>;base64,<payload>
-                const matches = trimmed.match(
-                    /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/
-                );
-                if (!matches || matches.length !== 3) {
-                    throw new ApiError(400, 'invalid_image_format');
-                }
-
-                const mimeType = matches[1].toLowerCase();
-                const base64Data = matches[2].replace(/\s+/g, '');
-                const buffer = Buffer.from(base64Data, 'base64');
-
-                if (buffer.length > 1024 * 1024 * 10) {
-                    throw new ApiError(400, 'image_size_too_large');
-                }
-
-                // Only allow the same types as the upload endpoint.
-                const extensionMap: Record<string, string> = {
-                    'image/jpeg': '.jpg',
-                    'image/jpg': '.jpg',
-                    'image/png': '.png',
-                    'image/gif': '.gif',
-                    'image/webp': '.webp',
-                    'image/svg+xml': '.svg',
-                };
-
-                const extension = extensionMap[mimeType];
-                if (!extension) {
-                    throw new ApiError(400, 'invalid_image_format');
-                }
-
-                imageName = randomImageName() + extension;
-                const imagePath = 'images/' + imageName;
-                await Images3Client.uploadFile(buffer, mimeType, imagePath);
-            } else if (trimmed.length > 0) {
-                // Treat as uploaded filename
-                if (!this.isSafeUploadedImageName(trimmed)) {
-                    throw new ApiError(400, 'invalid_image_format');
-                }
-                imageName = trimmed;
-            }
-        }
+        const imageNames = await resolveImageInputs(
+            collectImageInputs(image, images)
+        );
+        const imageName = imageNames[0] ?? null;
 
         // Create post
         const postId = await postRepository.create({
@@ -148,6 +112,8 @@ export class PostService {
             school_id: schoolId,
             image: imageName,
         });
+
+        await postRepository.insertImages(postId, imageNames);
 
         // Link individual students
         if (students && Array.isArray(students) && students.length > 0) {
@@ -375,12 +341,16 @@ export class PostService {
             throw new ApiError(404, 'post_not_found');
         }
 
+        const galleryImages = await postRepository.findImagesByPostId(postId);
+        const images = mergePostImageList(post.image, galleryImages);
+
         return {
             post: {
                 id: post.id,
                 title: post.title,
                 description: post.description,
-                image: post.image,
+                image: images[0] ?? post.image,
+                images,
                 priority: post.priority,
                 sent_at: post.sent_at,
                 edited_at: post.edited_at,
@@ -403,70 +373,60 @@ export class PostService {
         request: UpdatePostRequest,
         schoolId: number
     ): Promise<UpdatePostResponse> {
-        const { title, description, priority, image } = request;
+        const { title, description, priority, image, images } = request;
 
         const post = await postRepository.findById(postId, schoolId);
         if (!post) {
             throw new ApiError(404, 'post_not_found');
         }
 
-        let imageName = post.image;
-        if (image !== undefined) {
+        const existingImages = mergePostImageList(
+            post.image,
+            await postRepository.findImagesByPostId(postId)
+        );
+
+        let imageNames = existingImages;
+        const hasImagesArray = Array.isArray(images);
+        const hasLegacyImage = image !== undefined;
+
+        if (hasImagesArray) {
+            imageNames = await resolveImageInputs(
+                collectImageInputs(undefined, images)
+            );
+        } else if (hasLegacyImage) {
             if (image === null) {
-                imageName = null;
+                imageNames = [];
             } else if (typeof image === 'string') {
                 const trimmed = image.trim();
 
                 if (trimmed === '') {
-                    // User removed image in UI. If there was an image, clear it.
-                    if (post.image) imageName = null;
-                } else if (trimmed === post.image) {
-                    // no-op
-                } else if (post.image && trimmed.includes(post.image)) {
-                    // e.g. full URL that contains existing filename
-                    // no-op
-                } else if (this.isSafeUploadedImageName(trimmed)) {
-                    // Accept filename returned by POST /post/image
-                    imageName = trimmed;
+                    imageNames = [];
+                } else if (
+                    trimmed === post.image ||
+                    (post.image && trimmed.includes(post.image)) ||
+                    existingImages.includes(trimmed)
+                ) {
+                    // no-op: keep current gallery
+                } else if (isSafeUploadedImageName(trimmed)) {
+                    imageNames = [trimmed];
                 } else if (trimmed.startsWith('data:')) {
-                    const matches = trimmed.match(
-                        /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/
-                    );
-                    if (!matches || matches.length !== 3) {
-                        throw new ApiError(400, 'invalid_image_format');
-                    }
-
-                    const mimeType = matches[1].toLowerCase();
-                    const base64Data = matches[2].replace(/\s+/g, '');
-                    const buffer = Buffer.from(base64Data, 'base64');
-
-                    if (buffer.length > 10 * 1024 * 1024) {
-                        throw new ApiError(400, 'image_size_too_large');
-                    }
-
-                    const extensionMap: Record<string, string> = {
-                        'image/jpeg': '.jpg',
-                        'image/jpg': '.jpg',
-                        'image/png': '.png',
-                        'image/gif': '.gif',
-                        'image/webp': '.webp',
-                        'image/svg+xml': '.svg',
-                    };
-
-                    const extension = extensionMap[mimeType];
-                    if (!extension) {
-                        throw new ApiError(400, 'invalid_image_format');
-                    }
-
-                    imageName = randomImageName() + extension;
-                    const imagePath = `images/${imageName}`;
-                    await Images3Client.uploadFile(buffer, mimeType, imagePath);
+                    imageNames = [await resolveImageInput(trimmed)];
                 } else {
                     throw new ApiError(400, 'invalid_image_format');
                 }
             } else {
                 throw new ApiError(400, 'invalid_image_format');
             }
+        }
+
+        const imageName = imageNames[0] ?? null;
+
+        if (hasImagesArray || hasLegacyImage) {
+            const removedImages = existingImages.filter(
+                name => !imageNames.includes(name)
+            );
+            await this.deleteStoredImages(removedImages);
+            await postRepository.replaceImages(postId, imageNames);
         }
 
         await postRepository.update({
@@ -498,9 +458,10 @@ export class PostService {
             throw new ApiError(404, 'Post not found');
         }
 
-        if (post.image) {
-            await Images3Client.deleteFile('images/' + post.image);
-        }
+        const storedImages = await postRepository.findAllImageNamesByPostIds([
+            postId,
+        ]);
+        await this.deleteStoredImages(storedImages);
 
         await postRepository.delete(postId);
 
@@ -531,11 +492,10 @@ export class PostService {
             throw new ApiError(404, 'No posts found');
         }
 
-        for (const post of postsInfo) {
-            if (post.image) {
-                await Images3Client.deleteFile('images/' + post.image);
-            }
-        }
+        const storedImages = await postRepository.findAllImageNamesByPostIds(
+            postsInfo.map(post => post.id)
+        );
+        await this.deleteStoredImages(storedImages);
 
         await postRepository.deleteMultiple(postIds, schoolId);
 
