@@ -2,7 +2,6 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import {
   Dialog,
   DialogClose,
@@ -19,6 +18,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import HttpError from "@/lib/HttpError";
 import { useSession } from "next-auth/react";
+import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 interface DraftDataStudent {
   id: number;
@@ -258,8 +258,8 @@ export default function DraftsDialog({
               {selectedDraft?.image ? (
                 <div className="rounded object-cover flex justify-start">
                   <div className="border">
-                    <Image
-                      src={`${selectedDraft?.image}`}
+                    <img
+                      src={getPostImageSrc(undefined, selectedDraft.image)}
                       width={300}
                       height={200}
                       alt={selectedDraft?.title}

@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +36,7 @@ import { DateTimePicker24h } from "@/components/DateTimePicker24h";
 import { Switch } from "@/components/ui/switch";
 import { postCreateSchema } from "@/lib/validationSchemas";
 import { useSearchParams } from "next/navigation";
+import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 const formSchema = postCreateSchema;
 
@@ -274,10 +274,7 @@ export default function SendMessagePage() {
   };
 
   const handleSelectedDraft = (draft: DraftData) => {
-    const draftImage =
-      typeof draft.image === "string" && !draft.image.startsWith("data:")
-        ? draft.image
-        : "";
+    const draftImage = typeof draft.image === "string" ? draft.image : "";
     form.reset({
       title: draft.title,
       description: draft.description,
@@ -287,6 +284,7 @@ export default function SendMessagePage() {
 
     setFileKey((prev) => prev + 1);
     setImagePreview("");
+    setFileName("");
     setSelectedGroups((draft.groups as unknown as Group[]) || []);
     setSelectedStudents((draft.students as unknown as Student[]) || []);
   };
@@ -479,7 +477,7 @@ export default function SendMessagePage() {
                   </div>
                 </FormControl>
                 <FormMessage />
-                {(imagePreview || form.getValues("image")) && (
+                {(imagePreview || formValues.image) && (
                   <div className="flex justify-start">
                     <div className="relative mt-2">
                       <div
@@ -488,13 +486,8 @@ export default function SendMessagePage() {
                       >
                         <X className="h-7 w-7 bg-red-500 rounded-full cursor-pointer hover:bg-red-600 aspect-square p-1 font-bold" />
                       </div>
-                      <Image
-                        src={
-                          imagePreview ||
-                          (form.getValues("image")
-                            ? `/${form.getValues("image")}`
-                            : "")
-                        }
+                      <img
+                        src={getPostImageSrc(imagePreview, formValues.image)}
                         alt="Selected image"
                         width={200}
                         height={200}

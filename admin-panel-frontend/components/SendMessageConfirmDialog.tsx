@@ -17,6 +17,7 @@ import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
 import localImageLoader from "@/lib/localImageLoader";
+import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 type PreviewAudienceTab = "student" | "parent";
 
@@ -62,17 +63,6 @@ function getPriorityBadgeClassName(priority?: string) {
     default:
       return "bg-muted text-foreground";
   }
-}
-
-function getConfirmImageSrc(imagePreview?: string, imagePath?: string): string {
-  if (imagePreview) return imagePreview;
-  if (!imagePath) return "";
-  if (imagePath.startsWith("data:") || imagePath.startsWith("http")) {
-    return imagePath;
-  }
-  const base = process.env.NEXT_PUBLIC_IMAGES_URL ?? "";
-  const path = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
-  return `${base}${path}`;
 }
 
 const MIN_VISIBLE_RECIPIENT_ROWS = 4;
@@ -239,7 +229,7 @@ export default function SendMessageConfirmDialog({
               <div className="mt-4 flex justify-start">
                 {/* Native img for reliable data-URL and uploaded image preview */}
                 <img
-                  src={getConfirmImageSrc(imagePreview, imagePath)}
+                  src={getPostImageSrc(imagePreview, imagePath)}
                   alt=""
                   className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
                 />
