@@ -936,6 +936,7 @@
     "postsDeleted": "Сообщения успешно удалены",
     "postsDeletedDescription": "Сообщения успешно удалены",
     "postsUploaded": "Сообщения успешно загружены",
+    "postsUploadedWithWarnings": "Сообщения загружены с предупреждениями",
     "csvFile": "CSV файл",
     "invalid_email": "Неверный email",
     "invalid_phone_number": "Неверный номер телефона",
