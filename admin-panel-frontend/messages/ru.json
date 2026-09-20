@@ -212,11 +212,18 @@
     "notSelected": "Не выбрано",
     "chooseFile": "Выберите файл",
     "noFileChosen": "Файл не выбран",
+    "filesChosen": "Выбрано файлов: {count}",
+    "tooManyImages": "Можно загрузить не более {max} изображений",
+    "imageTooLarge": "Каждое изображение должно быть не больше 10MB",
+    "imageUploadFailed": "Не удалось загрузить изображение",
     "selectDateTime": "Выберите дату и время",
     "timesShownIn": "Время указано в {timeZone}",
     "sendMessageTo": "Отправить сообщение {audience}",
     "toParents": "Родителям",
-    "toStudents": "Студентам"
+    "toStudents": "Студентам",
+    "error": "Ошибка",
+    "selectAtLeastOne": "Выберите хотя бы одного студента или группу",
+    "noTitleAvailable": "Название недоступно"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Просмотр запланированного сообщения",

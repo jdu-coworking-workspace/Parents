@@ -216,11 +216,18 @@
     "notSelected": "Tanlanmagan",
     "chooseFile": "Faylni tanlang",
     "noFileChosen": "Fayl tanlanmagan",
+    "filesChosen": "{count} ta fayl tanlandi",
+    "tooManyImages": "Ko‘pi bilan {max} ta rasm yuklash mumkin",
+    "imageTooLarge": "Har bir rasm 10MB dan katta bo‘lmasligi kerak",
+    "imageUploadFailed": "Rasm yuklash muvaffaqiyatsiz tugadi",
     "selectDateTime": "Sana va vaqtni tanlang",
     "timesShownIn": "Vaqtlar {timeZone} da ko'rsatilgan",
     "sendMessageTo": "{audience} xabar yuboring",
     "toParents": "Ota-onalarga",
-    "toStudents": "Talabalarga"
+    "toStudents": "Talabalarga",
+    "error": "Xato",
+    "selectAtLeastOne": "Kamida bitta o‘quvchi yoki guruhni tanlang",
+    "noTitleAvailable": "Sarlavha mavjud emas"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Rejalashtirilgan xabar",

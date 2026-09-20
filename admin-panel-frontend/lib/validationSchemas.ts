@@ -34,6 +34,7 @@ export const commonValidation = {
   description: z.string().min(1),
   priority: z.enum(["high", "medium", "low"]),
   image: z.string().optional(),
+  images: z.array(z.string()).max(10).optional(),
 
   groupName: z.string().min(1),
   subGroupId: z.number().nullable().optional(),
@@ -150,6 +151,7 @@ export const postCreateSchema = z.object({
   description: commonValidation.description,
   priority: commonValidation.priority,
   image: commonValidation.image,
+  images: commonValidation.images,
 });
 
 export const postEditSchema = z.object({
@@ -157,6 +159,7 @@ export const postEditSchema = z.object({
   description: commonValidation.description,
   priority: commonValidation.priority,
   image: commonValidation.image,
+  images: commonValidation.images,
 });
 
 export const scheduledPostEditSchema = z.object({

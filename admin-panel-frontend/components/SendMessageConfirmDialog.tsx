@@ -17,6 +17,7 @@ import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
 import localImageLoader from "@/lib/localImageLoader";
+import { getPostImageSrc } from "@/lib/postImages";
 
 type PreviewAudienceTab = "student" | "parent";
 
@@ -64,15 +65,8 @@ function getPriorityBadgeClassName(priority?: string) {
   }
 }
 
-function getConfirmImageSrc(imagePreview?: string, imagePath?: string): string {
-  if (imagePreview) return imagePreview;
-  if (!imagePath) return "";
-  if (imagePath.startsWith("data:") || imagePath.startsWith("http")) {
-    return imagePath;
-  }
-  const base = process.env.NEXT_PUBLIC_IMAGES_URL ?? "";
-  const path = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
-  return `${base}${path}`;
+function getConfirmImageSrc(image?: string): string {
+  return getPostImageSrc(image);
 }
 
 const MIN_VISIBLE_RECIPIENT_ROWS = 4;
@@ -162,8 +156,7 @@ interface SendMessageConfirmDialogProps {
   description: string;
   priority: string | undefined;
   audience: "parents" | "students";
-  imagePreview?: string;
-  imagePath?: string;
+  images?: string[];
   scheduleEnabled?: boolean;
   scheduledAt?: Date | null;
   selectedGroups: Group[];
@@ -181,8 +174,7 @@ export default function SendMessageConfirmDialog({
   description,
   priority,
   audience,
-  imagePreview,
-  imagePath,
+  images = [],
   scheduleEnabled,
   scheduledAt,
   selectedGroups,
@@ -235,14 +227,16 @@ export default function SendMessageConfirmDialog({
                 className="min-h-[120px] w-full resize-none rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-sm leading-relaxed text-foreground outline-none dark:border-zinc-700/70 dark:bg-zinc-800/50 sm:min-h-[140px] sm:px-4 sm:py-3.5 sm:text-base"
               />
             </div>
-            {(imagePreview || imagePath) && (
-              <div className="mt-4 flex justify-start">
-                {/* Native img for reliable data-URL and uploaded image preview */}
-                <img
-                  src={getConfirmImageSrc(imagePreview, imagePath)}
-                  alt=""
-                  className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
-                />
+            {images.length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-start gap-2">
+                {images.map((image, index) => (
+                  <img
+                    key={`${image}-${index}`}
+                    src={getConfirmImageSrc(image)}
+                    alt=""
+                    className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
+                  />
+                ))}
               </div>
             )}
           </div>

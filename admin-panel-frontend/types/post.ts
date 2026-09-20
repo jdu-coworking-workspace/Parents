@@ -12,4 +12,5 @@ export default interface Post {
   group_names?: string;
   student_numbers?: string;
   image: string;
+  images?: string[];
 }

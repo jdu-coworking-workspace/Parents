@@ -36,13 +36,8 @@ import React, { useState } from "react";
 import NotFound from "@/components/NotFound";
 import { useListQuery } from "@/lib/useListQuery";
 import ReactLinkify from "react-linkify";
-import Image from "next/image";
-import { Dialog, DialogDescription } from "@radix-ui/react-dialog";
-import {
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import PostImageGallery from "@/components/PostImageGallery";
+import { normalizePostImages } from "@/lib/postImages";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 
@@ -181,6 +176,10 @@ export default function ThisMessage({
 
   const edited_atDate = formatDateTime(data?.post?.edited_at ?? "");
   const sent_atDate = formatDateTime(data?.post?.sent_at ?? "");
+  const postImages = normalizePostImages(
+    data?.post?.image,
+    data?.post?.images
+  );
 
   if (isError && isStudentError) return <NotFound />;
 
@@ -201,34 +200,11 @@ export default function ThisMessage({
           <CardDescription className="whitespace-pre-wrap break-words">
             <ReactLinkify>{data?.post?.description}</ReactLinkify>
           </CardDescription>
-          {data?.post?.image && (
-            <div className="my-2">
-              <Dialog>
-                <DialogTrigger>
-                  <Image
-                    src={`/${data?.post?.image}`}
-                    alt={data.post.title}
-                    width={200}
-                    height={100}
-                    className="rounded object-cover"
-                  />
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogTitle className="whitespace-pre-wrap text-center">
-                    {data?.post?.title}
-                  </DialogTitle>
-                  <DialogDescription className="flex flex-col justify-center items-center">
-                    <Image
-                      src={`/${data?.post?.image}`}
-                      alt={data?.post?.title}
-                      width={window.innerWidth > 800 ? 800 : 300}
-                      height={window.innerWidth > 800 ? 400 : 300}
-                      className="rounded object-cover"
-                    />
-                  </DialogDescription>
-                </DialogContent>
-              </Dialog>
-            </div>
+          {postImages.length > 0 && (
+            <PostImageGallery
+              images={postImages}
+              alt={data?.post?.title ?? ""}
+            />
           )}
         </div>
       </Card>

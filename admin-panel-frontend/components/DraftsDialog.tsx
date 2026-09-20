@@ -38,6 +38,7 @@ export interface DraftData {
   description: string;
   priority?: string;
   image?: string;
+  images?: string[];
   students: DraftDataStudent[];
   groups: DraftDataGroup[];
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -173,6 +174,7 @@ export default function DraftsDialog({
       description: data.description,
       priority: data.priority,
       image: data.image,
+      images: data.images,
       groups: data.groups || [],
       students: data.students || [],
       student: data.students || [],
@@ -255,7 +257,21 @@ export default function DraftsDialog({
                     : t("low")}
                 </div>
               </div>
-              {selectedDraft?.image ? (
+              {selectedDraft?.images && selectedDraft.images.length > 0 ? (
+                <div className="flex flex-wrap gap-2 justify-start">
+                  {selectedDraft.images.map((image, index) => (
+                    <div key={`${image}-${index}`} className="border">
+                      <Image
+                        src={image.startsWith("/") ? image : `/${image}`}
+                        width={150}
+                        height={100}
+                        alt={selectedDraft?.title}
+                        className="rounded object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : selectedDraft?.image ? (
                 <div className="rounded object-cover flex justify-start">
                   <div className="border">
                     <Image
