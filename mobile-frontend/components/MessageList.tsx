@@ -40,6 +40,18 @@ import apiClient, {
   ForbiddenError,
 } from '@/services/api-client';
 
+const normalizeMessageImages = (post: any): string[] | null => {
+  if (Array.isArray(post.images) && post.images.length > 0) {
+    return post.images.filter(Boolean);
+  }
+
+  if (post.image) {
+    return [post.image];
+  }
+
+  return null;
+};
+
 // Styles for the component
 const styles = StyleSheet.create({
   loadingContainer: {
@@ -327,7 +339,7 @@ const MessageList = ({
       const data = response.data;
       const adaptedPosts: Message[] = data.posts.map((post: any) => ({
         ...post,
-        images: post.image ? [post.image] : null,
+        images: normalizeMessageImages(post),
       }));
 
       // Save messages to local database and sync read statuses

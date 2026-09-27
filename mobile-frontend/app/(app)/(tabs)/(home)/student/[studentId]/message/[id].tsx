@@ -30,6 +30,18 @@ import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
 
+const normalizeMessageImages = (post: any): string[] | null => {
+  if (Array.isArray(post.images) && post.images.length > 0) {
+    return post.images.filter(Boolean);
+  }
+
+  if (post.image) {
+    return [post.image];
+  }
+
+  return null;
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -326,7 +338,7 @@ export default function DetailsScreen() {
               priority: messageData.priority,
               group_name: messageData.group_name,
               edited_at: messageData.edited_at,
-              images: messageData.image ? [messageData.image] : null,
+              images: normalizeMessageImages(messageData),
               sent_time: messageData.sent_time,
               viewed_at: messageData.viewed_at,
               read_status: (messageData.viewed_at ? 1 : 0) as 0 | 1,

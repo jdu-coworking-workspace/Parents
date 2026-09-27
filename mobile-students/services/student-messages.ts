@@ -7,6 +7,18 @@ import type {
   Message,
 } from '@/types/message';
 
+function normalizeMessageImages(post: Message): string[] | null {
+  if (Array.isArray(post.images) && post.images.length > 0) {
+    return post.images.filter(Boolean);
+  }
+
+  if (post.image) {
+    return [post.image];
+  }
+
+  return null;
+}
+
 export async function fetchStudentMessages(
   params: ListMessagesRequest = {}
 ): Promise<Message[]> {
@@ -29,7 +41,7 @@ export async function fetchStudentMessages(
 
   return posts.map(post => ({
     ...post,
-    images: post.image ? [post.image] : post.images ?? null,
+    images: normalizeMessageImages(post),
   }));
 }
 
@@ -54,7 +66,7 @@ export async function fetchStudentMessage(postId: string | number): Promise<Mess
 
   return {
     ...post,
-    images: post.image ? [post.image] : post.images ?? null,
+    images: normalizeMessageImages(post),
   };
 }
 
