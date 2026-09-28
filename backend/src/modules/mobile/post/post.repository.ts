@@ -1,7 +1,7 @@
 import DB from '../../../utils/db-client';
 import {
     attachGalleryImages,
-    POST_IMAGE_JSON_SUBQUERY,
+    POST_IMAGE_LIST_SUBQUERY,
 } from '../../post/image-utils';
 
 export class MobilePostRepository {
@@ -15,7 +15,7 @@ export class MobilePostRepository {
                     po.description                              AS content,
                     po.priority,
                     po.image,
-                    ${POST_IMAGE_JSON_SUBQUERY},
+                    ${POST_IMAGE_LIST_SUBQUERY},
                     DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                     DATE_FORMAT(pp.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                     DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,
@@ -46,7 +46,7 @@ export class MobilePostRepository {
                     po.description                              AS content,
                     po.priority,
                     po.image,
-                    ${POST_IMAGE_JSON_SUBQUERY},
+                    ${POST_IMAGE_LIST_SUBQUERY},
                     DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                     DATE_FORMAT(pp.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                     DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,
@@ -82,7 +82,7 @@ export class MobilePostRepository {
                         po.description                              AS content,
                         po.priority,
                         po.image,
-                        ${POST_IMAGE_JSON_SUBQUERY},
+                        ${POST_IMAGE_LIST_SUBQUERY},
                         DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                         DATE_FORMAT(pp.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                         DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,
@@ -110,7 +110,7 @@ export class MobilePostRepository {
                     po.description                              AS content,
                     po.priority,
                     po.image,
-                    ${POST_IMAGE_JSON_SUBQUERY},
+                    ${POST_IMAGE_LIST_SUBQUERY},
                     DATE_FORMAT(po.sent_at, '%Y-%m-%d %H:%i')   AS sent_time,
                     DATE_FORMAT(pp.viewed_at, '%Y-%m-%d %H:%i') AS viewed_at,
                     DATE_FORMAT(po.edited_at, '%Y-%m-%d %H:%i') AS edited_at,

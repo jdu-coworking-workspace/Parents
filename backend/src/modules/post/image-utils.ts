@@ -131,7 +131,10 @@ export function mergePostImageList(
                 );
             }
         } catch {
-            extras = [];
+            extras = extraImages
+                .split(',')
+                .map(item => item.trim())
+                .filter(Boolean);
         }
     }
 
@@ -158,6 +161,12 @@ export function attachGalleryImages<T extends { image?: string | null }>(
 
 export const POST_IMAGE_JSON_SUBQUERY = `(
     SELECT JSON_ARRAYAGG(pi.image_url ORDER BY pi.id)
+    FROM PostImage pi
+    WHERE pi.post_id = po.id
+) AS extra_images`;
+
+export const POST_IMAGE_LIST_SUBQUERY = `(
+    SELECT GROUP_CONCAT(pi.image_url ORDER BY pi.id SEPARATOR ',')
     FROM PostImage pi
     WHERE pi.post_id = po.id
 ) AS extra_images`;
