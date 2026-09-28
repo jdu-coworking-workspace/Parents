@@ -2,7 +2,7 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/RichTextEditor";
 import {
   Form,
   FormControl,
@@ -147,22 +147,21 @@ export default function SendMessagePage({
   return (
     <div className="w-full">
       <Form {...form}>
-          <PageHeader title={t("editMessage")}>
-            <BackButton href={`/messages/scheduled-message/${messageId}`} />
-          </PageHeader>
-          <form
-            onSubmit={form.handleSubmit((values) => {
-              mutate({
-                title: values.title,
-                description: values.description,
-                priority: values.priority,
-                image: values.image,
-                scheduled_at: values.scheduled_at,
-              });
-            })}
-            className="space-y-4"
-          >
-
+        <PageHeader title={t("editMessage")}>
+          <BackButton href={`/messages/scheduled-message/${messageId}`} />
+        </PageHeader>
+        <form
+          onSubmit={form.handleSubmit((values) => {
+            mutate({
+              title: values.title,
+              description: values.description,
+              priority: values.priority,
+              image: values.image,
+              scheduled_at: values.scheduled_at,
+            });
+          })}
+          className="space-y-4"
+        >
           <FormField
             control={form.control}
             name="title"
@@ -201,10 +200,11 @@ export default function SendMessagePage({
               <FormItem>
                 <FormLabel>{t("yourMessage")}</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder={t("typeMessage")}
-                    {...field}
-                    id="description-textarea"
+                  <RichTextEditor
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onUploadingChange={setIsImageUploading}
+                    enableImages
                   />
                 </FormControl>
                 <FormMessage>

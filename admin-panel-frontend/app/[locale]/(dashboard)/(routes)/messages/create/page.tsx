@@ -6,9 +6,9 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import SendMessageConfirmDialog from "@/components/SendMessageConfirmDialog";
 import MessageImagePicker from "@/components/MessageImagePicker";
+import RichTextEditor from "@/components/RichTextEditor";
 import Group from "@/types/group";
 import { GroupTable } from "@/components/GroupTable";
 import Student from "@/types/student";
@@ -31,7 +31,6 @@ import Post from "@/types/post";
 import useApiMutation from "@/lib/useApiMutation";
 import DraftsDialog, { DraftData } from "@/components/DraftsDialog";
 import { Send } from "lucide-react";
-import { ImagePlus, X, Send } from "lucide-react";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 import { Label } from "@/components/ui/label";
@@ -41,17 +40,10 @@ import { Switch } from "@/components/ui/switch";
 import { postCreateSchema } from "@/lib/validationSchemas";
 import { useSearchParams } from "next/navigation";
 import { normalizePostImages } from "@/lib/postImages";
-import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 const formSchema = postCreateSchema;
 
-function AudienceIcon({
-  src,
-  className,
-}: {
-  src: string;
-  className?: string;
-}) {
+function AudienceIcon({ src, className }: { src: string; className?: string }) {
   return (
     <Image
       loader={localImageLoader}
@@ -311,7 +303,6 @@ export default function SendMessagePage() {
           )
         : []
     );
-    const draftImage = typeof draft.image === "string" ? draft.image : "";
     form.reset({
       title: draft.title,
       description: draft.description,
@@ -320,9 +311,6 @@ export default function SendMessagePage() {
       images,
     });
 
-    setFileKey((prev) => prev + 1);
-    setImagePreview("");
-    setFileName("");
     setSelectedGroups((draft.groups as unknown as Group[]) || []);
     setSelectedStudents((draft.students as unknown as Student[]) || []);
   };
@@ -331,7 +319,9 @@ export default function SendMessagePage() {
     <div className="w-full">
       <Form {...form}>
         <PageHeader
-          title={t("sendMessageTo", { audience: t(audienceTab === "parents" ? "toParents" : "toStudents") })}
+          title={t("sendMessageTo", {
+            audience: t(audienceTab === "parents" ? "toParents" : "toStudents"),
+          })}
           variant="create"
         >
           <DraftsDialog
@@ -350,7 +340,7 @@ export default function SendMessagePage() {
           ref={formRef}
           className="space-y-4"
         >
-                    <Tabs
+          <Tabs
             value={audienceTab}
             onValueChange={(value) => {
               setAudienceTab(value as AudienceTab);
@@ -359,14 +349,20 @@ export default function SendMessagePage() {
             }}
           >
             <TabsList className="mt-2 [&_[data-state=active]]:bg-black [&_[data-state=active]]:text-white dark:[&_[data-state=active]]:bg-white dark:[&_[data-state=active]]:text-black">
-              <TabsTrigger value="parents" className="group flex items-center gap-2">
+              <TabsTrigger
+                value="parents"
+                className="group flex items-center gap-2"
+              >
                 <AudienceIcon
                   src="/assets/parents-icon.png"
                   className="h-5 w-5 group-data-[state=active]:brightness-0 group-data-[state=active]:invert dark:group-data-[state=active]:invert-0"
                 />
                 {tPosts("parents")}
               </TabsTrigger>
-              <TabsTrigger value="students" className="group flex items-center gap-2">
+              <TabsTrigger
+                value="students"
+                className="group flex items-center gap-2"
+              >
                 <AudienceIcon
                   src="/assets/group-recipients-icon.png"
                   className="h-5 w-5 group-data-[state=active]:brightness-0 group-data-[state=active]:invert dark:group-data-[state=active]:invert-0"
@@ -411,25 +407,13 @@ export default function SendMessagePage() {
             name="description"
             render={({ field, formState }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>{t("yourMessage")}</FormLabel>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t("picture")}
-                    title={t("picture")}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <ImagePlus className="h-5 w-5" />
-                  </Button>
-                </div>
+                <FormLabel>{t("yourMessage")}</FormLabel>
                 <FormControl>
-                  <Textarea
-                    rows={5}
-                    placeholder={t("typeMessage")}
-                    {...field}
-                    id="description-textarea"
+                  <RichTextEditor
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onUploadingChange={setIsImageUploading}
+                    enableImages
                   />
                 </FormControl>
                 <FormMessage>
@@ -489,25 +473,6 @@ export default function SendMessagePage() {
                   />
                 </FormControl>
                 <FormMessage />
-                {(imagePreview || formValues.image) && (
-                  <div className="flex justify-start">
-                    <div className="relative mt-2">
-                      <div
-                        className="absolute top-0 right-0 translate-x-[25%] -translate-y-[25%]"
-                        onClick={handleRemoveImg}
-                      >
-                        <X className="h-7 w-7 bg-red-500 rounded-full cursor-pointer hover:bg-red-600 aspect-square p-1 font-bold" />
-                      </div>
-                      <img
-                        src={getPostImageSrc(imagePreview, formValues.image)}
-                        alt="Selected image"
-                        width={200}
-                        height={200}
-                        className="rounded object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
               </FormItem>
             )}
           />

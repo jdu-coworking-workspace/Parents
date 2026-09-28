@@ -18,7 +18,6 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { useNetwork } from '@/contexts/network-context';
 import { fetchMessageFromDB, saveMessageToDB } from '@/utils/queries';
 import { DatabaseMessage, Student } from '@/constants/types';
-import { Autolink } from 'react-native-autolink';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -26,6 +25,7 @@ import { useTheme } from '@rneui/themed';
 import { DateTime } from 'luxon';
 import { useFontSize } from '@/contexts/FontSizeContext';
 import ZoomGallery from '@/components/ZoomGallery';
+import MessageDescription from '@/components/MessageDescription';
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
@@ -106,6 +106,7 @@ export default function DetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [inlineZoomImage, setInlineZoomImage] = useState<string | null>(null);
 
   const { id, studentId } = useLocalSearchParams();
   const actualStudentId = studentId ? Number(studentId) : undefined;
@@ -487,6 +488,9 @@ export default function DetailsScreen() {
       ? filename // Demo images are already full URLs
       : `${imageUrl}/${filename}`, // Regular images need S3 base URL
   }));
+  const zoomGalleryImages = inlineZoomImage
+    ? [{ uri: inlineZoomImage }]
+    : imagesForZoomGallery;
 
   const copyToClipboard = async () => {
     if (message?.content) {
@@ -582,6 +586,7 @@ export default function DetailsScreen() {
               <View key={idx} style={styles.imageItem}>
                 <TouchableOpacity
                   onPress={() => {
+                    setInlineZoomImage(null);
                     setCurrentImageIndex(idx);
                     setZoomVisible(true);
                   }}
@@ -604,12 +609,15 @@ export default function DetailsScreen() {
         )}
 
         <View style={styles.descriptionRow}>
-          <Autolink
-            email
-            hashtag='instagram'
-            mention='instagram'
-            text={message.content}
-            style={{ color: textColor, fontSize: 16 * multiplier }}
+          <MessageDescription
+            content={message.content}
+            textColor={textColor}
+            fontSize={16 * multiplier}
+            onImagePress={uri => {
+              setInlineZoomImage(uri);
+              setCurrentImageIndex(0);
+              setZoomVisible(true);
+            }}
           />
         </View>
 
@@ -656,9 +664,12 @@ export default function DetailsScreen() {
         </View>
         <ZoomGallery
           visible={zoomVisible}
-          images={imagesForZoomGallery}
-          initialIndex={currentImageIndex}
-          onRequestClose={() => setZoomVisible(false)}
+          images={zoomGalleryImages}
+          initialIndex={inlineZoomImage ? 0 : currentImageIndex}
+          onRequestClose={() => {
+            setZoomVisible(false);
+            setInlineZoomImage(null);
+          }}
           albumName='Downloads'
         />
       </ScrollView>

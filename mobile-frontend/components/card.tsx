@@ -21,6 +21,22 @@ import { useFontSize } from '@/contexts/FontSizeContext';
 import { useTheme } from '@rneui/themed';
 import { Colors, colors } from '@/constants/Colors';
 
+function getMessagePreview(content: string) {
+  return content
+    .replace(/<img\b[^>]*>/gi, '')
+    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const Card = ({
   messageGroup,
   studentId,
@@ -35,6 +51,7 @@ const Card = ({
   // const isRead = message.read_status === 1 || !!message.viewed_at // Derive directly from prop
   const textColor = useThemeColor({}, 'text');
   const firstMessage = messageGroup[0];
+  const messagePreview = getMessagePreview(firstMessage.content);
   const groupNames = [
     ...new Set(messageGroup.map(m => m.group_name).filter(Boolean)),
   ];
@@ -175,7 +192,7 @@ const Card = ({
             email
             hashtag='instagram'
             mention='instagram'
-            text={firstMessage.content}
+            text={messagePreview}
             numberOfLines={2}
             style={autolinkStyles}
             textProps={{ style: autolinkStyles }}

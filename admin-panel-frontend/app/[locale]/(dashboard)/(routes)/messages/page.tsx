@@ -12,7 +12,7 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import PaginationApi from "@/components/PaginationApi";
 import { Input } from "@/components/ui/input";
-import { Link, useRouter } from "@/navigation"; 
+import { Link, useRouter } from "@/navigation";
 import { Button } from "@/components/ui/button";
 import PostApi from "@/types/postApi";
 import Post from "@/types/post";
@@ -48,10 +48,27 @@ import ScheduledPost from "@/types/scheduledPost";
 import pagination from "@/types/pagination";
 import useDateFormatter from "@/lib/useDateFormatter";
 import { useListQuery } from "@/lib/useListQuery";
-import { Label } from "@/components/ui/label";
 
 // Audience tab type: "parents" | "students"
 type AudienceTab = "parents" | "students";
+
+function getMessagePreview(description?: string | null) {
+  if (!description) return "";
+
+  return description
+    .replace(/<img\b[^>]*>/gi, "")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export default function Info() {
   const t = useTranslations("posts");
@@ -237,14 +254,17 @@ export default function Info() {
     {
       accessorKey: "description",
       header: t("Description"),
-      cell: ({ row }) => (
-        <div
-          title={row.original.description}
-          className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
-        >
-          {row.getValue("description")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const preview = getMessagePreview(row.original.description);
+        return (
+          <div
+            title={preview}
+            className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
+          >
+            {preview}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "admin_name",
@@ -309,14 +329,17 @@ export default function Info() {
     {
       accessorKey: "description",
       header: t("Description"),
-      cell: ({ row }) => (
-        <div
-          title={row.original.description}
-          className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
-        >
-          {row.getValue("description")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const preview = getMessagePreview(row.original.description);
+        return (
+          <div
+            title={preview}
+            className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
+          >
+            {preview}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "admin_name",
@@ -383,14 +406,17 @@ export default function Info() {
     {
       accessorKey: "description",
       header: t("Description"),
-      cell: ({ row }) => (
-        <div
-          title={row.original.description}
-          className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
-        >
-          {row.getValue("description")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const preview = getMessagePreview(row.original.description);
+        return (
+          <div
+            title={preview}
+            className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
+          >
+            {preview}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "priority",
@@ -457,14 +483,17 @@ export default function Info() {
     {
       accessorKey: "description",
       header: t("Description"),
-      cell: ({ row }) => (
-        <div
-          title={row.original.description}
-          className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
-        >
-          {row.getValue("description")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const preview = getMessagePreview(row.original.description);
+        return (
+          <div
+            title={preview}
+            className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
+          >
+            {preview}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "priority",
@@ -597,7 +626,7 @@ export default function Info() {
                     {t("parentAudienceTitle")}
                   </div>
                 </Button>
-                
+
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -699,7 +728,6 @@ export default function Info() {
             showScheduled={showScheduled}
             postColumns={parentPostColumns}
             schedulesPostColumns={parentSchedulesPostColumns}
-            page={page}
             setPage={setPage}
             perPage={perPage}
             handlePerPageChange={handlePerPageChange}
@@ -718,7 +746,6 @@ export default function Info() {
             showScheduled={showScheduled}
             postColumns={studentPostColumns}
             schedulesPostColumns={studentSchedulesPostColumns}
-            page={page}
             setPage={setPage}
             perPage={perPage}
             handlePerPageChange={handlePerPageChange}
@@ -741,13 +768,12 @@ interface MessagesContentProps {
   commitSearch: (v: string) => void;
   data: PostApi | null | undefined;
   scheduledPosts:
-    | { scheduledPosts: ScheduledPost[]; pagination: any }
+    | { scheduledPosts: ScheduledPost[]; pagination: pagination }
     | null
     | undefined;
   showScheduled: boolean;
   postColumns: ColumnDef<Post>[];
   schedulesPostColumns: ColumnDef<ScheduledPost>[];
-  page: number;
   setPage: (p: number) => void;
   perPage: number;
   handlePerPageChange: (n: number) => void;
@@ -766,7 +792,6 @@ function MessagesContent({
   showScheduled,
   postColumns,
   schedulesPostColumns,
-  page,
   setPage,
   perPage,
   handlePerPageChange,

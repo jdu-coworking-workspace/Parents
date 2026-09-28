@@ -11,21 +11,22 @@ import {
   TouchableOpacity,
   ToastAndroid,
   View,
-} from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { DateTime } from 'luxon';
+} from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { DateTime } from "luxon";
 
-import ZoomGallery from '@/components/ZoomGallery';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { I18nContext } from '@/contexts/i18n-context';
-import { fetchStudentMessage } from '@/services/student-messages';
-import type { Message } from '@/types/message';
-import { useFontSize } from '@/contexts/font-size-context';
-import { getMessageImageUrls } from '@/utils/image-url';
+import ZoomGallery from "@/components/ZoomGallery";
+import MessageDescription from "@/components/MessageDescription";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { I18nContext } from "@/contexts/i18n-context";
+import { fetchStudentMessage } from "@/services/student-messages";
+import type { Message } from "@/types/message";
+import { useFontSize } from "@/contexts/font-size-context";
+import { getMessageImageUrls } from "@/utils/image-url";
 
 export type TranslationKeys = {
   critical: string;
@@ -77,16 +78,22 @@ export default function MessageDetailScreen() {
   const [isError, setIsError] = useState(false);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
+  const [inlineZoomImage, setInlineZoomImage] = useState<string | null>(null);
+  const [imageAspectRatios, setImageAspectRatios] = useState<
+    Record<string, number>
+  >({});
 
-  const screenWidth = Dimensions.get('window').width;
+  const screenWidth = Dimensions.get("window").width;
   const imageContainerWidth = screenWidth - 32; // scrollContent paddingHorizontal: 16 * 2
 
-  const handleImageLoad = useCallback((uri: string, width: number, height: number) => {
-    setImageAspectRatios((prev) =>
-      prev[uri] ? prev : { ...prev, [uri]: width / height }
-    );
-  }, []);
+  const handleImageLoad = useCallback(
+    (uri: string, width: number, height: number) => {
+      setImageAspectRatios((prev) =>
+        prev[uri] ? prev : { ...prev, [uri]: width / height },
+      );
+    },
+    [],
+  );
 
   const loadMessage = useCallback(async () => {
     if (!messageId) {
@@ -123,11 +130,14 @@ export default function MessageDetailScreen() {
     () => imageUrls.map((uri) => ({ uri })),
     [imageUrls],
   );
+  const zoomGalleryImages = inlineZoomImage
+    ? [{ uri: inlineZoomImage }]
+    : imagesForZoomGallery;
 
-  const getPriorityLabel = (priority: Message['priority']) => {
-    if (priority === 'high') return t('critical');
-    if (priority === 'medium') return t('important');
-    return t('ordinary');
+  const getPriorityLabel = (priority: Message["priority"]) => {
+    if (priority === "high") return t("critical");
+    if (priority === "medium") return t("important");
+    return t("ordinary");
   };
 
   const handleCopy = async () => {
@@ -183,13 +193,13 @@ export default function MessageDetailScreen() {
 
   // Handle both ISO format (demo data) and database format (regular data)
   let utcDateTime;
-  if (sentTimeString.includes('T')) {
+  if (sentTimeString.includes("T")) {
     // ISO format: 2025-08-30T10:30:00Z
-    utcDateTime = DateTime.fromISO(sentTimeString, { zone: 'utc' });
+    utcDateTime = DateTime.fromISO(sentTimeString, { zone: "utc" });
   } else {
     // Database format: 2025-08-30 10:30
-    utcDateTime = DateTime.fromFormat(sentTimeString, 'yyyy-MM-dd HH:mm', {
-      zone: 'utc',
+    utcDateTime = DateTime.fromFormat(sentTimeString, "yyyy-MM-dd HH:mm", {
+      zone: "utc",
     });
   }
 
@@ -210,11 +220,11 @@ export default function MessageDetailScreen() {
             style={[
               styles.titleRow,
               multiplier > 1
-                ? { flexDirection: 'column-reverse', alignItems: 'flex-start' }
+                ? { flexDirection: "column-reverse", alignItems: "flex-start" }
                 : {
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   },
             ]}
           >
@@ -222,11 +232,11 @@ export default function MessageDetailScreen() {
               style={[
                 styles.title,
                 {
-                  color: isDark ? '#FFFFFF' : '#111827',
-                  textAlign: 'left',
+                  color: isDark ? "#FFFFFF" : "#111827",
+                  textAlign: "left",
                   flex: multiplier > 1 ? 0 : 1,
                   flexShrink: multiplier > 1 ? 0 : 1,
-                  width: multiplier > 1 ? '100%' : 'auto',
+                  width: multiplier > 1 ? "100%" : "auto",
                 },
               ]}
             >
@@ -240,10 +250,10 @@ export default function MessageDetailScreen() {
                   borderRadius: 4,
                   paddingHorizontal: 6 * multiplier,
                   paddingVertical: 4 * multiplier,
-                  justifyContent: 'center',
-                  alignItems: 'center',
+                  justifyContent: "center",
+                  alignItems: "center",
                   marginLeft: multiplier > 1 ? 0 : 10,
-                  alignSelf: multiplier > 1 ? 'flex-end' : 'center',
+                  alignSelf: multiplier > 1 ? "flex-end" : "center",
                 },
               ]}
             >
@@ -272,6 +282,7 @@ export default function MessageDetailScreen() {
                   <View key={`${uri}-${index}`} style={styles.imageItem}>
                     <TouchableOpacity
                       onPress={() => {
+                        setInlineZoomImage(null);
                         setCurrentImageIndex(index);
                         setZoomVisible(true);
                       }}
@@ -294,11 +305,18 @@ export default function MessageDetailScreen() {
             </View>
           )}
 
-          <ThemedText
-            style={[styles.preview, { color: isDark ? "#E5E7EB" : "#1F2937" }]}
-          >
-            {message.content}
-          </ThemedText>
+          <View style={styles.preview}>
+            <MessageDescription
+              content={message.content}
+              textColor={isDark ? "#E5E7EB" : "#1F2937"}
+              fontSize={16 * multiplier}
+              onImagePress={(uri) => {
+                setInlineZoomImage(uri);
+                setCurrentImageIndex(0);
+                setZoomVisible(true);
+              }}
+            />
+          </View>
 
           <View style={styles.footerRow}>
             <ThemedText
@@ -317,9 +335,12 @@ export default function MessageDetailScreen() {
 
       <ZoomGallery
         visible={zoomVisible}
-        images={imagesForZoomGallery}
-        initialIndex={currentImageIndex}
-        onRequestClose={() => setZoomVisible(false)}
+        images={zoomGalleryImages}
+        initialIndex={inlineZoomImage ? 0 : currentImageIndex}
+        onRequestClose={() => {
+          setZoomVisible(false);
+          setInlineZoomImage(null);
+        }}
       />
     </ThemedView>
   );
@@ -364,14 +385,14 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     gap: 12,
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
     flexShrink: 1,
   },
@@ -394,20 +415,19 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   image: {
-    width: '100%',
+    width: "100%",
   },
   preview: {
     marginTop: 8,
-    fontSize: 16,
   },
   footerRow: {
     marginTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   date: {
     fontSize: 14,
@@ -419,8 +439,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   copyText: {
-    color: '#0A84FF',
+    color: "#0A84FF",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
