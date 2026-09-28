@@ -13,6 +13,7 @@ jest.mock('../src/utils/db-client', () => ({
 jest.mock('../src/utils/s3-client', () => ({
     Images3Client: {
         uploadFile: jest.fn(async () => true),
+        deleteFile: jest.fn(async () => true),
     },
 }));
 
@@ -54,6 +55,51 @@ describe('Post Module Logic Tests', () => {
 
             expect(res.status).toBe(400);
             expect(res.body.error).toBe('invalid_image_format');
+        });
+
+        test('Should accept multiple images in images array', async () => {
+            const tinyPng =
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+            const DB = require('../src/utils/db-client').default;
+
+            const res = await request(app)
+                .post('/admin-panel/post/create')
+                .set('x-test-auth', testToken)
+                .send({
+                    title: 'Multi Image Title',
+                    description: 'Multi Image Description',
+                    priority: 'high',
+                    images: [tinyPng, tinyPng],
+                    students: [1],
+                    groups: [],
+                });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('post');
+            expect(DB.query).toHaveBeenCalledWith(
+                expect.stringContaining('INSERT INTO PostImage'),
+                expect.any(Array)
+            );
+        });
+
+        test('Should reject more than 10 images', async () => {
+            const tinyPng =
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+            const res = await request(app)
+                .post('/admin-panel/post/create')
+                .set('x-test-auth', testToken)
+                .send({
+                    title: 'Too Many Images',
+                    description: 'Too Many Images Description',
+                    priority: 'high',
+                    images: Array(11).fill(tinyPng),
+                    students: [1],
+                    groups: [],
+                });
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toBe('too_many_images');
         });
     });
 

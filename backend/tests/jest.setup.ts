@@ -29,6 +29,8 @@ process.env.PARENT_POOL_ID = 'test-parent-pool';
 process.env.PARENT_CLIENT_ID = 'test-parent-client';
 process.env.ADMIN_POOL_ID = 'test-admin-pool';
 process.env.ADMIN_CLIENT_ID = 'test-admin-client';
+process.env.STUDENT_POOL_ID = 'test-student-pool';
+process.env.STUDENT_CLIENT_ID = 'test-student-client';
 
 // Database (not used by smoke tests but required by config validation)
 process.env.DB_HOST = 'localhost';

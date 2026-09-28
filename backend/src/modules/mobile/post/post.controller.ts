@@ -29,19 +29,31 @@ export class MobilePostModuleController implements IController {
         this.router.post('/view/extended', verifyToken, this.viewExtended);
         this.router.get('/post/:post_id', verifyToken, this.getPostData);
 
-        this.router.post('/student/posts', verifyStudentToken, this.studentPosts);
+        this.router.post(
+            '/student/posts',
+            verifyStudentToken,
+            this.studentPosts
+        );
         this.router.get(
             '/student/posts/:id',
             verifyStudentToken,
             this.studentPost
         );
-        this.router.post('/student/view', verifyStudentToken, this.studentViewPost);
+        this.router.post(
+            '/student/view',
+            verifyStudentToken,
+            this.studentViewPost
+        );
         this.router.post(
             '/student/view/extended',
             verifyStudentToken,
             this.studentViewExtended
         );
-        this.router.get('/student/unread', verifyStudentToken, this.studentUnread);
+        this.router.get(
+            '/student/unread',
+            verifyStudentToken,
+            this.studentUnread
+        );
     }
 
     getPostData = async (
@@ -84,7 +96,7 @@ export class MobilePostModuleController implements IController {
 
             await mobilePostService.markPostViewedByPostId(post_id);
 
-            post[0].images = [];
+            post[0].images = post[0].images ?? [];
 
             return res
                 .status(200)
@@ -240,7 +252,8 @@ export class MobilePostModuleController implements IController {
                 studentId: req.user.id,
             });
 
-            post[0].images = post[0].image ? [post[0].image] : [];
+            post[0].images =
+                post[0].images ?? (post[0].image ? [post[0].image] : []);
 
             return res
                 .status(200)

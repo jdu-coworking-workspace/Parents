@@ -214,11 +214,18 @@
     "notSelected": "Not Selected",
     "chooseFile": "Choose File",
     "noFileChosen": "No file chosen",
+    "filesChosen": "{count} files chosen",
+    "tooManyImages": "You can upload up to {max} images",
+    "imageTooLarge": "Each image must be 10MB or smaller",
+    "imageUploadFailed": "Image upload failed",
     "selectDateTime": "Select date and time",
     "timesShownIn": "Times shown in {timeZone}",
     "sendMessageTo": "Send Message {audience}",
     "toParents": "to Parents",
-    "toStudents": "to Students"
+    "toStudents": "to Students",
+    "error": "Error",
+    "selectAtLeastOne": "Select at least one student or group",
+    "noTitleAvailable": "No title available"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "View Scheduled Message",

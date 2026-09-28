@@ -103,6 +103,71 @@ export class PostRepository {
     }
 
     /**
+     * Insert gallery images for a post. Insertion order is preserved via auto-increment id.
+     */
+    async insertImages(postId: number, imageUrls: string[]): Promise<void> {
+        if (imageUrls.length === 0) return;
+
+        const placeholders = imageUrls.map(() => '(?, ?)').join(', ');
+        const values = imageUrls.flatMap(imageUrl => [postId, imageUrl]);
+
+        await DB.query(
+            `INSERT INTO PostImage (post_id, image_url) VALUES ${placeholders}`,
+            values
+        );
+    }
+
+    /**
+     * Find gallery images for a post, ordered by insertion.
+     */
+    async findImagesByPostId(postId: number): Promise<string[]> {
+        const result = await DB.query(
+            `SELECT image_url FROM PostImage WHERE post_id = :post_id ORDER BY id ASC`,
+            { post_id: postId }
+        );
+
+        return (result as { image_url: string }[])
+            .map(row => row.image_url)
+            .filter(Boolean);
+    }
+
+    /**
+     * Find gallery images for many posts.
+     */
+    async findImagesByPostIds(
+        postIds: number[]
+    ): Promise<Map<number, string[]>> {
+        const imagesByPostId = new Map<number, string[]>();
+        if (postIds.length === 0) return imagesByPostId;
+
+        const result = await DB.query(
+            `SELECT post_id, image_url
+             FROM PostImage
+             WHERE post_id IN (:postIds)
+             ORDER BY id ASC`,
+            { postIds }
+        );
+
+        for (const row of result as { post_id: number; image_url: string }[]) {
+            const existing = imagesByPostId.get(row.post_id) ?? [];
+            existing.push(row.image_url);
+            imagesByPostId.set(row.post_id, existing);
+        }
+
+        return imagesByPostId;
+    }
+
+    /**
+     * Replace gallery images for a post.
+     */
+    async replaceImages(postId: number, imageUrls: string[]): Promise<void> {
+        await DB.execute('DELETE FROM PostImage WHERE post_id = :post_id', {
+            post_id: postId,
+        });
+        await this.insertImages(postId, imageUrls);
+    }
+
+    /**
      * Find post by ID with admin and read stats
      */
     async findByIdWithStats(
@@ -318,6 +383,32 @@ export class PostRepository {
         );
 
         return result;
+    }
+
+    /**
+     * Collect every stored image filename for posts (Post.image + PostImage).
+     */
+    async findAllImageNamesByPostIds(postIds: number[]): Promise<string[]> {
+        if (postIds.length === 0) return [];
+
+        const posts = await DB.query(
+            `SELECT image FROM Post WHERE id IN (:postIds)`,
+            { postIds }
+        );
+        const gallery = await DB.query(
+            `SELECT image_url FROM PostImage WHERE post_id IN (:postIds)`,
+            { postIds }
+        );
+
+        const names = new Set<string>();
+        for (const row of posts as { image: string | null }[]) {
+            if (row.image) names.add(row.image);
+        }
+        for (const row of gallery as { image_url: string }[]) {
+            if (row.image_url) names.add(row.image_url);
+        }
+
+        return Array.from(names);
     }
 
     /**

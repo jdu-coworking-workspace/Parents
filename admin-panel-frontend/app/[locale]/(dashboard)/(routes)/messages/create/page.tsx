@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import SendMessageConfirmDialog from "@/components/SendMessageConfirmDialog";
+import MessageImagePicker from "@/components/MessageImagePicker";
 import Group from "@/types/group";
 import { GroupTable } from "@/components/GroupTable";
 import Student from "@/types/student";
@@ -29,6 +30,7 @@ import { toast } from "@/components/ui/use-toast";
 import Post from "@/types/post";
 import useApiMutation from "@/lib/useApiMutation";
 import DraftsDialog, { DraftData } from "@/components/DraftsDialog";
+import { Send } from "lucide-react";
 import { ImagePlus, X, Send } from "lucide-react";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
@@ -38,6 +40,7 @@ import { DateTimePicker24h } from "@/components/DateTimePicker24h";
 import { Switch } from "@/components/ui/switch";
 import { postCreateSchema } from "@/lib/validationSchemas";
 import { useSearchParams } from "next/navigation";
+import { normalizePostImages } from "@/lib/postImages";
 import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 const formSchema = postCreateSchema;
@@ -70,6 +73,7 @@ interface CreatePostPayload {
   students: number[];
   groups: number[];
   image: string;
+  images: string[];
   scheduled_at?: string;
 }
 
@@ -89,13 +93,9 @@ export default function SendMessagePage() {
   const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
   const [draftsData, setDraftsData] = useState<DraftData[]>([]);
-  const [fileKey, setFileKey] = useState(0);
   const [shouldPersistForm, setShouldPersistForm] = useState(true);
-  const [imagePreview, setImagePreview] = useState<string>("");
   const [isImageUploading, setIsImageUploading] = useState(false);
-  const [fileName, setFileName] = useState<string>("");
   const formRef = React.useRef<HTMLFormElement>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
@@ -104,6 +104,7 @@ export default function SendMessagePage() {
       description: "",
       priority: "low",
       image: "",
+      images: [],
     },
   });
   const formValues = useWatch({ control: form.control });
@@ -124,9 +125,13 @@ export default function SendMessagePage() {
       setSelectedStudents([]);
       setSelectedGroups([]);
       clearFormPersistence();
-      form.reset();
-      setImagePreview("");
-      setFileKey((prev) => prev + 1);
+      form.reset({
+        title: "",
+        description: "",
+        priority: "low",
+        image: "",
+        images: [],
+      });
       router.push("/messages");
     },
   });
@@ -159,31 +164,17 @@ export default function SendMessagePage() {
         setSelectedStudents([]);
         setSelectedGroups([]);
         clearFormPersistence();
-        form.reset();
-        setImagePreview("");
-        setFileKey((prev) => prev + 1);
+        form.reset({
+          title: "",
+          description: "",
+          priority: "low",
+          image: "",
+          images: [],
+        });
         router.push("/messages?tab=scheduled");
       },
     }
   );
-  const uploadImageMutation = useApiMutation<
-    { image: string },
-    { image: string }
-  >(`post/image`, "POST", ["postImage"], {
-    onSuccess: (data) => {
-      form.setValue("image", data.image, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setImagePreview("");
-    },
-    onSettled: () => {
-      setIsImageUploading(false);
-      toast({
-        title: t("uploadImageFinished"),
-      });
-    },
-  });
 
   useEffect(() => {
     form.setValue("priority", priority);
@@ -198,7 +189,11 @@ export default function SendMessagePage() {
     }
 
     const subscription = form.watch((values) => {
-      const safeValues = { ...values, image: undefined };
+      const safeValues = {
+        ...values,
+        image: undefined,
+        images: undefined,
+      };
       localStorage.setItem("formDataMessages", JSON.stringify(safeValues));
     });
     return () => subscription.unsubscribe();
@@ -209,6 +204,13 @@ export default function SendMessagePage() {
     const parsedDrafts = draftsLocal ? JSON.parse(draftsLocal) : [];
     setDraftsData(parsedDrafts);
   }, []);
+
+  const syncImagesToForm = (images: string[]) => {
+    form.setValue("image", images[0] ?? "", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
 
   const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
     if (selectedStudents.length === 0 && selectedGroups.length === 0) {
@@ -221,6 +223,7 @@ export default function SendMessagePage() {
     if (isImageUploading) {
       return;
     }
+    const images = normalizePostImages(data.image, data.images);
     const payload = {
       title: data.title,
       description: data.description,
@@ -228,7 +231,8 @@ export default function SendMessagePage() {
       audience: audienceTab,
       students: selectedStudents.map((student) => student.id),
       groups: selectedGroups.map((group) => group.id),
-      image: data.image || "",
+      image: images[0] ?? "",
+      images,
     };
 
     if (scheduleEnabled) {
@@ -257,6 +261,7 @@ export default function SendMessagePage() {
   const handleSaveDraft = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     const data = form.getValues();
+    const images = normalizePostImages(data.image, data.images);
 
     const draftsLocal: DraftData[] = JSON.parse(
       localStorage.getItem("DraftsData") || "[]"
@@ -266,7 +271,8 @@ export default function SendMessagePage() {
       title: data.title,
       description: data.description,
       priority: data.priority,
-      image: data.image || "",
+      image: images[0] || "",
+      images,
       groups: selectedGroups as unknown as DraftData["groups"],
       students: selectedStudents as unknown as DraftData["students"],
     };
@@ -280,13 +286,12 @@ export default function SendMessagePage() {
 
     setSelectedStudents([]);
     setSelectedGroups([]);
-    setFileKey((prev) => prev + 1);
-    setImagePreview("");
     form.reset({
       title: "",
       description: "",
       priority: "low",
       image: "",
+      images: [],
     });
     toast({
       title: t("draftSaved"),
@@ -296,12 +301,23 @@ export default function SendMessagePage() {
   };
 
   const handleSelectedDraft = (draft: DraftData) => {
+    const images = normalizePostImages(
+      typeof draft.image === "string" && !draft.image.startsWith("data:")
+        ? draft.image
+        : "",
+      Array.isArray(draft.images)
+        ? draft.images.filter(
+            (item) => typeof item === "string" && !item.startsWith("data:")
+          )
+        : []
+    );
     const draftImage = typeof draft.image === "string" ? draft.image : "";
     form.reset({
       title: draft.title,
       description: draft.description,
       priority: (draft.priority as "high" | "medium" | "low") || "low",
-      image: draftImage,
+      image: images[0] ?? "",
+      images,
     });
 
     setFileKey((prev) => prev + 1);
@@ -309,13 +325,6 @@ export default function SendMessagePage() {
     setFileName("");
     setSelectedGroups((draft.groups as unknown as Group[]) || []);
     setSelectedStudents((draft.students as unknown as Student[]) || []);
-  };
-
-  const handleRemoveImg = () => {
-    form.setValue("image", "");
-    setImagePreview("");
-    setFileName("");
-    setFileKey((prev) => prev + 1);
   };
 
   return (
@@ -465,62 +474,19 @@ export default function SendMessagePage() {
           />
           <FormField
             control={form.control}
-            name="image"
-            render={() => (
+            name="images"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>{t("picture")}</FormLabel>
                 <FormControl>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      key={fileKey}
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setFileName(file.name);
-                          const reader = new FileReader();
-                          setIsImageUploading(true);
-                          reader.onloadend = () => {
-                            const result = reader.result;
-                            if (typeof result !== "string") {
-                              setIsImageUploading(false);
-                              return;
-                            }
-                            setImagePreview(result);
-                            form.setValue("image", "", {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            });
-                            uploadImageMutation.mutate(
-                              { image: result },
-                              {
-                                onError: () => {
-                                  setImagePreview("");
-                                },
-                              }
-                            );
-                          };
-                          reader.onerror = () => {
-                            setIsImageUploading(false);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {t("chooseFile")}
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      {fileName || t("noFileChosen")}
-                    </span>
-                  </div>
+                  <MessageImagePicker
+                    value={field.value ?? []}
+                    onChange={(images) => {
+                      field.onChange(images);
+                      syncImagesToForm(images);
+                    }}
+                    onUploadingChange={setIsImageUploading}
+                  />
                 </FormControl>
                 <FormMessage />
                 {(imagePreview || formValues.image) && (
@@ -597,8 +563,10 @@ export default function SendMessagePage() {
               description={formValues.description ?? ""}
               priority={formValues.priority}
               audience={audienceTab}
-              imagePreview={imagePreview}
-              imagePath={formValues.image}
+              images={normalizePostImages(
+                formValues.image,
+                formValues.images as string[] | undefined
+              )}
               scheduleEnabled={scheduleEnabled}
               scheduledAt={scheduledAt}
               selectedGroups={selectedGroups}

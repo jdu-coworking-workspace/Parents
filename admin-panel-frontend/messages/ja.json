@@ -213,11 +213,18 @@
     "notSelected": "選択されていません",
     "chooseFile": "ファイルを選択",
     "noFileChosen": "ファイルが選択されていません",
+    "filesChosen": "{count}件のファイルが選択されました",
+    "tooManyImages": "画像は最大{max}枚までアップロードできます",
+    "imageTooLarge": "各画像は10MB以下である必要があります",
+    "imageUploadFailed": "画像のアップロードに失敗しました",
     "selectDateTime": "日付と時間を選択",
     "timesShownIn": "表示時刻のタイムゾーン：{timeZone}",
     "sendMessageTo": "{audience}メッセージを送信する",
     "toParents": "保護者へ",
-    "toStudents": "学生へ"
+    "toStudents": "学生へ",
+    "error": "エラー",
+    "selectAtLeastOne": "少なくとも1人の生徒またはグループを選択してください",
+    "noTitleAvailable": "タイトルがありません"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "予約されたメッセージを見る",

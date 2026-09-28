@@ -13,5 +13,6 @@ export default interface postView {
     read_count: string;
     unread_count: string;
     image: string;
+    images?: string[];
   };
 }
