@@ -18,6 +18,7 @@ import Student from "@/types/student";
 import { cn } from "@/lib/utils";
 import localImageLoader from "@/lib/localImageLoader";
 import { getPostImageSrc } from "@/lib/postImages";
+import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 type PreviewAudienceTab = "student" | "parent";
 
