@@ -32,6 +32,16 @@ function decodeHtml(value: string) {
     .replace(/&#39;/g, "'");
 }
 
+function stripHtmlTagsSafely(value: string) {
+  let previous: string;
+  let current = value;
+  do {
+    previous = current;
+    current = current.replace(/<[^>]*>/g, "");
+  } while (current !== previous);
+  return current;
+}
+
 function parseDescription(content: string): DescriptionBlock[] {
   const blocks: DescriptionBlock[] = [];
   const pendingTextParts: TextPart[] = [];
@@ -44,7 +54,7 @@ function parseDescription(content: string): DescriptionBlock[] {
   let underlineDepth = 0;
 
   const appendText = (value: string) => {
-    const decoded = decodeHtml(value.replace(/<[^>]*>/g, ""));
+    const decoded = decodeHtml(stripHtmlTagsSafely(value));
     if (!decoded) return;
 
     const textPart: TextPart = {
