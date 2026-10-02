@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
@@ -168,6 +168,17 @@ export default function MessageImagePicker({
               />
             </div>
           ))}
+          {remainingSlots > 0 && (
+            <button
+              type="button"
+              disabled={uploadImageMutation.isPending}
+              onClick={() => fileInputRef.current?.click()}
+              className="h-[120px] w-[120px] rounded border-2 border-dashed border-border bg-muted/40 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Add more images"
+            >
+              <Plus className="h-8 w-8" />
+            </button>
+          )}
         </div>
       )}
     </div>

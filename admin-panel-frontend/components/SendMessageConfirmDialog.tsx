@@ -18,7 +18,7 @@ import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
 import localImageLoader from "@/lib/localImageLoader";
-import { getPostImageSrc } from "@/lib/getPostImageSrc";
+import { getPostImageSrc } from "@/lib/postImages";
 
 type PreviewAudienceTab = "student" | "parent";
 
@@ -64,10 +64,6 @@ function getPriorityBadgeClassName(priority?: string) {
     default:
       return "bg-muted text-foreground";
   }
-}
-
-function getConfirmImageSrc(image?: string): string {
-  return getPostImageSrc(image);
 }
 
 const MIN_VISIBLE_RECIPIENT_ROWS = 4;
@@ -231,14 +227,14 @@ export default function SendMessageConfirmDialog({
               />
             </div>
             {images.length > 0 && (
-              <div className="mt-4 flex flex-wrap justify-start gap-2">
+              <div className="mt-4 grid grid-cols-3 gap-2">
                 {images.map((image, index) => (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={`${image}-${index}`}
-                    src={getConfirmImageSrc(image)}
+                    src={getPostImageSrc(image)}
                     alt=""
-                    className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
+                    className="h-[116px] w-full rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px]"
                   />
                 ))}
               </div>
