@@ -23,13 +23,17 @@ type DescriptionBlock =
   | { type: 'image'; src: string };
 
 function decodeHtml(value: string) {
-  return value
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+  return value.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, entity => {
+    const entities: Record<string, string> = {
+      '&nbsp;': ' ',
+      '&amp;': '&',
+      '&lt;': '<',
+      '&gt;': '>',
+      '&quot;': '"',
+      '&#39;': "'",
+    };
+    return entities[entity] ?? entity;
+  });
 }
 
 function parseDescription(content: string): DescriptionBlock[] {
@@ -44,7 +48,7 @@ function parseDescription(content: string): DescriptionBlock[] {
   let underlineDepth = 0;
 
   const appendText = (value: string) => {
-    const decoded = decodeHtml(value.replace(/<[^>]*>/g, ''));
+    const decoded = decodeHtml(value);
     if (!decoded) return;
 
     const textPart: TextPart = {

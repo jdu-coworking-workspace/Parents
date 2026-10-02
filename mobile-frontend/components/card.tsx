@@ -22,17 +22,41 @@ import { useTheme } from '@rneui/themed';
 import { Colors, colors } from '@/constants/Colors';
 
 function getMessagePreview(content: string) {
-  return content
-    .replace(/<img\b[^>]*>/gi, '')
-    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+  const tagRegex =
+    /<img\b[^>]*\bsrc=["'][^"']*["'][^>]*>|<\/?[a-z][a-z0-9]*\b[^>]*>/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let text = '';
+
+  while ((match = tagRegex.exec(content))) {
+    text += content.slice(lastIndex, match.index);
+    const tag = match[0].toLowerCase();
+    if (
+      tag.startsWith('</p') ||
+      tag.startsWith('</div') ||
+      tag.startsWith('</li') ||
+      /^<\/h[1-6]\b/.test(tag) ||
+      /^<br\s*\/?\s*>/.test(tag)
+    ) {
+      text += '\n';
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  text += content.slice(lastIndex);
+
+  return text
+    .replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, entity => {
+      const entities: Record<string, string> = {
+        '&nbsp;': ' ',
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#39;': "'",
+      };
+      return entities[entity] ?? entity;
+    })
     .replace(/\s+/g, ' ')
     .trim();
 }
