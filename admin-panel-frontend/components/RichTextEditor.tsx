@@ -2,27 +2,91 @@
 
 import React, { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
+import { mergeAttributes, Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import {
+  Bold as BoldIcon,
+  Image as ImageIcon,
+  Italic as ItalicIcon,
+  Loader2,
+  Underline as UnderlineIcon,
+} from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast";
+import { apiClient } from "@/lib/apiClient";
+import {
+  MAX_IMAGE_BYTES,
+  getPostImageSrc,
+  readFileAsDataUrl,
+} from "@/lib/postImages";
+
+const DescriptionImage = Node.create({
+  name: "descriptionImage",
+  group: "block",
+  atom: true,
+  draggable: true,
+  selectable: true,
+
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+      },
+      alt: {
+        default: "",
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: "img[src]" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "img",
+      mergeAttributes(HTMLAttributes, {
+        src: getPostImageSrc(HTMLAttributes.src),
+        class: "max-w-full rounded-md border object-contain",
+      }),
+    ];
+  },
+});
 
 interface RichTextEditorProps {
   value: string; // Controlled value
   onChange: (value: string) => void; // Change handler
   modules?: Record<string, unknown>; // Optional modules for customization
+  onUploadingChange?: (uploading: boolean) => void;
+  enableImages?: boolean;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   modules: _modules,
+  onUploadingChange,
+  enableImages = false,
 }) => {
+  const { data: session } = useSession();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+
+  const setUploading = (uploading: boolean) => {
+    setIsUploading(uploading);
+    onUploadingChange?.(uploading);
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
+      ...(enableImages ? [DescriptionImage] : []),
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -36,6 +100,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    editorProps: {
+      handlePaste: (_view, event) => {
+        if (!enableImages) return false;
+
+        const files = Array.from(event.clipboardData?.files ?? []).filter(
+          (file) => file.type.startsWith("image/")
+        );
+
+        if (files.length === 0) return false;
+
+        event.preventDefault();
+        void uploadDescriptionImages(files);
+        return true;
+      },
+    },
   });
 
   useEffect(() => {
@@ -46,67 +125,125 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [editor, value]);
 
-  const setLink = () => {
-    if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("URL", previousUrl || "");
+  const insertImage = (src: string) => {
+    editor
+      ?.chain()
+      .focus()
+      .insertContent({ type: "descriptionImage", attrs: { src } })
+      .run();
+  };
 
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+  const uploadDescriptionImages = async (files: File[]) => {
+    if (!enableImages || !editor || files.length === 0) return;
+
+    const oversized = files.some((file) => file.size > MAX_IMAGE_BYTES);
+    if (oversized) {
+      toast({
+        title: "Error",
+        description: "Image size should be less than 10MB",
+      });
       return;
     }
 
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    try {
+      setUploading(true);
+      const images = await Promise.all(files.map(readFileAsDataUrl));
+      const data = await apiClient<{ image?: string; images?: string[] }>({
+        endpoint: "post/image",
+        method: "POST",
+        token: session?.sessionToken,
+        body: { images },
+      });
+      const uploadedImages = Array.isArray(data.images)
+        ? data.images.filter(Boolean)
+        : data.image
+          ? [data.image]
+          : [];
+
+      uploadedImages.forEach(insertImage);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Image upload failed",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []).filter((file) =>
+      file.type.startsWith("image/")
+    );
+    event.target.value = "";
+    void uploadDescriptionImages(files);
   };
 
   return (
     <div className="rounded-md border bg-background">
       <div className="flex flex-wrap gap-2 border-b p-2">
+        {enableImages && (
+          <Input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFilesSelected}
+          />
+        )}
         <Button
           type="button"
           size="sm"
           variant={editor?.isActive("bold") ? "default" : "outline"}
+          aria-label="Bold"
+          title="Bold"
           onClick={() => editor?.chain().focus().toggleBold().run()}
         >
-          Bold
+          <BoldIcon className="h-4 w-4" />
         </Button>
         <Button
           type="button"
           size="sm"
           variant={editor?.isActive("italic") ? "default" : "outline"}
+          aria-label="Italic"
+          title="Italic"
           onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
-          Italic
+          <ItalicIcon className="h-4 w-4" />
         </Button>
         <Button
           type="button"
           size="sm"
           variant={editor?.isActive("underline") ? "default" : "outline"}
+          aria-label="Underline"
+          title="Underline"
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
         >
-          Underline
+          <UnderlineIcon className="h-4 w-4" />
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={editor?.isActive("link") ? "default" : "outline"}
-          onClick={setLink}
-        >
-          Link
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            editor?.chain().focus().unsetAllMarks().clearNodes().run()
-          }
-        >
-          Clear
-        </Button>
+        {enableImages && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={isUploading}
+            aria-label="Image"
+            title="Image"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImageIcon className="h-4 w-4" />
+            )}
+          </Button>
+        )}
       </div>
-      <EditorContent editor={editor} className="min-h-[160px] p-3" />
+      <EditorContent
+        editor={editor}
+        className="min-h-[160px] p-3 [&_.ProseMirror]:min-h-[140px] [&_.ProseMirror]:outline-none [&_.ProseMirror_img]:my-3 [&_.ProseMirror_img]:max-h-[360px]"
+      />
     </div>
   );
 };

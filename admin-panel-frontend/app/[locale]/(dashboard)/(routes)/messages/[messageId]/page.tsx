@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,10 +14,7 @@ import { usePathname, Link } from "@/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import postView from "@/types/postView";
 import { Button } from "@/components/ui/button";
-import StudentApi, {
-  MessageStudent,
-  MessageStudentApi,
-} from "@/types/studentApi";
+import { MessageStudent, MessageStudentApi } from "@/types/studentApi";
 import { Bell, Check, CheckCheck, Edit3Icon } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
@@ -35,8 +32,8 @@ import TableApi from "@/components/TableApi";
 import React, { useState } from "react";
 import NotFound from "@/components/NotFound";
 import { useListQuery } from "@/lib/useListQuery";
-import ReactLinkify from "react-linkify";
 import PostImageGallery from "@/components/PostImageGallery";
+import PostDescriptionContent from "@/components/PostDescriptionContent";
 import { normalizePostImages } from "@/lib/postImages";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
@@ -176,10 +173,7 @@ export default function ThisMessage({
 
   const edited_atDate = formatDateTime(data?.post?.edited_at ?? "");
   const sent_atDate = formatDateTime(data?.post?.sent_at ?? "");
-  const postImages = normalizePostImages(
-    data?.post?.image,
-    data?.post?.images
-  );
+  const postImages = normalizePostImages(data?.post?.image, data?.post?.images);
 
   if (isError && isStudentError) return <NotFound />;
 
@@ -197,9 +191,10 @@ export default function ThisMessage({
           <CardTitle className="text-xl w-2/4 font-bold break-words">
             {data?.post?.title}
           </CardTitle>
-          <CardDescription className="whitespace-pre-wrap break-words">
-            <ReactLinkify>{data?.post?.description}</ReactLinkify>
-          </CardDescription>
+          <PostDescriptionContent
+            description={data?.post?.description}
+            className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground"
+          />
           {postImages.length > 0 && (
             <PostImageGallery
               images={postImages}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import useDateFormatter from "@/lib/useDateFormatter";
 import TableApi from "@/components/TableApi";
 import NotFound from "@/components/NotFound";
 import { useListQuery } from "@/lib/useListQuery";
-import ReactLinkify from "react-linkify";
+import PostDescriptionContent from "@/components/PostDescriptionContent";
 import Image from "next/image";
 import { Dialog, DialogDescription } from "@radix-ui/react-dialog";
 import {
@@ -123,9 +123,10 @@ export default function ScheduledMessagePage({
           <CardTitle className="text-xl w-2/4 font-bold">
             {data?.post?.title}
           </CardTitle>
-          <CardDescription className="whitespace-pre-wrap">
-            <ReactLinkify>{data?.post?.description}</ReactLinkify>
-          </CardDescription>
+          <PostDescriptionContent
+            description={data?.post?.description}
+            className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground"
+          />
           {data?.post?.image && (
             <div className="my-2">
               <Dialog>

@@ -2,7 +2,7 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/RichTextEditor";
 import {
   Form,
   FormControl,
@@ -151,7 +151,12 @@ export default function SendMessagePage({
               <FormItem>
                 <FormLabel>{t("yourMessage")}</FormLabel>
                 <FormControl>
-                  <Textarea placeholder={t("typeMessage")} {...field} />
+                  <RichTextEditor
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onUploadingChange={setIsImageUploading}
+                    enableImages
+                  />
                 </FormControl>
                 <FormMessage>
                   {formState.errors.description &&

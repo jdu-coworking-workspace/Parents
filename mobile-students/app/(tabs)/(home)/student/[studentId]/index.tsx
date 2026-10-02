@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
@@ -8,66 +8,116 @@ import {
   ScrollView,
   StyleSheet,
   View,
-} from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { DateTime } from 'luxon';
+} from "react-native";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { DateTime } from "luxon";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { BrandColors, Colors, colors } from '@/constants/theme';
-import { I18nContext } from '@/contexts/i18n-context';
-import { useMessageContext } from '@/contexts/message-context';
-import { fetchStudentMessages, fetchStudentUnreadCount } from '@/services/student-messages';
-import type { Message } from '@/types/message';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BrandColors, Colors, colors } from "@/constants/theme";
+import { I18nContext } from "@/contexts/i18n-context";
+import { useMessageContext } from "@/contexts/message-context";
+import {
+  fetchStudentMessages,
+  fetchStudentUnreadCount,
+} from "@/services/student-messages";
+import type { Message } from "@/types/message";
 
 const PAGE_SIZE = 5;
 
-function mergeIncomingMessages(prev: Message[], incoming: Message[]): Message[] {
+function mergeIncomingMessages(
+  prev: Message[],
+  incoming: Message[],
+): Message[] {
   if (prev.length === 0) {
     return incoming;
   }
 
-  const prevIds = new Set(prev.map(message => message.id));
-  const incomingById = new Map(incoming.map(message => [message.id, message]));
+  const prevIds = new Set(prev.map((message) => message.id));
+  const incomingById = new Map(
+    incoming.map((message) => [message.id, message]),
+  );
 
-  const newMessages = incoming.filter(message => !prevIds.has(message.id));
-  const updatedPrev = prev.map(message => incomingById.get(message.id) ?? message);
+  const newMessages = incoming.filter((message) => !prevIds.has(message.id));
+  const updatedPrev = prev.map(
+    (message) => incomingById.get(message.id) ?? message,
+  );
 
   return [...newMessages, ...updatedPrev];
 }
 
+function getMessagePreview(content: string) {
+  const tagRegex =
+    /<img\b[^>]*\bsrc=["'][^"']*["'][^>]*>|<\/?[a-z][a-z0-9]*\b[^>]*>/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let text = "";
+
+  while ((match = tagRegex.exec(content))) {
+    text += content.slice(lastIndex, match.index);
+    const tag = match[0].toLowerCase();
+    if (
+      tag.startsWith("</p") ||
+      tag.startsWith("</div") ||
+      tag.startsWith("</li") ||
+      /^<\/h[1-6]\b/.test(tag) ||
+      /^<br\s*\/?\s*>/.test(tag)
+    ) {
+      text += "\n";
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  text += content.slice(lastIndex);
+
+  return text
+    .replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, (entity) => {
+      const entities: Record<string, string> = {
+        "&nbsp;": " ",
+        "&amp;": "&",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&quot;": '"',
+        "&#39;": "'",
+      };
+      return entities[entity] ?? entity;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getImportanceLabel(
-  priority: Message['priority'],
-  t: (k: any) => string
+  priority: Message["priority"],
+  t: (k: any) => string,
 ) {
-  if (priority === 'high') return t('critical');
-  if (priority === 'medium') return t('important');
-  return t('ordinary');
+  if (priority === "high") return t("critical");
+  if (priority === "medium") return t("important");
+  return t("ordinary");
 }
 
 function getImportanceBadgeStyle(
-  priority: Message['priority'],
-  isRead: boolean
+  priority: Message["priority"],
+  isRead: boolean,
 ) {
   const baseStyle = {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 15,
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     opacity: isRead ? 0.6 : 1,
   };
 
   switch (priority) {
-    case 'high':
-      return { ...baseStyle, backgroundColor: 'red' };
-    case 'medium':
-      return { ...baseStyle, backgroundColor: 'orange' };
-    case 'low':
-      return { ...baseStyle, backgroundColor: 'green' };
+    case "high":
+      return { ...baseStyle, backgroundColor: "red" };
+    case "medium":
+      return { ...baseStyle, backgroundColor: "orange" };
+    case "low":
+      return { ...baseStyle, backgroundColor: "green" };
     default:
       return baseStyle;
   }
@@ -75,7 +125,7 @@ function getImportanceBadgeStyle(
 
 export default function StudentMessagesScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
   const backgroundColor = Colors[colorScheme].background;
   const { t } = useContext(I18nContext);
   const { studentId } = useLocalSearchParams<{
@@ -117,7 +167,7 @@ export default function StudentMessagesScreen() {
         setUnreadCount(count);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.error("Error fetching unread count:", error);
     }
   }, [setUnreadCount]);
 
@@ -169,11 +219,11 @@ export default function StudentMessagesScreen() {
           return;
         }
 
-        setMessages(prev => {
+        setMessages((prev) => {
           if (loadMore) {
-            const existingIds = new Set(prev.map(message => message.id));
+            const existingIds = new Set(prev.map((message) => message.id));
             const nextMessages = fetched.filter(
-              message => !existingIds.has(message.id)
+              (message) => !existingIds.has(message.id),
             );
             return [...prev, ...nextMessages];
           }
@@ -190,7 +240,7 @@ export default function StudentMessagesScreen() {
         }
         setIsError(false);
       } catch (error) {
-        console.error('Error loading student messages:', error);
+        console.error("Error loading student messages:", error);
         if (isMountedRef.current && !silent) {
           setIsError(true);
         }
@@ -203,18 +253,18 @@ export default function StudentMessagesScreen() {
         }
       }
     },
-    []
+    [],
   );
 
   const syncInbox = useCallback(
-  async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (silent && isFetchingRef.current) {
-      return;
-    }
-    await loadMessages({ refresh: true, silent });
-    await refreshUnreadCount();
-  },
-    [loadMessages, refreshUnreadCount]
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (silent && isFetchingRef.current) {
+        return;
+      }
+      await loadMessages({ refresh: true, silent });
+      await refreshUnreadCount();
+    },
+    [loadMessages, refreshUnreadCount],
   );
 
   useFocusEffect(
@@ -230,7 +280,7 @@ export default function StudentMessagesScreen() {
       };
 
       void initLoad();
-    }, [loadMessages, refreshUnreadCount])
+    }, [loadMessages, refreshUnreadCount]),
   );
 
   // Push / AppState / new unread → merge newest messages, keep loaded pages
@@ -255,28 +305,28 @@ export default function StudentMessagesScreen() {
       };
 
       const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        onBackPress
+        "hardwareBackPress",
+        onBackPress,
       );
 
       return () => {
         backHandler.remove();
       };
-    }, [])
+    }, []),
   );
 
   const handleOpenMessage = (message: Message) => {
     if (!message.viewed_at) {
       readButNotSentMessageIDs.current = Array.from(
-        new Set([...readButNotSentMessageIDs.current, message.id])
+        new Set([...readButNotSentMessageIDs.current, message.id]),
       );
 
-      setMessages(prev =>
-        prev.map(item =>
+      setMessages((prev) =>
+        prev.map((item) =>
           item.id === message.id
             ? { ...item, viewed_at: item.viewed_at ?? message.sent_time }
-            : item
-        )
+            : item,
+        ),
       );
 
       // Optimistically decrement unread count
@@ -284,9 +334,9 @@ export default function StudentMessagesScreen() {
     }
 
     router.push({
-      pathname: '/(tabs)/(home)/student/[studentId]/message/[id]',
+      pathname: "/(tabs)/(home)/student/[studentId]/message/[id]",
       params: {
-        studentId: studentId ?? '',
+        studentId: studentId ?? "",
         id: String(message.id),
       },
     });
@@ -296,7 +346,7 @@ export default function StudentMessagesScreen() {
     return (
       <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
         <ActivityIndicator size="large" color={BrandColors[colorScheme]} />
-        <ThemedText style={styles.loadingText}>{t('loading')}</ThemedText>
+        <ThemedText style={styles.loadingText}>{t("loading")}</ThemedText>
       </ThemedView>
     );
   }
@@ -305,20 +355,22 @@ export default function StudentMessagesScreen() {
     return (
       <ThemedView style={[styles.centeredContainer, { backgroundColor }]}>
         <ThemedText style={styles.errorText}>
-          {t('errorLoadingMessages')}
+          {t("errorLoadingMessages")}
         </ThemedText>
         <Pressable
           style={styles.retryButton}
           onPress={() => void loadMessages({ refresh: true })}
         >
-          <ThemedText style={styles.retryButtonText}>{t('tryAgain')}</ThemedText>
+          <ThemedText style={styles.retryButtonText}>
+            {t("tryAgain")}
+          </ThemedText>
         </Pressable>
       </ThemedView>
     );
   }
 
   if (messages.length === 0) {
-    const iconColor = colorScheme === 'dark' ? '#FFFFFF' : '#3B81F6';
+    const iconColor = colorScheme === "dark" ? "#FFFFFF" : "#3B81F6";
 
     return (
       <ThemedView style={[styles.container, { backgroundColor }]}>
@@ -334,47 +386,55 @@ export default function StudentMessagesScreen() {
         >
           <View style={styles.noMessagesIllustration}>
             <Image
-              source={require('@/assets/images/parentandchildren.png')}
+              source={require("@/assets/images/parentandchildren.png")}
               style={styles.illustrationImage}
             />
           </View>
 
-          <ThemedText style={styles.emptyTitle}>{t('noMessagesYet')}</ThemedText>
+          <ThemedText style={styles.emptyTitle}>
+            {t("noMessagesYet")}
+          </ThemedText>
           <ThemedText style={styles.emptyDescription}>
-            {t('noMessagesDescription')}
+            {t("noMessagesDescription")}
           </ThemedText>
 
           <Pressable
-  style={({ pressed }) => [
-    styles.refreshButtonContainer,
-    isRefreshing && styles.refreshButtonContainerLoading,
-    {
-      backgroundColor: isRefreshing
-        ? (colorScheme === 'dark' ? '#2563EB' : 'rgba(59, 129, 246, 0.05)')
-        : (colorScheme === 'dark' ? '#3B81F6' : '#3B81F61A'),
-      opacity: pressed && !isRefreshing ? 0.7 : 1,
-    },
-  ]}
-  android_ripple={{ color: '#3B81F633' }}
-  disabled={isRefreshing}
-  onPress={() => void loadMessages({ refresh: true })}
->
-  {isRefreshing ? (
-    <ActivityIndicator size="small" color={iconColor} />
-  ) : (
-    <>
-      <Ionicons
-        name="refresh-outline"
-        size={20}
-        color={iconColor}
-        style={{ marginRight: 8 }}
-      />
-      <ThemedText style={[styles.refreshButtonText, { color: iconColor }]}>
-        {t('refresh')}
-      </ThemedText>
-    </>
-  )}
-</Pressable>
+            style={({ pressed }) => [
+              styles.refreshButtonContainer,
+              isRefreshing && styles.refreshButtonContainerLoading,
+              {
+                backgroundColor: isRefreshing
+                  ? colorScheme === "dark"
+                    ? "#2563EB"
+                    : "rgba(59, 129, 246, 0.05)"
+                  : colorScheme === "dark"
+                    ? "#3B81F6"
+                    : "#3B81F61A",
+                opacity: pressed && !isRefreshing ? 0.7 : 1,
+              },
+            ]}
+            android_ripple={{ color: "#3B81F633" }}
+            disabled={isRefreshing}
+            onPress={() => void loadMessages({ refresh: true })}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color={iconColor} />
+            ) : (
+              <>
+                <Ionicons
+                  name="refresh-outline"
+                  size={20}
+                  color={iconColor}
+                  style={{ marginRight: 8 }}
+                />
+                <ThemedText
+                  style={[styles.refreshButtonText, { color: iconColor }]}
+                >
+                  {t("refresh")}
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
         </ScrollView>
       </ThemedView>
     );
@@ -396,21 +456,26 @@ export default function StudentMessagesScreen() {
           />
         }
       >
-        {messages.map(message => {
+        {messages.map((message) => {
           const isRead = !!message.viewed_at;
+          const messagePreview = getMessagePreview(message.content);
           const sentTimeString = message.sent_time;
           const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
           // Handle both ISO format (demo data) and database format (regular data)
           let utcDateTime;
-          if (sentTimeString.includes('T')) {
+          if (sentTimeString.includes("T")) {
             // ISO format: 2025-08-30T10:30:00Z
-            utcDateTime = DateTime.fromISO(sentTimeString, { zone: 'utc' });
+            utcDateTime = DateTime.fromISO(sentTimeString, { zone: "utc" });
           } else {
             // Database format: 2025-08-30 10:30
-            utcDateTime = DateTime.fromFormat(sentTimeString, 'yyyy-MM-dd HH:mm', {
-              zone: 'utc',
-            });
+            utcDateTime = DateTime.fromFormat(
+              sentTimeString,
+              "yyyy-MM-dd HH:mm",
+              {
+                zone: "utc",
+              },
+            );
           }
           const localDateTime = utcDateTime.setZone(userTimeZone);
 
@@ -422,12 +487,12 @@ export default function StudentMessagesScreen() {
                 styles.card,
                 {
                   backgroundColor:
-                    colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
+                    colorScheme === "dark" ? "#1C1C1E" : "#FFFFFF",
                   borderColor: !isRead
                     ? BrandColors[colorScheme]
-                    : colorScheme === 'dark'
-                      ? '#2C2C2E'
-                      : '#E5E5EA',
+                    : colorScheme === "dark"
+                      ? "#2C2C2E"
+                      : "#E5E5EA",
                   borderWidth: !isRead ? 1.5 : 1,
                 },
               ]}
@@ -462,7 +527,7 @@ export default function StudentMessagesScreen() {
                 ellipsizeMode="tail"
                 style={[styles.preview, isRead && styles.readOpacity]}
               >
-                {message.content}
+                {messagePreview}
               </ThemedText>
 
               <View style={styles.bottomRow}>
@@ -471,18 +536,18 @@ export default function StudentMessagesScreen() {
                     style={[
                       styles.date,
                       {
-                        color: colorScheme === 'dark' ? '#8E8E93' : '#666666',
+                        color: colorScheme === "dark" ? "#8E8E93" : "#666666",
                       },
                       isRead && styles.readOpacity,
                     ]}
                   >
-                    {localDateTime.toFormat('dd.MM.yyyy   HH:mm')}
+                    {localDateTime.toFormat("dd.MM.yyyy   HH:mm")}
                   </ThemedText>
 
                   <Ionicons
-                    name={isRead ? 'checkmark-done' : 'checkmark'}
+                    name={isRead ? "checkmark-done" : "checkmark"}
                     size={16}
-                    color={colorScheme === 'dark' ? '#0A84FF' : '#2089dc'}
+                    color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
                     style={{ opacity: isRead ? 1 : 0.8 }}
                   />
                 </View>
@@ -495,16 +560,16 @@ export default function StudentMessagesScreen() {
                     style={[
                       styles.readMoreText,
                       {
-                        color: colorScheme === 'dark' ? '#0A84FF' : '#2089dc',
+                        color: colorScheme === "dark" ? "#0A84FF" : "#2089dc",
                       },
                     ]}
                   >
-                    {t('continueReading')}
+                    {t("continueReading")}
                   </ThemedText>
                   <Ionicons
                     name="chevron-forward"
                     size={16}
-                    color={colorScheme === 'dark' ? '#0A84FF' : '#2089dc'}
+                    color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
                     style={{ marginLeft: 4 }}
                   />
                 </Pressable>
@@ -526,7 +591,7 @@ export default function StudentMessagesScreen() {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <ThemedText style={styles.loadMoreText}>
-                {t('loadMoreMessages')}
+                {t("loadMoreMessages")}
               </ThemedText>
             )}
           </Pressable>
@@ -542,26 +607,26 @@ const styles = StyleSheet.create({
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
   },
   noMessagesContent: {
     flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    alignItems: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: 40,
     paddingTop: 56,
   },
   noMessagesIllustration: {
     marginBottom: 4,
-    alignItems: 'center',
-    width: '100%',
+    alignItems: "center",
+    width: "100%",
   },
   illustrationImage: {
-  width: '100%',
-  height: 250,
-  resizeMode: 'contain',
+    width: "100%",
+    height: 250,
+    resizeMode: "contain",
   },
   content: {
     paddingBottom: 24,
@@ -571,37 +636,37 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 9,
   },
   emptyDescription: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
     opacity: 0.7,
     marginBottom: 40,
   },
   retryButton: {
-    backgroundColor: '#005678',
+    backgroundColor: "#005678",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 16,
   },
   refreshButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     height: 47.67,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -614,7 +679,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   refreshButtonText: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 16,
   },
   card: {
@@ -623,10 +688,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minHeight: 50,
     zIndex: 1,
-    position: 'relative',
+    position: "relative",
     marginHorizontal: 15,
     marginTop: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -636,37 +701,37 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 5,
     marginRight: 15,
-    width: '100%',
+    width: "100%",
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   title: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     flex: 1,
     marginRight: 20,
   },
   groupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 5,
     gap: 10,
   },
   groupBadge: {
     backgroundColor: colors.success,
-    color: 'white',
+    color: "white",
     padding: 5,
     borderRadius: 5,
     fontSize: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   preview: {
     fontSize: 16,
@@ -675,31 +740,31 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    fontWeight: '300',
+    fontWeight: "300",
   },
   readOpacity: {
     opacity: 0.6,
   },
   dateAndStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 10,
     gap: 10,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   readMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 'auto',
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
   },
   readMoreText: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 33 / 2,
   },
   loadMoreButton: {
@@ -707,15 +772,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#005678',
+    alignItems: "center",
+    backgroundColor: "#005678",
   },
   loadMoreButtonDisabled: {
     opacity: 0.8,
   },
   loadMoreText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 16,
   },
 });

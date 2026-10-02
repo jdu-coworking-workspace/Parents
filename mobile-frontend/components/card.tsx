@@ -21,6 +21,46 @@ import { useFontSize } from '@/contexts/FontSizeContext';
 import { useTheme } from '@rneui/themed';
 import { Colors, colors } from '@/constants/Colors';
 
+function getMessagePreview(content: string) {
+  const tagRegex =
+    /<img\b[^>]*\bsrc=["'][^"']*["'][^>]*>|<\/?[a-z][a-z0-9]*\b[^>]*>/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let text = ''; 
+
+  while ((match = tagRegex.exec(content))) {
+    text += content.slice(lastIndex, match.index);
+    const tag = match[0].toLowerCase();
+    if (
+      tag.startsWith('</p') ||
+      tag.startsWith('</div') ||
+      tag.startsWith('</li') ||
+      /^<\/h[1-6]\b/.test(tag) ||
+      /^<br\s*\/?\s*>/.test(tag)
+    ) {
+      text += '\n';
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  text += content.slice(lastIndex);
+
+  return text
+    .replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, entity => {
+      const entities: Record<string, string> = {
+        '&nbsp;': ' ',
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#39;': "'",
+      };
+      return entities[entity] ?? entity;
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const Card = ({
   messageGroup,
   studentId,
@@ -35,6 +75,7 @@ const Card = ({
   // const isRead = message.read_status === 1 || !!message.viewed_at // Derive directly from prop
   const textColor = useThemeColor({}, 'text');
   const firstMessage = messageGroup[0];
+  const messagePreview = getMessagePreview(firstMessage.content);
   const groupNames = [
     ...new Set(messageGroup.map(m => m.group_name).filter(Boolean)),
   ];
@@ -175,7 +216,7 @@ const Card = ({
             email
             hashtag='instagram'
             mention='instagram'
-            text={firstMessage.content}
+            text={messagePreview}
             numberOfLines={2}
             style={autolinkStyles}
             textProps={{ style: autolinkStyles }}

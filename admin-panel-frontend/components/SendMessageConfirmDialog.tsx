@@ -13,11 +13,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import PostDescriptionContent from "@/components/PostDescriptionContent";
 import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
 import localImageLoader from "@/lib/localImageLoader";
-import { getPostImageSrc } from "@/lib/postImages";
 import { getPostImageSrc } from "@/lib/getPostImageSrc";
 
 type PreviewAudienceTab = "student" | "parent";
@@ -189,7 +189,9 @@ export default function SendMessageConfirmDialog({
   const t = useTranslations("sendmessage");
   const locale = useLocale();
 
-  const priorityLabel = priority ? t(priority as "high" | "medium" | "low") : "";
+  const priorityLabel = priority
+    ? t(priority as "high" | "medium" | "low")
+    : "";
   const audienceTab: PreviewAudienceTab =
     audience === "students" ? "student" : "parent";
   const selectedGroupCount = selectedGroups.length;
@@ -211,26 +213,27 @@ export default function SendMessageConfirmDialog({
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row">
           {/* Left: post summary */}
           <div className="flex w-full min-w-0 shrink-0 flex-col border-b border-border px-4 py-5 sm:px-6 sm:py-7 md:min-h-0 md:w-1/2 md:overflow-y-auto md:border-b-0 md:border-r md:py-5 lg:px-6">
-            <AudienceToggle
-              activeTab={audienceTab}
-              className="mb-2 sm:mb-3"
-            />
+            <AudienceToggle activeTab={audienceTab} className="mb-2 sm:mb-3" />
             {title ? (
               <h3 className="mt-0 shrink-0 break-words px-2 text-center text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl md:text-[2rem]">
                 {title}
               </h3>
             ) : null}
-            <div className={cn("w-full space-y-3", title ? "mt-5 sm:mt-6" : "mt-4")}>
-              <textarea
-                readOnly
-                rows={4}
-                value={description}
-                className="min-h-[120px] w-full resize-none rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-sm leading-relaxed text-foreground outline-none dark:border-zinc-700/70 dark:bg-zinc-800/50 sm:min-h-[140px] sm:px-4 sm:py-3.5 sm:text-base"
+            <div
+              className={cn(
+                "w-full space-y-3",
+                title ? "mt-5 sm:mt-6" : "mt-4"
+              )}
+            >
+              <PostDescriptionContent
+                description={description}
+                className="min-h-[120px] w-full rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-sm text-foreground dark:border-zinc-700/70 dark:bg-zinc-800/50 sm:min-h-[140px] sm:px-4 sm:py-3.5 sm:text-base"
               />
             </div>
             {images.length > 0 && (
               <div className="mt-4 flex flex-wrap justify-start gap-2">
                 {images.map((image, index) => (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={`${image}-${index}`}
                     src={getConfirmImageSrc(image)}
@@ -259,7 +262,9 @@ export default function SendMessageConfirmDialog({
               )}
               {scheduleEnabled && scheduledAt ? (
                 <p className="max-w-full justify-self-center text-center text-[10px] leading-snug text-muted-foreground sm:text-xs">
-                  <span className="font-medium text-foreground">{t("scheduledAt")}:</span>
+                  <span className="font-medium text-foreground">
+                    {t("scheduledAt")}:
+                  </span>
                   <br />
                   {scheduledAt
                     .toLocaleString(locale, {
