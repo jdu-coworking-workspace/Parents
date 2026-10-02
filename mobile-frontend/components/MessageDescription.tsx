@@ -44,7 +44,7 @@ function parseDescription(content: string): DescriptionBlock[] {
   let underlineDepth = 0;
 
   const appendText = (value: string) => {
-    const decoded = decodeHtml(value.replace(/<[^>]*>/g, ''));
+    const decoded = decodeHtml(value.replace(/[<>]/g, ''));
     if (!decoded) return;
 
     const textPart: TextPart = {
