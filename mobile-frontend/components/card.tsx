@@ -26,7 +26,7 @@ function getMessagePreview(content: string) {
     /<img\b[^>]*\bsrc=["'][^"']*["'][^>]*>|<\/?[a-z][a-z0-9]*\b[^>]*>/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
-  let text = '';
+  let text = ''; 
 
   while ((match = tagRegex.exec(content))) {
     text += content.slice(lastIndex, match.index);

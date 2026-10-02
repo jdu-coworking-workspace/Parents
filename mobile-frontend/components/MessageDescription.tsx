@@ -53,7 +53,7 @@ function parseDescription(content: string): DescriptionBlock[] {
 
     const textPart: TextPart = {
       type: 'text',
-      value: decoded,
+      value: decoded, 
       bold: boldDepth > 0,
       italic: italicDepth > 0,
       underline: underlineDepth > 0,

@@ -31,7 +31,7 @@ function decodeHtml(value: string) {
       "&gt;": ">",
       "&quot;": '"',
       "&#39;": "'",
-    };
+    }; 
     return entities[entity] ?? entity;
   });
 }
