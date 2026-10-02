@@ -947,6 +947,7 @@
     "postsDeleted": "Postlar o'chirildi",
     "postsDeletedDescription": "Postlar muvaffaqiyatli o'chirildi",
     "postsUploaded": "Postlar yuklandi",
+    "postsUploadedWithWarnings": "Postlar ogohlantirishlar bilan yuklandi",
     "csvFile": "CSV fayli",
     "invalid_email": "Noto‘g‘ri email",
     "invalid_phone_number": "Noto‘g‘ri telefon raqami",
