@@ -18,7 +18,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import HttpError from "@/lib/HttpError";
 import { useSession } from "next-auth/react";
-import { getPostImageSrc } from "@/lib/getPostImageSrc";
+import ImageLightbox from "@/components/ImageLightbox";
 
 interface DraftDataStudent {
   id: number;
@@ -260,29 +260,20 @@ export default function DraftsDialog({
               {selectedDraft?.images && selectedDraft.images.length > 0 ? (
                 <div className="flex flex-wrap gap-2 justify-start">
                   {selectedDraft.images.map((image, index) => (
-                    <div key={`${image}-${index}`} className="border">
-                      <Image
-                        src={image.startsWith("/") ? image : `/${image}`}
-                        width={150}
-                        height={100}
-                        alt={selectedDraft?.title}
-                        className="rounded object-cover"
-                      />
-                    </div>
+                    <ImageLightbox
+                      key={`${image}-${index}`}
+                      src={image}
+                      alt={selectedDraft?.title ?? ""}
+                      className="h-[100px] w-[150px] rounded border object-cover"
+                    />
                   ))}
                 </div>
               ) : selectedDraft?.image ? (
-                <div className="rounded object-cover flex justify-start">
-                  <div className="border">
-                    <img
-                      src={getPostImageSrc(undefined, selectedDraft.image)}
-                      width={300}
-                      height={200}
-                      alt={selectedDraft?.title}
-                      className="rounded object-cover"
-                    />
-                  </div>
-                </div>
+                <ImageLightbox
+                  src={selectedDraft.image}
+                  alt={selectedDraft.title}
+                  className="h-[200px] w-[300px] max-w-full rounded border object-cover"
+                />
               ) : null}
             </div>
             <div className="sm:w-1 sm:h-full bg-slate-600 mx-3"></div>
