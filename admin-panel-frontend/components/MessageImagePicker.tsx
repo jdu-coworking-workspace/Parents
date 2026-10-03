@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import useApiMutation from "@/lib/useApiMutation";
+import ImageLightbox from "@/components/ImageLightbox";
 import {
   MAX_IMAGE_BYTES,
   MAX_POST_IMAGES,
-  getPostImageSrc,
   readFileAsDataUrl,
 } from "@/lib/postImages";
 
@@ -161,10 +161,10 @@ export default function MessageImagePicker({
                   <X className="h-7 w-7 bg-red-500 rounded-full cursor-pointer hover:bg-red-600 aspect-square p-1 font-bold text-white" />
                 </button>
               )}
-              <img
-                src={getPostImageSrc(image)}
-                alt=""
-                className="h-[120px] w-[120px] rounded object-cover border border-border bg-muted/40"
+              <ImageLightbox
+                src={image}
+                alt={t("picture")}
+                className="h-[120px] w-[120px] rounded border border-border bg-muted/40 object-cover"
               />
             </div>
           ))}

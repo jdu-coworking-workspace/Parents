@@ -6,7 +6,7 @@ import parse, {
   HTMLReactParserOptions,
 } from "html-react-parser";
 import ReactLinkify from "react-linkify";
-import { getPostImageSrc } from "@/lib/postImages";
+import ImageLightbox from "@/components/ImageLightbox";
 import { cn } from "@/lib/utils";
 
 type PostDescriptionContentProps = {
@@ -33,9 +33,8 @@ export default function PostDescriptionContent({
         if (!src) return <></>;
 
         return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={getPostImageSrc(src)}
+          <ImageLightbox
+            src={src}
             alt={node.attribs?.alt ?? ""}
             className="my-3 max-h-[420px] max-w-full rounded-md border border-border bg-muted/40 object-contain"
           />

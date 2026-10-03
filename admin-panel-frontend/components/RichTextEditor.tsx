@@ -18,6 +18,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
+import ImageLightbox from "@/components/ImageLightbox";
 import { apiClient } from "@/lib/apiClient";
 import {
   MAX_IMAGE_BYTES,
@@ -76,6 +77,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const { data: session } = useSession();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = React.useState(false);
+  const [previewSrc, setPreviewSrc] = React.useState("");
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  const imagesEnabledRef = React.useRef(enableImages);
+  imagesEnabledRef.current = enableImages;
+  const openPreviewRef = React.useRef<(src: string) => void>(() => {});
+  openPreviewRef.current = (src: string) => {
+    setPreviewSrc(src);
+    setPreviewOpen(true);
+  };
 
   const setUploading = (uploading: boolean) => {
     setIsUploading(uploading);
@@ -101,6 +111,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       onChange(editor.getHTML());
     },
     editorProps: {
+      handleClick: (_view, _pos, event) => {
+        if (!imagesEnabledRef.current) return false;
+        const target = event.target;
+        if (!(target instanceof HTMLImageElement)) return false;
+        const src = target.getAttribute("src");
+        if (!src) return false;
+        openPreviewRef.current(src);
+        return false;
+      },
       handlePaste: (_view, event) => {
         if (!enableImages) return false;
 
@@ -242,8 +261,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
       <EditorContent
         editor={editor}
-        className="min-h-[160px] p-3 [&_.ProseMirror]:min-h-[140px] [&_.ProseMirror]:outline-none [&_.ProseMirror_img]:my-3 [&_.ProseMirror_img]:max-h-[360px]"
+        className="min-h-[160px] p-3 [&_.ProseMirror]:min-h-[140px] [&_.ProseMirror]:outline-none [&_.ProseMirror_img]:my-3 [&_.ProseMirror_img]:max-h-[360px] [&_.ProseMirror_img]:cursor-zoom-in"
       />
+      {enableImages ? (
+        <ImageLightbox
+          src={previewSrc}
+          open={previewOpen}
+          onOpenChange={(open) => {
+            setPreviewOpen(open);
+            if (!open) {
+              editor?.commands.focus();
+            }
+          }}
+          showTrigger={false}
+        />
+      ) : null}
     </div>
   );
 };

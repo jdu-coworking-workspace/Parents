@@ -17,14 +17,8 @@ import useDateFormatter from "@/lib/useDateFormatter";
 import TableApi from "@/components/TableApi";
 import NotFound from "@/components/NotFound";
 import { useListQuery } from "@/lib/useListQuery";
+import ImageLightbox from "@/components/ImageLightbox";
 import PostDescriptionContent from "@/components/PostDescriptionContent";
-import Image from "next/image";
-import { Dialog, DialogDescription } from "@radix-ui/react-dialog";
-import {
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 import { ColumnDef } from "@tanstack/react-table";
@@ -129,31 +123,11 @@ export default function ScheduledMessagePage({
           />
           {data?.post?.image && (
             <div className="my-2">
-              <Dialog>
-                <DialogTrigger>
-                  <Image
-                    src={`/${data?.post?.image}`}
-                    alt={data.post.title}
-                    width={200}
-                    height={100}
-                    className="rounded object-cover"
-                  />
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogTitle className="whitespace-pre-wrap text-center">
-                    {data?.post?.title}
-                  </DialogTitle>
-                  <DialogDescription className="flex flex-col justify-center items-center">
-                    <Image
-                      src={`/${data?.post?.image}`}
-                      alt={data?.post?.title}
-                      width={800}
-                      height={400}
-                      className="rounded object-cover"
-                    />
-                  </DialogDescription>
-                </DialogContent>
-              </Dialog>
+              <ImageLightbox
+                src={data.post.image}
+                alt={data.post.title}
+                className="h-[100px] w-[200px] rounded object-cover"
+              />
             </div>
           )}
         </div>
