@@ -43,19 +43,13 @@ export default function PostDescriptionContent({
       }
 
       if (node.name === "a") {
-        const href = node.attribs?.href ?? "";
-        return (
-          <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-600 underline underline-offset-2"
-          >
-            {node.children?.map((child) =>
-              "data" in child ? child.data : null
-            )}
-          </a>
-        );
+        node.attribs = {
+          ...node.attribs,
+          target: "_blank",
+          rel: "noreferrer noopener",
+          class: "text-blue-600 underline underline-offset-2",
+        };
+        return undefined;
       }
 
       return undefined;
