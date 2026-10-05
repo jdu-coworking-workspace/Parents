@@ -21,13 +21,7 @@ import { toast } from "@/components/ui/use-toast";
 import NotFound from "@/components/NotFound";
 import { useListQuery } from "@/lib/useListQuery";
 import useApiMutation from "@/lib/useApiMutation";
-import { Dialog, DialogDescription } from "@radix-ui/react-dialog";
-import {
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import Image from "next/image";
+import ImageLightbox from "@/components/ImageLightbox";
 import { Card } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -227,40 +221,19 @@ export default function SendMessagePage({
                 <Card className="p-0">
                   <div id="image">
                     {data?.post?.image && (
-                      <div className="">
-                        <Dialog>
-                          <div className="relative p-4">
-                            <DialogTrigger>
-                              <Image
-                                src={`/${data?.post?.image}`}
-                                alt={data.post.title}
-                                width={200}
-                                height={100}
-                                className="rounded object-cover"
-                              />
-                            </DialogTrigger>
-                            <Button
-                              onClick={(e) => handleRemoveImg(e)}
-                              className="absolute top-0 right-0 translate-x-[50%] -translate-y-[50%] p-0 aspect-square rounded-full bg-muted border border-foreground"
-                            >
-                              <Trash2 className="h-5 w-5 text-red-500 font-bold" />
-                            </Button>
-                          </div>
-                          <DialogContent>
-                            <DialogTitle className="whitespace-pre-wrap text-center">
-                              {data?.post?.title}
-                            </DialogTitle>
-                            <DialogDescription className="flex flex-col justify-center items-center">
-                              <Image
-                                src={`/${data?.post?.image}`}
-                                alt={data?.post?.title}
-                                width={window.innerWidth > 800 ? 800 : 300}
-                                height={window.innerWidth > 800 ? 400 : 300}
-                                className="rounded object-cover"
-                              />
-                            </DialogDescription>
-                          </DialogContent>
-                        </Dialog>
+                      <div className="relative p-4">
+                        <ImageLightbox
+                          src={data.post.image}
+                          alt={data.post.title}
+                          className="h-[100px] w-[200px] rounded object-cover"
+                        />
+                        <Button
+                          type="button"
+                          onClick={(e) => handleRemoveImg(e)}
+                          className="absolute top-0 right-0 z-10 translate-x-[50%] -translate-y-[50%] p-0 aspect-square rounded-full bg-muted border border-foreground"
+                        >
+                          <Trash2 className="h-5 w-5 text-red-500 font-bold" />
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -313,12 +286,10 @@ export default function SendMessagePage({
                     <FormMessage />
                     {imagePreview && (
                       <div className="mt-2">
-                        <Image
+                        <ImageLightbox
                           src={imagePreview}
-                          alt="Selected image"
-                          width={200}
-                          height={200}
-                          className="rounded object-cover"
+                          alt={t("picture")}
+                          className="h-[200px] w-[200px] rounded object-cover"
                         />
                       </div>
                     )}

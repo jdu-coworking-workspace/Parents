@@ -6,7 +6,7 @@ import parse, {
   HTMLReactParserOptions,
 } from "html-react-parser";
 import ReactLinkify from "react-linkify";
-import { getPostImageSrc } from "@/lib/postImages";
+import ImageLightbox from "@/components/ImageLightbox";
 import { cn } from "@/lib/utils";
 
 type PostDescriptionContentProps = {
@@ -33,9 +33,8 @@ export default function PostDescriptionContent({
         if (!src) return <></>;
 
         return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={getPostImageSrc(src)}
+          <ImageLightbox
+            src={src}
             alt={node.attribs?.alt ?? ""}
             className="my-3 max-h-[420px] max-w-full rounded-md border border-border bg-muted/40 object-contain"
           />
@@ -43,19 +42,13 @@ export default function PostDescriptionContent({
       }
 
       if (node.name === "a") {
-        const href = node.attribs?.href ?? "";
-        return (
-          <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-600 underline underline-offset-2"
-          >
-            {node.children?.map((child) =>
-              "data" in child ? child.data : null
-            )}
-          </a>
-        );
+        node.attribs = {
+          ...node.attribs,
+          target: "_blank",
+          rel: "noreferrer noopener",
+          class: "text-blue-600 underline underline-offset-2",
+        };
+        return undefined;
       }
 
       return undefined;
