@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  useEditor,
+  type NodeViewProps,
+} from "@tiptap/react";
 import { mergeAttributes, Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -14,6 +20,7 @@ import {
   Link as LinkIcon,
   Loader2,
   Underline as UnderlineIcon,
+  X,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -29,12 +36,34 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import ImageLightbox from "@/components/ImageLightbox";
 import { apiClient } from "@/lib/apiClient";
+import { useTranslations } from "next-intl";
+import useApiMutation from "@/lib/useApiMutation";
 import {
   MAX_IMAGE_BYTES,
   getPostImageSrc,
   readFileAsDataUrl,
 } from "@/lib/postImages";
 
+const DescriptionImageView = ({ node, deleteNode, selected }: NodeViewProps) => (
+  <NodeViewWrapper className="relative my-3 inline-block max-w-full">
+    <button
+      type="button"
+      contentEditable={false}
+      className="absolute right-0 top-0 z-10 -translate-y-1/4 translate-x-1/4"
+      onClick={deleteNode}
+      aria-label="Delete"
+    >
+      <X className="h-7 w-7 rounded-full bg-red-500 p-1 text-white hover:bg-red-600" />
+    </button>
+    <img
+      src={getPostImageSrc(node.attrs.src)}
+      alt=""
+      className={`max-h-[360px] max-w-full rounded-md border object-contain ${
+        selected ? "ring-2 ring-primary" : ""
+      }`}
+    />
+  </NodeViewWrapper>
+);
 const DescriptionImage = Node.create({
   name: "descriptionImage",
   group: "block",
@@ -65,6 +94,9 @@ const DescriptionImage = Node.create({
         class: "max-w-full rounded-md border object-contain",
       }),
     ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(DescriptionImageView);
   },
 });
 
@@ -100,6 +132,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   enableImages = false,
 }) => {
   const { data: session } = useSession();
+  const t = useTranslations("sendmessage");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const linkSelectionRef = React.useRef<{ from: number; to: number } | null>(
     null
@@ -190,43 +223,45 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       .run();
   };
 
-  const uploadDescriptionImages = async (files: File[]) => {
-    if (!enableImages || !editor || files.length === 0) return;
+  const uploadImageMutation = useApiMutation<
+  { image?: string; images?: string[] },
+  { images: string[] }
+>(`post/image`, "POST", ["postImage"], {
+  onSuccess: (data) => {
+    const uploaded = Array.isArray(data.images)
+      ? data.images.filter(Boolean)
+      : data.image
+        ? [data.image]
+        : [];
+    uploaded.forEach(insertImage);
+    toast({ title: t("uploadImageFinished") });
+  },
+  onError: () => {
+    toast({
+      title: t("error"),
+      description: t("imageUploadFailed"),
+    });
+  },
+  onSettled: () => setUploading(false),
+});
 
-    const oversized = files.some((file) => file.size > MAX_IMAGE_BYTES);
-    if (oversized) {
-      toast({
-        title: "Error",
-        description: "Image size should be less than 10MB",
-      });
-      return;
-    }
+const uploadDescriptionImages = async (files: File[]) => {
+  if (!enableImages || !editor || files.length === 0) return;
 
-    try {
-      setUploading(true);
-      const images = await Promise.all(files.map(readFileAsDataUrl));
-      const data = await apiClient<{ image?: string; images?: string[] }>({
-        endpoint: "post/image",
-        method: "POST",
-        token: session?.sessionToken,
-        body: { images },
-      });
-      const uploadedImages = Array.isArray(data.images)
-        ? data.images.filter(Boolean)
-        : data.image
-          ? [data.image]
-          : [];
+  if (files.some((file) => file.size > MAX_IMAGE_BYTES)) {
+    toast({ title: t("error"), description: t("imageTooLarge") });
+    return;
+  }
 
-      uploadedImages.forEach(insertImage);
-    } catch {
-      toast({
-        title: "Error",
-        description: "Image upload failed",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
+  try {
+    setUploading(true);
+    const images = await Promise.all(files.map(readFileAsDataUrl));
+    uploadImageMutation.mutate({ images });
+  } catch {
+    setUploading(false);
+    toast({ title: t("error"), description: t("imageUploadFailed") });
+  }
+};
 
   const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []).filter((file) =>

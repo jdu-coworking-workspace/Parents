@@ -20,6 +20,7 @@ export default function useApiMutation<TResponse, TInput = void>(
   const {
     onError: customOnError,
     onMutate: customOnMutate,
+    onSettled: customOnSettled,
     ...restOptions
   } = options;
 
@@ -35,11 +36,12 @@ export default function useApiMutation<TResponse, TInput = void>(
     onMutate: (variables, context) => {
       // Show loading toast unless custom onMutate is provided
       if (!customOnMutate) {
-        toast({
+        const loadingToast = toast({
           title: t("loading"),
           description: t("loadingDescription"),
+          duration: Infinity,
         });
-        return undefined;
+        return { loadingToast };
       } else {
         // Call custom onMutate if provided
         return customOnMutate(variables, context);
@@ -53,6 +55,12 @@ export default function useApiMutation<TResponse, TInput = void>(
         // Call custom onError if provided
         customOnError(error, variables, onMutateResult, context);
       }
+    },
+    onSettled: (data, error, variables, onMutateResult, context) => {
+      (
+        onMutateResult as { loadingToast?: { dismiss: () => void } } | undefined
+      )?.loadingToast?.dismiss();
+      customOnSettled?.(data, error, variables, onMutateResult, context);
     },
     ...restOptions,
   });
