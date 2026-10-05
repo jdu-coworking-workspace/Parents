@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Autolink } from 'react-native-autolink';
 import { ThemedText } from '@/components/ThemedText';
 
@@ -16,6 +16,7 @@ type TextPart = {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  href: string | null;
 };
 
 type DescriptionBlock =
@@ -36,6 +37,30 @@ function decodeHtml(value: string) {
   });
 }
 
+function extractHref(tag: string) {
+  const match = tag.match(
+    /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i
+  );
+  const href = decodeHtml((match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim());
+  if (!href || /^(javascript|data):/i.test(href)) return null;
+  return href;
+}
+
+function normalizeMessageLink(href: string) {
+  const value = href.trim();
+  if (!value || /^(javascript|data):/i.test(value)) return null;
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) return value;
+  if (value.startsWith('//')) return `https:${value}`;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return null;
+  return `https://${value}`;
+}
+
+function openMessageLink(href: string) {
+  const url = normalizeMessageLink(href);
+  if (!url) return;
+  Linking.openURL(url).catch(() => {});
+}
+
 function parseDescription(content: string): DescriptionBlock[] {
   const blocks: DescriptionBlock[] = [];
   const pendingTextParts: TextPart[] = [];
@@ -46,6 +71,7 @@ function parseDescription(content: string): DescriptionBlock[] {
   let boldDepth = 0;
   let italicDepth = 0;
   let underlineDepth = 0;
+  let linkHref: string | null = null;
 
   const appendText = (value: string) => {
     const decoded = decodeHtml(value);
@@ -53,10 +79,11 @@ function parseDescription(content: string): DescriptionBlock[] {
 
     const textPart: TextPart = {
       type: 'text',
-      value: decoded, 
+      value: decoded,
       bold: boldDepth > 0,
       italic: italicDepth > 0,
       underline: underlineDepth > 0,
+      href: linkHref,
     };
     const last = pendingTextParts[pendingTextParts.length - 1];
 
@@ -64,7 +91,8 @@ function parseDescription(content: string): DescriptionBlock[] {
       last &&
       last.bold === textPart.bold &&
       last.italic === textPart.italic &&
-      last.underline === textPart.underline
+      last.underline === textPart.underline &&
+      last.href === textPart.href
     ) {
       last.value += textPart.value;
       return;
@@ -92,6 +120,9 @@ function parseDescription(content: string): DescriptionBlock[] {
     const tag = (match[2] ?? '').toLowerCase();
     const isClosingTag = rawTag.startsWith('</');
 
+    if (tag === 'a') {
+      linkHref = isClosingTag ? null : extractHref(rawTag);
+    }
     if (tag === 'br') appendText('\n');
     if (
       isClosingTag &&
@@ -127,6 +158,7 @@ function parseDescription(content: string): DescriptionBlock[] {
               bold: false,
               italic: false,
               underline: false,
+              href: null,
             },
           ],
         },
@@ -148,7 +180,9 @@ function resolveImageUri(src: string) {
 }
 
 function hasFormatting(parts: TextPart[]) {
-  return parts.some(part => part.bold || part.italic || part.underline);
+  return parts.some(
+    part => part.bold || part.italic || part.underline || part.href
+  );
 }
 
 export default function MessageDescription({
@@ -188,8 +222,11 @@ export default function MessageDescription({
                   style={[
                     part.bold && styles.bold,
                     part.italic && styles.italic,
-                    part.underline && styles.underline,
+                    part.href ? styles.link : part.underline && styles.underline,
                   ]}
+                  onPress={
+                    part.href ? () => openMessageLink(part.href!) : undefined
+                  }
                 >
                   {part.value}
                 </ThemedText>
@@ -249,6 +286,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   underline: {
+    textDecorationLine: 'underline',
+  },
+  link: {
+    color: '#2563EB',
     textDecorationLine: 'underline',
   },
 });

@@ -11,12 +11,21 @@ import {
   Bold as BoldIcon,
   Image as ImageIcon,
   Italic as ItalicIcon,
+  Link as LinkIcon,
   Loader2,
   Underline as UnderlineIcon,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import ImageLightbox from "@/components/ImageLightbox";
 import { apiClient } from "@/lib/apiClient";
@@ -67,6 +76,22 @@ interface RichTextEditorProps {
   enableImages?: boolean;
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function normalizeEditorHref(raw: string) {
+  const value = raw.trim();
+  if (!value) return null;
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) return value;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return null;
+  return `https://${value}`;
+}
+
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
@@ -76,6 +101,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 }) => {
   const { data: session } = useSession();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const linkSelectionRef = React.useRef<{ from: number; to: number } | null>(
+    null
+  );
   const [isUploading, setIsUploading] = React.useState(false);
   const [previewSrc, setPreviewSrc] = React.useState("");
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -86,6 +114,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setPreviewSrc(src);
     setPreviewOpen(true);
   };
+  const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
+  const [linkUrl, setLinkUrl] = React.useState("");
+  const [linkText, setLinkText] = React.useState("");
+  const [originalLinkText, setOriginalLinkText] = React.useState("");
+  const [editingExistingLink, setEditingExistingLink] = React.useState(false);
 
   const setUploading = (uploading: boolean) => {
     setIsUploading(uploading);
@@ -101,6 +134,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         openOnClick: false,
         autolink: true,
         linkOnPaste: true,
+        HTMLAttributes: {
+          rel: "noopener noreferrer",
+          target: "_blank",
+          class: "text-blue-600 underline",
+        },
       }),
       Placeholder.configure({
         placeholder: "Type something here...",
@@ -198,6 +236,120 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     void uploadDescriptionImages(files);
   };
 
+  const readLinkLabel = () => {
+    if (!editor) return "";
+    const { from, to } = editor.state.selection;
+    if (from !== to) return editor.state.doc.textBetween(from, to, "");
+    if (!editor.isActive("link")) return "";
+
+    const href = editor.getAttributes("link").href;
+    let start = from;
+    let end = to;
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+      editor.state.doc.descendants((node, pos) => {
+        if (!node.isText) return;
+        const matched = node.marks.some(
+          (mark) => mark.type.name === "link" && mark.attrs.href === href
+        );
+        if (!matched) return;
+
+        const nodeFrom = pos;
+        const nodeTo = pos + node.nodeSize;
+        if (nodeTo < start || nodeFrom > end) return;
+        if (nodeFrom < start || nodeTo > end) {
+          start = Math.min(start, nodeFrom);
+          end = Math.max(end, nodeTo);
+          changed = true;
+        }
+      });
+    }
+
+    return editor.state.doc.textBetween(start, end, "");
+  };
+
+  const openLinkDialog = () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const href = String(editor.getAttributes("link").href ?? "");
+    const text = readLinkLabel();
+    linkSelectionRef.current = { from, to };
+    setLinkUrl(href);
+    setLinkText(text);
+    setOriginalLinkText(text);
+    setEditingExistingLink(editor.isActive("link"));
+    setLinkDialogOpen(true);
+  };
+
+  const savedLinkRange = () => {
+    if (!editor || !linkSelectionRef.current) return null;
+    const max = editor.state.doc.content.size;
+    return {
+      from: Math.min(linkSelectionRef.current.from, max),
+      to: Math.min(linkSelectionRef.current.to, max),
+    };
+  };
+
+  const applyLink = () => {
+    if (!editor) return;
+    const href = normalizeEditorHref(linkUrl);
+    if (!href) {
+      toast({
+        title: "Error",
+        description: "Enter a valid http, https, mailto, or tel link",
+      });
+      return;
+    }
+
+    const range = savedLinkRange();
+    if (!range) return;
+
+    const collapsed = range.from === range.to;
+    const nextText = linkText.trim();
+    let chain = editor.chain().focus().setTextSelection(range);
+
+    if (collapsed && !editingExistingLink) {
+      const label = nextText || href;
+      chain
+        .insertContent(
+          `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
+        )
+        .run();
+      setLinkDialogOpen(false);
+      return;
+    }
+
+    if (collapsed && editingExistingLink) {
+      chain = chain.extendMarkRange("link");
+    }
+
+    if (nextText && nextText !== originalLinkText) {
+      chain = chain.insertContent(
+        `<a href="${escapeHtml(href)}">${escapeHtml(nextText)}</a>`
+      );
+    } else {
+      chain = chain.setLink({ href });
+    }
+
+    chain.run();
+    setLinkDialogOpen(false);
+  };
+
+  const removeLink = () => {
+    if (!editor) return;
+    const range = savedLinkRange();
+    if (!range) return;
+
+    let chain = editor.chain().focus().setTextSelection(range);
+    if (range.from === range.to) {
+      chain = chain.extendMarkRange("link");
+    }
+    chain.unsetLink().run();
+    setLinkDialogOpen(false);
+  };
+
   return (
     <div className="rounded-md border bg-background">
       <div className="flex flex-wrap gap-2 border-b p-2">
@@ -241,6 +393,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         >
           <UnderlineIcon className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={editor?.isActive("link") ? "default" : "outline"}
+          aria-label="Link"
+          title="Link"
+          onClick={openLinkDialog}
+        >
+          <LinkIcon className="h-4 w-4" />
+        </Button>
         {enableImages && (
           <Button
             type="button"
@@ -276,6 +438,57 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           showTrigger={false}
         />
       ) : null}
+
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add link</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rich-text-link-url">URL</Label>
+              <Input
+                id="rich-text-link-url"
+                value={linkUrl}
+                placeholder="https://example.com"
+                autoFocus
+                onChange={(event) => setLinkUrl(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyLink();
+                  }
+                }}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="rich-text-link-text">Text</Label>
+              <Input
+                id="rich-text-link-text"
+                value={linkText}
+                placeholder="Link text"
+                onChange={(event) => setLinkText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyLink();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            {editingExistingLink && (
+              <Button type="button" variant="outline" onClick={removeLink}>
+                Remove link
+              </Button>
+            )}
+            <Button type="button" onClick={applyLink}>
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
