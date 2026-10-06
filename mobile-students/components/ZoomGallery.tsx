@@ -3,69 +3,176 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
   Alert,
   Dimensions,
+  FlatList,
   Image,
   Modal,
   Platform,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-
 import { I18nContext } from '@/contexts/i18n-context';
+import { downloadFileFromUrl } from '@/utils/file-download';
 
 type Img = { uri: string };
 
-const DOWNLOAD_DIRECTORY_KEY = 'student-notification-download-directory';
-
-function getDownloadFileName(uri: string): string {
-  const fallbackName = `image-${Date.now()}.jpg`;
-
-  try {
-    const url = new URL(uri);
-    const lastSegment = url.pathname.split('/').filter(Boolean).pop();
-
-    if (lastSegment) {
-      return decodeURIComponent(lastSegment.split('?')[0]) || fallbackName;
-    }
-  } catch {
-    // Keep the timestamped fallback for non-URL sources.
-  }
-
-  return fallbackName;
+interface ZoomableImageItemProps {
+  uri: string;
+  screenWidth: number;
+  screenHeight: number;
+  isSingle?: boolean;
 }
 
-function splitFileName(fileName: string) {
-  const safeName = fileName.replace(/[\\/:*?"<>|]/g, '-');
-  const extensionIndex = safeName.lastIndexOf('.');
-  const suffix = Date.now();
+function ZoomableImageItem({
+  uri,
+  screenWidth,
+  screenHeight,
+  isSingle = false,
+}: ZoomableImageItemProps) {
+  const [scale, setScale] = useState(1);
+  const [lastScale, setLastScale] = useState(1);
+  const [translateX, setTranslateX] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const [lastTranslateX, setLastTranslateX] = useState(0);
+  const [lastTranslateY, setLastTranslateY] = useState(0);
+  const [aspectRatio, setAspectRatio] = useState<number>(1);
 
-  if (extensionIndex <= 0 || extensionIndex === safeName.length - 1) {
-    return { name: `${safeName}-${suffix}`, mimeType: 'image/jpeg' };
-  }
+  useEffect(() => {
+    Image.getSize(
+      uri,
+      (w, h) => {
+        if (w > 0 && h > 0) {
+          setAspectRatio(w / h);
+        }
+      },
+      () => {}
+    );
+  }, [uri]);
 
-  const extension = safeName.slice(extensionIndex + 1).toLowerCase();
-  const mimeType =
-    extension === 'png'
-      ? 'image/png'
-      : extension === 'webp'
-        ? 'image/webp'
-        : 'image/jpeg';
-
-  return {
-    name: `${safeName.slice(0, extensionIndex)}-${suffix}`,
-    mimeType,
+  const resetZoom = () => {
+    setScale(1);
+    setLastScale(1);
+    setTranslateX(0);
+    setTranslateY(0);
+    setLastTranslateX(0);
+    setLastTranslateY(0);
   };
+
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      if (scale > 1.2) {
+        resetZoom();
+      } else {
+        setScale(2.2);
+        setLastScale(2.2);
+      }
+    })
+    .runOnJS(true);
+
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      if (!e || typeof e.scale !== 'number') return;
+      const newScale = Math.min(Math.max(lastScale * e.scale, 1), 3.5);
+      setScale(newScale);
+      if (newScale <= 1) {
+        setTranslateX(0);
+        setTranslateY(0);
+      }
+    })
+    .onEnd(() => {
+      if (scale <= 1.05) {
+        resetZoom();
+      } else {
+        setLastScale(scale);
+        setLastTranslateX(translateX);
+        setLastTranslateY(translateY);
+      }
+    })
+    .runOnJS(true);
+
+  const panGesture = Gesture.Pan()
+    .enabled(scale > 1.05)
+    .onUpdate((e) => {
+      if (scale <= 1.05) return;
+      const maxT = 120 * scale;
+      setTranslateX(
+        Math.min(Math.max(lastTranslateX + e.translationX, -maxT), maxT)
+      );
+      setTranslateY(
+        Math.min(Math.max(lastTranslateY + e.translationY, -maxT), maxT)
+      );
+    })
+    .onEnd(() => {
+      setLastTranslateX(translateX);
+      setLastTranslateY(translateY);
+    })
+    .runOnJS(true);
+
+  const composedGesture = Gesture.Race(
+    doubleTapGesture,
+    Gesture.Simultaneous(pinchGesture, panGesture)
+  );
+
+  const imgWidth = screenWidth - 20;
+  const maxAllowedHeight = screenHeight - (Platform.OS === 'ios' ? 170 : 150);
+  const imgHeight = Math.min(
+    maxAllowedHeight,
+    Math.max(200, imgWidth / (aspectRatio || 1))
+  );
+
+  return (
+    <View
+      style={[
+        styles.imageItemContainer,
+        isSingle && styles.singleImageItemContainer,
+      ]}
+    >
+      <GestureDetector gesture={composedGesture}>
+        <View
+          style={[
+            styles.imageWrapper,
+            {
+              width: imgWidth,
+              height: imgHeight,
+              transform: [
+                { scale: isFinite(scale) && scale > 0 ? scale : 1 },
+                { translateX: isFinite(translateX) ? translateX : 0 },
+                { translateY: isFinite(translateY) ? translateY : 0 },
+              ],
+              zIndex: scale > 1 ? 99 : 1,
+            },
+          ]}
+        >
+          <Image
+            source={{ uri }}
+            style={styles.fullImage}
+            resizeMode="contain"
+            onLoad={(e) => {
+              const { width, height } = e.nativeEvent.source;
+              if (width && height) {
+                setAspectRatio(width / height);
+              }
+            }}
+          />
+        </View>
+      </GestureDetector>
+    </View>
+  );
 }
 
 interface Props {
@@ -84,237 +191,42 @@ export default function ZoomGallery({
   const [index, setIndex] = useState(initialIndex);
   const current = useMemo(() => images[index]?.uri ?? '', [images, index]);
   const { t } = useContext(I18nContext);
-  const [scale, setScale] = useState(1);
-  const [lastScale, setLastScale] = useState(1);
-  const [translateX, setTranslateX] = useState(0);
-  const [translateY, setTranslateY] = useState(0);
-  const [lastTranslateX, setLastTranslateX] = useState(0);
-  const [lastTranslateY, setLastTranslateY] = useState(0);
+  const flatListRef = useRef<FlatList<Img>>(null);
+
+  const screenDimensions = Dimensions.get('window');
+  const screenWidth = screenDimensions.width;
+  const screenHeight = screenDimensions.height;
 
   useEffect(() => {
-    setIndex(initialIndex);
-  }, [initialIndex]);
-
-  useEffect(() => {
-    setScale(1);
-    setLastScale(1);
-    setTranslateX(0);
-    setTranslateY(0);
-    setLastTranslateX(0);
-    setLastTranslateY(0);
-  }, [index]);
-
-  useEffect(() => {
-    if (!visible) {
-      return;
+    if (visible && initialIndex >= 0 && initialIndex < images.length) {
+      setIndex(initialIndex);
+      const timer = setTimeout(() => {
+        flatListRef.current?.scrollToIndex({
+          index: initialIndex,
+          animated: false,
+        });
+      }, 80);
+      return () => clearTimeout(timer);
     }
+  }, [visible, initialIndex, images.length]);
 
-    setScale(1);
-    setLastScale(1);
-    setTranslateX(0);
-    setTranslateY(0);
-    setLastTranslateX(0);
-    setLastTranslateY(0);
-  }, [visible, index]);
-
-  const onPinchGestureEvent = (event: any) => {
-    if (!event || typeof event.scale !== 'number') return;
-
-    const newScale = lastScale * event.scale;
-    const clampedScale = Math.min(Math.max(newScale, 1), 3);
-
-    if (isFinite(clampedScale)) {
-      setScale(clampedScale);
-
-      if (clampedScale <= 1) {
-        setTranslateX(0);
-        setTranslateY(0);
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems && viewableItems.length > 0) {
+      const first = viewableItems[0];
+      if (first && typeof first.index === 'number') {
+        setIndex(first.index);
       }
     }
-  };
+  }).current;
 
-  const onPinchEnd = () => {
-    if (!isFinite(scale)) {
-      return;
-    }
-
-    setLastScale(scale);
-
-    if (scale <= 1.1) {
-      setScale(1);
-      setLastScale(1);
-      setTranslateX(0);
-      setTranslateY(0);
-      setLastTranslateX(0);
-      setLastTranslateY(0);
-    } else {
-      setLastTranslateX(translateX);
-      setLastTranslateY(translateY);
-    }
-  };
-
-  const onPanGestureEvent = (event: any) => {
-    if (
-      !event ||
-      typeof event.translationX !== 'number' ||
-      typeof event.translationY !== 'number'
-    ) {
-      return;
-    }
-
-    if (scale > 1.1) {
-      const newTranslateX = lastTranslateX + event.translationX;
-      const newTranslateY = lastTranslateY + event.translationY;
-      const maxTranslate = 100 * scale;
-
-      setTranslateX(
-        Math.min(Math.max(newTranslateX, -maxTranslate), maxTranslate)
-      );
-      setTranslateY(
-        Math.min(Math.max(newTranslateY, -maxTranslate), maxTranslate)
-      );
-    }
-  };
-
-  const onPanEnd = () => {
-    setLastTranslateX(translateX);
-    setLastTranslateY(translateY);
-  };
-
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate(onPinchGestureEvent)
-    .onEnd(onPinchEnd)
-    .runOnJS(true);
-
-  const panGesture = Gesture.Pan()
-    .onUpdate(onPanGestureEvent)
-    .onEnd(onPanEnd)
-    .runOnJS(true);
-
-  const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
-
-  const shareDownloadedImage = useCallback(
-    async (localUri: string) => {
-      const canShare = await Sharing.isAvailableAsync();
-      if (!canShare) {
-        throw new Error(t('downloadError'));
-      }
-
-      await Sharing.shareAsync(localUri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: t('download'),
-      });
-    },
-    [t]
-  );
-
-  const requestAndroidDownloadDirectory = useCallback(async () => {
-    const initialUri =
-      FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
-    const permissions =
-      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
-        initialUri
-      );
-
-    if (!permissions.granted) {
-      throw new Error(t('permissionDenied'));
-    }
-
-    await AsyncStorage.setItem(DOWNLOAD_DIRECTORY_KEY, permissions.directoryUri);
-    return permissions.directoryUri;
-  }, [t]);
-
-  const saveToAndroidDirectory = useCallback(
-    async (localUri: string, fileName: string) => {
-      const { name, mimeType } = splitFileName(fileName);
-      let directoryUri = await AsyncStorage.getItem(DOWNLOAD_DIRECTORY_KEY);
-
-      if (!directoryUri) {
-        directoryUri = await requestAndroidDownloadDirectory();
-      }
-
-      const base64 = await FileSystem.readAsStringAsync(localUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      try {
-        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          directoryUri,
-          name,
-          mimeType
-        );
-        await FileSystem.StorageAccessFramework.writeAsStringAsync(
-          fileUri,
-          base64,
-          { encoding: FileSystem.EncodingType.Base64 }
-        );
-      } catch {
-        await AsyncStorage.removeItem(DOWNLOAD_DIRECTORY_KEY);
-        const freshDirectoryUri = await requestAndroidDownloadDirectory();
-        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          freshDirectoryUri,
-          name,
-          mimeType
-        );
-        await FileSystem.StorageAccessFramework.writeAsStringAsync(
-          fileUri,
-          base64,
-          { encoding: FileSystem.EncodingType.Base64 }
-        );
-      }
-    },
-    [requestAndroidDownloadDirectory]
-  );
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 45,
+  }).current;
 
   const downloadCurrent = useCallback(async () => {
-    try {
-      if (!current) return;
-
-      const filename = getDownloadFileName(current);
-
-      if (Platform.OS === 'web') {
-        const anchor = document.createElement('a');
-        anchor.href = current;
-        anchor.download = filename;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        return;
-      }
-
-      const localPath = (FileSystem.cacheDirectory || '') + filename;
-      const downloadResult = await FileSystem.downloadAsync(current, localPath, {});
-
-      if (Platform.OS === 'android') {
-        await saveToAndroidDirectory(downloadResult.uri, filename);
-        Alert.alert(t('imageSaved'), t('imageSavedMessage'));
-        return;
-      }
-
-      await shareDownloadedImage(downloadResult.uri);
-      Alert.alert(t('download'), t('imageShareHint'));
-    } catch (err: any) {
-      console.error('Download error:', err);
-
-      let errorMessage = t('downloadError');
-
-      if (
-        err?.message?.includes('Permission denied') ||
-        err?.message?.includes('permission')
-      ) {
-        errorMessage = t('permissionDenied');
-      } else if (
-        err?.message?.includes('Expo Go') ||
-        err?.message?.includes('development build')
-      ) {
-        errorMessage = t('expoGoImageSaveMessage');
-      } else if (err?.message?.includes('development builds')) {
-        errorMessage = t('unableToSaveInDevelopment');
-      }
-
-      Alert.alert(t('downloadFailedImage'), errorMessage);
-    }
-  }, [current, saveToAndroidDirectory, shareDownloadedImage, t]);
+    if (!current) return;
+    await downloadFileFromUrl(current, t);
+  }, [current, t]);
 
   return (
     <Modal
@@ -324,140 +236,162 @@ export default function ZoomGallery({
       onRequestClose={onRequestClose}
       statusBarTranslucent
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={styles.root}>
         <StatusBar hidden />
-        <View style={{ flex: 1, backgroundColor: 'black' }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          {images[index] && (
-            <GestureDetector gesture={combinedGesture}>
-              <View
-                style={{
-                  transform: [
-                    { scale: isFinite(scale) && scale > 0 ? scale : 1 },
-                    { translateX: isFinite(translateX) ? translateX : 0 },
-                    { translateY: isFinite(translateY) ? translateY : 0 },
-                  ],
-                }}
-              >
-                <Image
-                  source={{ uri: images[index].uri }}
-                  style={{
-                    width: Dimensions.get('window').width,
-                    height: Dimensions.get('window').height - 100,
-                  }}
-                  resizeMode="contain"
-                />
+        <View style={styles.modalBackground}>
+          {/* Top Floating Header */}
+          <View style={styles.topHeader}>
+            <TouchableOpacity
+              onPress={onRequestClose}
+              activeOpacity={0.7}
+              style={styles.headerButton}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            {images.length > 1 && (
+              <View style={styles.counterBadge}>
+                <Text style={styles.counterText}>
+                  {index + 1} / {images.length}
+                </Text>
               </View>
-            </GestureDetector>
-          )}
-        </View>
+            )}
 
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            paddingTop: 50,
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1000,
-          }}
-        >
-          <TouchableOpacity
-            onPress={onRequestClose}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="close" size={24} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={downloadCurrent}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 20,
-              gap: 6,
-            }}
-          >
-            <Ionicons name="download-outline" size={20} color="#fff" />
-            <Text style={{ color: '#fff', fontWeight: '600' }}>{t('download')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {images.length > 1 && index > 0 && (
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              left: 20,
-              top: '50%',
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 999,
-            }}
-            onPress={() => setIndex(index - 1)}
-          >
-            <Ionicons name="chevron-back" size={30} color="#fff" />
-          </TouchableOpacity>
-        )}
-
-        {images.length > 1 && index < images.length - 1 && (
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              right: 20,
-              top: '50%',
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 999,
-            }}
-            onPress={() => setIndex(index + 1)}
-          >
-            <Ionicons name="chevron-forward" size={30} color="#fff" />
-          </TouchableOpacity>
-        )}
-
-        {images.length > 1 && (
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 50,
-              alignSelf: 'center',
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 15,
-              zIndex: 999,
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '500' }}>
-              {index + 1} / {images.length}
-            </Text>
+            <TouchableOpacity
+              onPress={downloadCurrent}
+              activeOpacity={0.7}
+              style={styles.downloadButton}
+            >
+              <Ionicons name="download-outline" size={20} color="#fff" />
+              <Text style={styles.downloadText}>{t('download')}</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
+
+          {/* Vertical Scroll List */}
+          <FlatList
+            ref={flatListRef}
+            data={images}
+            keyExtractor={(item, idx) => `${item.uri}-${idx}`}
+            showsVerticalScrollIndicator={images.length > 1}
+            scrollEnabled={images.length > 1}
+            contentContainerStyle={[
+              styles.scrollListContent,
+              images.length === 1 && styles.singleImageContent,
+            ]}
+            initialNumToRender={Math.max(10, images.length)}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: false,
+                });
+              }, 120);
+            }}
+            renderItem={({ item }) => (
+              <ZoomableImageItem
+                uri={item.uri}
+                screenWidth={screenWidth}
+                screenHeight={screenHeight}
+                isSingle={images.length === 1}
+              />
+            )}
+          />
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: Platform.OS === 'ios' ? 52 : 36,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  counterText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  downloadText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  scrollListContent: {
+    paddingTop: 88,
+    paddingBottom: 48,
+    alignItems: 'center',
+  },
+  singleImageContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  imageItemContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  singleImageItemContainer: {
+    flex: 1,
+    marginVertical: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageWrapper: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#121212',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+});

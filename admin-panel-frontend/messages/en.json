@@ -271,7 +271,13 @@
     "editMessage": "Edit Message",
     "editReceivers": "Edit receivers",
     "Groups": "Groups",
-    "Students": "Students"
+    "Students": "Students",
+    "messageTab": "Message Content",
+    "filesTab": "Attached Files",
+    "noFiles": "No Attached Files",
+    "noFilesDescription": "This message has no attached images or files.",
+    "download": "Download",
+    "openFull": "View Full Size"
   },
   "ThisGroup": {
     "GroupView": "Group Details",

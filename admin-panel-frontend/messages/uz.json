@@ -271,7 +271,13 @@
     "editMessage": "Xabarni tahrirlash",
     "editReceivers": "Qabul qiluvchilarni tahrirlash",
     "Groups": "Guruhlar",
-    "Students": "Talabalar"
+    "Students": "Talabalar",
+    "messageTab": "Xabar matni",
+    "filesTab": "Biriktirilgan fayllar",
+    "noFiles": "Biriktirilgan fayllar mavjud emas",
+    "noFilesDescription": "Ushbu xabarga biriktirilgan rasm yoki fayllar yo'q.",
+    "download": "Yuklab olish",
+    "openFull": "Kattalashtirib ko'rish"
   },
   "ThisGroup": {
     "GroupView": "Guruh Tafsilotlari",

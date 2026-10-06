@@ -73,6 +73,10 @@ const translations = {
     notFound: "Resource not found.",
     tooManyAttempts:
       "Too many login attempts. Please try again in a few minutes.",
+    messageTab: "Message",
+    filesTab: "Files",
+    noAttachedFiles: "No Attached Files",
+    noAttachedFilesDescription: "This message does not contain any attached files.",
     resetPasswordTitle: "Secret Code Recovery",
     enterPhoneNumberText:
       "Please enter your phone number. A verification code will be sent to this number.",
@@ -336,6 +340,10 @@ const translations = {
     notFound: "リソースが見つかりません。",
     tooManyAttempts:
       "ログイン試行回数が多すぎます。数分後にもう一度お試しください。",
+    messageTab: "メッセージ",
+    filesTab: "添付ファイル",
+    noAttachedFiles: "添付ファイルはありません",
+    noAttachedFilesDescription: "このメッセージには添付ファイルがありません。",
     resetPasswordTitle: "秘密コードの復元",
     enterPhoneNumberText:
       "電話番号を入力してください。この番号に確認コードが送信されます。",
@@ -596,6 +604,10 @@ const translations = {
     notFound: "Resurs topilmadi.",
     tooManyAttempts:
       "Juda ko'p urinish. Iltimos, bir necha daqiqadan keyin qayta urinib ko'ring.",
+    messageTab: "Xabar",
+    filesTab: "Fayllar",
+    noAttachedFiles: "Biriktirilgan fayllar yo'q",
+    noAttachedFilesDescription: "Ushbu xabarda biriktirilgan fayllar mavjud emas.",
     /*forgot password pages*/
     resetPasswordTitle: "Maxfiy kodni tiklash",
     enterPhoneNumberText:
@@ -894,6 +906,10 @@ const translations = {
     notFound: "Ресурс не найден.",
     tooManyAttempts:
       "Слишком много попыток входа. Пожалуйста, попробуйте снова через несколько минут.",
+    messageTab: "Сообщение",
+    filesTab: "Файлы",
+    noAttachedFiles: "Нет прикрепленных файлов",
+    noAttachedFilesDescription: "В этом сообщении нет прикрепленных файлов.",
     /*forgot password pages*/
     resetPasswordTitle: "Восстановление секретного кода",
     enterPhoneNumberText:

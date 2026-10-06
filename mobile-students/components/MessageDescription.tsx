@@ -2,12 +2,18 @@ import { useMemo, useState } from "react";
 import { Image, Linking, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { getMessageImageUrls } from "@/utils/image-url";
+import MessageImageCarousel from "@/components/MessageImageCarousel";
+import MessageImageGrid from "@/components/MessageImageGrid";
 
 type MessageDescriptionProps = {
   content: string;
   textColor: string;
   fontSize: number;
-  onImagePress?: (uri: string) => void;
+  onImagePress?: (
+    uri: string,
+    groupImages?: string[],
+    groupIndex?: number
+  ) => void;
 };
 
 type TextPart = {
@@ -21,7 +27,27 @@ type TextPart = {
 
 type DescriptionBlock =
   | { type: "text"; parts: TextPart[] }
-  | { type: "image"; src: string };
+  | { type: "image"; src: string }
+  | {
+      type: "image-group";
+      layout: "carousel" | "grid" | "stack";
+      images: string[];
+    };
+
+const IMAGE_EXTENSION_REGEX = /\.(jpe?g|png|gif|webp|svg|bmp)(\?.*)?$/i;
+const IMAGE_URL_REGEX =
+  /(https?:\/\/[^\s<>'"]+?\.(?:jpe?g|png|gif|webp|svg|bmp)(?:\?[^\s<>'"]*)?)/gi;
+
+function isImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (/^data:image\//i.test(trimmed)) return true;
+  const cleanUrl = trimmed.split("?")[0].split("#")[0];
+  return (
+    IMAGE_EXTENSION_REGEX.test(cleanUrl) ||
+    /\/images\/[a-f0-9]{32,64}\b/i.test(trimmed)
+  );
+}
 
 function decodeHtml(value: string) {
   return value.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, (entity) => {
@@ -46,6 +72,15 @@ function extractHref(tag: string) {
   return href;
 }
 
+function extractImgSrc(tag: string) {
+  const match = tag.match(
+    /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i
+  );
+  const src = decodeHtml((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim());
+  if (!src || /^javascript:/i.test(src)) return null;
+  return src;
+}
+
 function normalizeMessageLink(href: string) {
   const value = href.trim();
   if (!value || /^(javascript|data):/i.test(value)) return null;
@@ -62,20 +97,55 @@ function openMessageLink(href: string) {
 }
 
 function parseDescription(content: string): DescriptionBlock[] {
-  const blocks: DescriptionBlock[] = [];
-  const pendingTextParts: TextPart[] = [];
+  const rawBlocks: DescriptionBlock[] = [];
+  let pendingTextParts: TextPart[] = [];
   const tagRegex =
-    /<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>|<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
+    /!\[([^\]]*)\]\(([^)]+)\)|<img\b[^>]*>|<\/?([a-z][a-z0-9-]*)\b[^>]*>/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   let boldDepth = 0;
   let italicDepth = 0;
   let underlineDepth = 0;
-  let linkHref: string | null = null;
+  let currentLinkHref: string | null = null;
+  let currentLinkIsImage = false;
+
+  let inImageGroup = false;
+  let currentGroupLayout: "carousel" | "grid" | "stack" = "carousel";
+  let currentGroupImages: string[] = [];
+
+  const flushTextBlock = () => {
+    if (pendingTextParts.length === 0) return;
+    rawBlocks.push({ type: "text", parts: pendingTextParts });
+    pendingTextParts = [];
+  };
+
+  const flushImageGroup = () => {
+    if (!inImageGroup) return;
+    if (currentGroupImages.length > 0) {
+      rawBlocks.push({
+        type: "image-group",
+        layout: currentGroupLayout,
+        images: currentGroupImages,
+      });
+    }
+    inImageGroup = false;
+    currentGroupImages = [];
+  };
 
   const appendText = (value: string) => {
     const decoded = decodeHtml(value);
     if (!decoded) return;
+
+    if (currentLinkIsImage && currentLinkHref) {
+      const trimmedVal = decoded.trim();
+      if (
+        !trimmedVal ||
+        trimmedVal === currentLinkHref ||
+        isImageUrl(trimmedVal)
+      ) {
+        return;
+      }
+    }
 
     const textPart: TextPart = {
       type: "text",
@@ -83,7 +153,7 @@ function parseDescription(content: string): DescriptionBlock[] {
       bold: boldDepth > 0,
       italic: italicDepth > 0,
       underline: underlineDepth > 0,
-      href: linkHref,
+      href: currentLinkHref,
     };
     const last = pendingTextParts[pendingTextParts.length - 1];
 
@@ -101,53 +171,197 @@ function parseDescription(content: string): DescriptionBlock[] {
     pendingTextParts.push(textPart);
   };
 
-  const flushTextBlock = () => {
-    if (pendingTextParts.length === 0) return;
-    blocks.push({ type: "text", parts: pendingTextParts.splice(0) });
-  };
-
   while ((match = tagRegex.exec(content))) {
     appendText(content.slice(lastIndex, match.index));
+    const rawMatch = match[0];
 
-    if (match[1]) {
+    // 1. Markdown image: ![alt](url)
+    if (match[2]) {
       flushTextBlock();
-      blocks.push({ type: "image", src: decodeHtml(match[1]) });
-      lastIndex = match.index + match[0].length;
+      const markdownSrc = decodeHtml(match[2].trim());
+      if (markdownSrc) {
+        if (inImageGroup) {
+          currentGroupImages.push(markdownSrc);
+        } else {
+          rawBlocks.push({ type: "image", src: markdownSrc });
+        }
+      }
+      lastIndex = match.index + rawMatch.length;
       continue;
     }
 
-    const rawTag = match[0];
-    const tag = (match[2] ?? "").toLowerCase();
-    const isClosingTag = rawTag.startsWith("</");
+    // 2. HTML <img> tag
+    if (/^<img\b/i.test(rawMatch)) {
+      const src = extractImgSrc(rawMatch);
+      if (src) {
+        if (inImageGroup) {
+          currentGroupImages.push(src);
+        } else {
+          flushTextBlock();
+          rawBlocks.push({ type: "image", src });
+        }
+      }
+      lastIndex = match.index + rawMatch.length;
+      continue;
+    }
+
+    // 3. Other HTML tags
+    const tag = (match[3] ?? "").toLowerCase();
+    const isClosingTag = rawMatch.startsWith("</");
+    const isSelfClosing = rawMatch.endsWith("/>");
+
+    // data-image-group div detection
+    if (tag === "div") {
+      if (!isClosingTag && /\bdata-image-group\b/i.test(rawMatch)) {
+        flushTextBlock();
+        flushImageGroup();
+        inImageGroup = true;
+        const layoutMatch = rawMatch.match(/\bdata-layout\s*=\s*["']([^"']+)["']/i);
+        currentGroupLayout =
+          (layoutMatch?.[1]?.toLowerCase() as "carousel" | "grid" | "stack") ||
+          "carousel";
+        currentGroupImages = [];
+        lastIndex = match.index + rawMatch.length;
+        continue;
+      }
+
+      if (isClosingTag && inImageGroup) {
+        flushTextBlock();
+        flushImageGroup();
+        lastIndex = match.index + rawMatch.length;
+        continue;
+      }
+    }
 
     if (tag === "a") {
-      linkHref = isClosingTag ? null : extractHref(rawTag);
-    }
-    if (tag === "br") appendText("\n");
-    if (
+      if (isClosingTag) {
+        currentLinkHref = null;
+        currentLinkIsImage = false;
+      } else {
+        const href = extractHref(rawMatch);
+        if (href && isImageUrl(href)) {
+          flushTextBlock();
+          if (inImageGroup) {
+            currentGroupImages.push(href);
+          } else {
+            rawBlocks.push({ type: "image", src: href });
+          }
+          currentLinkHref = href;
+          currentLinkIsImage = true;
+        } else {
+          currentLinkHref = isSelfClosing ? null : href;
+          currentLinkIsImage = false;
+        }
+      }
+    } else if (tag === "br") {
+      appendText("\n");
+    } else if (
       isClosingTag &&
       ["p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6"].includes(tag)
     ) {
       appendText("\n");
-    }
-    if (tag === "strong" || tag === "b") {
+    } else if (tag === "strong" || tag === "b") {
       boldDepth = Math.max(0, boldDepth + (isClosingTag ? -1 : 1));
-    }
-    if (tag === "em" || tag === "i") {
+    } else if (tag === "em" || tag === "i") {
       italicDepth = Math.max(0, italicDepth + (isClosingTag ? -1 : 1));
-    }
-    if (tag === "u") {
+    } else if (tag === "u") {
       underlineDepth = Math.max(0, underlineDepth + (isClosingTag ? -1 : 1));
     }
 
-    lastIndex = match.index + match[0].length;
+    lastIndex = match.index + rawMatch.length;
   }
 
   appendText(content.slice(lastIndex));
   flushTextBlock();
+  flushImageGroup();
 
-  return blocks.length > 0
-    ? blocks
+  // Split plain text parts that contain standalone image URLs
+  const finalBlocks: DescriptionBlock[] = [];
+
+  for (const block of rawBlocks) {
+    if (block.type === "image-group") {
+      finalBlocks.push(block);
+      continue;
+    }
+
+    if (block.type === "image") {
+      const last = finalBlocks[finalBlocks.length - 1];
+      if (last && last.type === "image" && last.src === block.src) {
+        continue;
+      }
+      finalBlocks.push(block);
+      continue;
+    }
+
+    let currentParts: TextPart[] = [];
+
+    for (const part of block.parts) {
+      if (part.href && isImageUrl(part.href)) {
+        if (currentParts.length > 0) {
+          finalBlocks.push({ type: "text", parts: currentParts });
+          currentParts = [];
+        }
+        const last = finalBlocks[finalBlocks.length - 1];
+        if (!last || last.type !== "image" || last.src !== part.href) {
+          finalBlocks.push({ type: "image", src: part.href });
+        }
+        if (
+          part.value.trim() &&
+          part.value.trim() !== part.href &&
+          !isImageUrl(part.value.trim())
+        ) {
+          currentParts.push(part);
+        }
+        continue;
+      }
+
+      const text = part.value;
+      let partLastIdx = 0;
+      let urlMatch: RegExpExecArray | null;
+      IMAGE_URL_REGEX.lastIndex = 0;
+      let hasUrl = false;
+
+      while ((urlMatch = IMAGE_URL_REGEX.exec(text))) {
+        hasUrl = true;
+        const before = text.slice(partLastIdx, urlMatch.index);
+        if (before) {
+          currentParts.push({ ...part, value: before });
+        }
+        if (currentParts.length > 0) {
+          finalBlocks.push({ type: "text", parts: currentParts });
+          currentParts = [];
+        }
+        const matchedUrl = urlMatch[1];
+        const last = finalBlocks[finalBlocks.length - 1];
+        if (!last || last.type !== "image" || last.src !== matchedUrl) {
+          finalBlocks.push({ type: "image", src: matchedUrl });
+        }
+        partLastIdx = urlMatch.index + matchedUrl.length;
+      }
+
+      if (hasUrl) {
+        const after = text.slice(partLastIdx);
+        if (after) {
+          currentParts.push({ ...part, value: after });
+        }
+      } else {
+        currentParts.push(part);
+      }
+    }
+
+    if (currentParts.length > 0) {
+      finalBlocks.push({ type: "text", parts: currentParts });
+    }
+  }
+
+  const cleanedBlocks = finalBlocks.filter((b) => {
+    if (b.type === "image" || b.type === "image-group") return true;
+    const text = b.parts.map((p) => p.value).join("").trim();
+    return text.length > 0;
+  });
+
+  return cleanedBlocks.length > 0
+    ? cleanedBlocks
     : [
         {
           type: "text",
@@ -206,19 +420,83 @@ export default function MessageDescription({
           );
         }
 
+        if (block.type === "image-group") {
+          const resolvedGroup = block.images.map(resolveImageUri);
+          if (block.layout === "carousel") {
+            return (
+              <MessageImageCarousel
+                key={`group-carousel-${index}`}
+                images={resolvedGroup}
+                onImagePress={(imgIdx) => {
+                  onImagePress?.(resolvedGroup[imgIdx], resolvedGroup, imgIdx);
+                }}
+              />
+            );
+          }
+
+          if (block.layout === "grid") {
+            return (
+              <MessageImageGrid
+                key={`group-grid-${index}`}
+                images={resolvedGroup}
+                onImagePress={(imgIdx) => {
+                  onImagePress?.(resolvedGroup[imgIdx], resolvedGroup, imgIdx);
+                }}
+              />
+            );
+          }
+
+          // stack layout
+          return (
+            <View key={`group-stack-${index}`} style={styles.stackContainer}>
+              {resolvedGroup.map((uri, imgIdx) => {
+                const ratio = imageRatios[uri];
+                return (
+                  <TouchableOpacity
+                    key={`stack-img-${uri}-${imgIdx}`}
+                    activeOpacity={0.9}
+                    onPress={() => onImagePress?.(uri, resolvedGroup, imgIdx)}
+                  >
+                    <Image
+                      source={{ uri }}
+                      resizeMode="contain"
+                      style={[
+                        styles.image,
+                        ratio ? { aspectRatio: ratio } : styles.imagePlaceholder,
+                      ]}
+                      onLoad={(event) => {
+                        const { width, height } = event.nativeEvent.source;
+                        if (width && height) {
+                          setImageRatios((prev) => ({
+                            ...prev,
+                            [uri]: width / height,
+                          }));
+                        }
+                      }}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        }
+
         const uri = resolveImageUri(block.src);
-        const ratio = imageRatios[uri] ?? 1.5;
+        const ratio = imageRatios[uri];
 
         return (
           <TouchableOpacity
             key={`image-${uri}-${index}`}
             activeOpacity={0.9}
-            onPress={() => onImagePress?.(uri)}
+            onPress={() => onImagePress?.(uri, [uri], 0)}
           >
             <Image
               source={{ uri }}
               resizeMode="contain"
-              style={[styles.image, { aspectRatio: ratio }]}
+              style={[
+                styles.image,
+                ratio ? { aspectRatio: ratio } : styles.imagePlaceholder,
+              ]}
               onLoad={(event) => {
                 const { width, height } = event.nativeEvent.source;
                 if (width && height) {
@@ -241,14 +519,22 @@ const styles = StyleSheet.create({
     gap: 10,
     width: "100%",
   },
+  stackContainer: {
+    gap: 10,
+    width: "100%",
+  },
   text: {
     lineHeight: 24,
   },
   image: {
     width: "100%",
-    maxHeight: 320,
     borderRadius: 12,
     backgroundColor: "#F3F4F6",
+    overflow: "hidden" as const,
+  },
+  imagePlaceholder: {
+    aspectRatio: 16 / 9,
+    backgroundColor: "#E5E7EB",
   },
   bold: {
     fontWeight: "700",

@@ -1,18 +1,20 @@
-import NextAuth, { AuthError } from "next-auth";
+import NextAuth, { AuthError, CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-class OTPError extends AuthError {
-  error;
-  constructor(message: string, error: { error: string; status: number }) {
+class OTPError extends CredentialsSignin {
+  code = "OTPError";
+  error?: { error: string; status: number };
+  constructor(message: string, error?: { error: string; status: number }) {
     super(message);
     this.name = "OTPError";
     this.error = error;
   }
 }
 
-class InvalidCredentialsError extends AuthError {
-  error;
-  constructor(message: string, error: { error: string; status: number }) {
+class InvalidCredentialsError extends CredentialsSignin {
+  code = "InvalidCredentialsError";
+  error?: { error: string; status: number };
+  constructor(message: string, error?: { error: string; status: number }) {
     super(message);
     this.name = "InvalidCredentialsError";
     this.error = error;
@@ -20,6 +22,7 @@ class InvalidCredentialsError extends AuthError {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       // You can specify which fields should be submitted, by adding keys to the `credentials` object.
@@ -78,9 +81,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Handle normal email/password login
-          let authData;
+          let authData: Response;
           if (credentials?.newPassword) {
-            authData = (await fetch(
+            authData = await fetch(
               `${process.env.BACKEND_URL}/change-temp-password`,
               {
                 method: "POST",
@@ -91,50 +94,59 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   new_password: credentials.newPassword,
                 }),
               }
-            )) as Response;
+            );
           } else {
-            authData = (await fetch(`${process.env.BACKEND_URL}/login`, {
+            authData = await fetch(`${process.env.BACKEND_URL}/login`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(credentials),
-            })) as Response;
+            });
           }
 
           const status = authData.status;
 
-          authData = await authData.json();
+          let authJson: any = null;
+          try {
+            authJson = await authData.json();
+          } catch {
+            authJson = null;
+          }
 
-          if (authData?.error && status === 403) {
+          if (status === 403 || authJson?.error === "NEW_PASSWORD_REQUIRED") {
             throw new OTPError("OTPError", {
-              error: authData?.error,
-              status: status,
+              error: authJson?.error || "OTPError",
+              status,
             });
           }
 
-          if (authData?.error && status === 401) {
-            throw new InvalidCredentialsError("InvalidCredentialsError", {
-              error: authData?.error,
-              status: status,
-            });
+          if (status === 401 || (authJson?.error && status !== 200)) {
+            throw new InvalidCredentialsError(
+              authJson?.error || "InvalidCredentialsError",
+              {
+                error: authJson?.error || "InvalidCredentialsError",
+                status,
+              }
+            );
           }
 
-          if (authData) {
+          if (status === 200 && authJson?.access_token && authJson?.user) {
             return {
-              ...authData?.user,
-              given_name: authData?.user.given_name,
-              family_name: authData?.user.family_name,
-              refreshToken: authData?.refresh_token,
-              accessToken: authData?.access_token,
+              ...authJson.user,
+              given_name: authJson.user.given_name,
+              family_name: authJson.user.family_name,
+              refreshToken: authJson.refresh_token,
+              accessToken: authJson.access_token,
               accessTokenExpires: Date.now() + 60 * 60 * 24 * 1000,
-              schoolName: authData?.school_name,
+              schoolName: authJson.school_name,
             };
           }
 
           return null;
         } catch (e) {
-          if (e instanceof AuthError) {
+          if (e instanceof AuthError || e instanceof CredentialsSignin) {
             throw e;
           }
+          console.error("Authorize error:", e);
           return null;
         }
       },
@@ -160,6 +172,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return token;
       }
 
+      if (token?.error === "RefreshAccessTokenError" || !token?.refreshToken) {
+        return token;
+      }
+
       // Access token has expired, try to update it
       return refreshAccessToken(token);
     },
@@ -182,6 +198,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 });
 
 async function refreshAccessToken(token: any) {
+  if (!token?.refreshToken) {
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+
   try {
     const response = await fetch(`${process.env.BACKEND_URL}/refresh-token`, {
       headers: {
@@ -193,11 +216,19 @@ async function refreshAccessToken(token: any) {
       }),
     });
 
-    const refreshedTokens = await response.json();
-
     if (!response.ok) {
-      throw refreshedTokens;
+      let errData = null;
+      try {
+        errData = await response.json();
+      } catch {}
+      console.warn("Failed to refresh access token:", response.status, errData);
+      return {
+        ...token,
+        error: "RefreshAccessTokenError",
+      };
     }
+
+    const refreshedTokens = await response.json();
 
     return {
       ...token,
@@ -207,7 +238,7 @@ async function refreshAccessToken(token: any) {
       error: "",
     };
   } catch (error) {
-    console.error(error);
+    console.error("Refresh token network error:", error);
 
     return {
       ...token,

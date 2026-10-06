@@ -56,6 +56,7 @@ export class AuthController {
         },
         standardHeaders: true,
         legacyHeaders: false,
+        skip: () => config.NODE_ENV !== 'production',
     });
 
     private adminAuthLimiter = rateLimit({
@@ -66,6 +67,7 @@ export class AuthController {
         },
         standardHeaders: true,
         legacyHeaders: false,
+        skip: () => config.NODE_ENV !== 'production',
     });
 
     constructor(private service: AuthService) {

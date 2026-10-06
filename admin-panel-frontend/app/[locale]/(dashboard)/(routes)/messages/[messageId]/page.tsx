@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import postView from "@/types/postView";
 import { Button } from "@/components/ui/button";
 import { MessageStudent, MessageStudentApi } from "@/types/studentApi";
-import { Bell, Check, CheckCheck, Edit3Icon } from "lucide-react";
+import { Bell, Check, CheckCheck, Edit3Icon, Mail, Paperclip } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import PaginationApi from "@/components/PaginationApi";
@@ -186,22 +187,68 @@ export default function ThisMessage({
           <Button>{t("editMessage")}</Button>
         </Link>
       </PageHeader>
-      <Card className="space-y-8 p-4">
-        <div>
-          <CardTitle className="text-xl w-2/4 font-bold break-words">
+      <Card className="space-y-6 p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground break-words flex-1">
             {data?.post?.title}
           </CardTitle>
-          <PostDescriptionContent
-            description={data?.post?.description}
-            className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground"
-          />
-          {postImages.length > 0 && (
-            <PostImageGallery
-              images={postImages}
-              alt={data?.post?.title ?? ""}
-            />
+          {data?.post?.priority && (
+            <div className="shrink-0">
+              {data.post.priority === "high" ? (
+                <Badge className="bg-red-500/15 text-red-600 hover:bg-red-500/20 border-red-500/30 dark:text-red-400">
+                  {t("Priority.high")}
+                </Badge>
+              ) : data.post.priority === "medium" ? (
+                <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/20 border-amber-500/30 dark:text-amber-400">
+                  {t("Priority.medium")}
+                </Badge>
+              ) : (
+                <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/30 dark:text-emerald-400">
+                  {t("Priority.low")}
+                </Badge>
+              )}
+            </div>
           )}
         </div>
+
+        <Tabs defaultValue="message" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="message" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              <span>{t("messageTab")}</span>
+            </TabsTrigger>
+            <TabsTrigger value="files" className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              <span>{t("filesTab")}</span>
+              {postImages.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1 h-5 px-1.5 text-xs font-semibold"
+                >
+                  {postImages.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="message" className="mt-0">
+            <div className="rounded-xl border bg-muted/20 p-5 text-foreground">
+              <PostDescriptionContent
+                description={data?.post?.description}
+                className="whitespace-pre-wrap text-sm leading-relaxed"
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="files" className="mt-0">
+            <div className="rounded-xl border bg-muted/10 p-5">
+              <PostImageGallery
+                images={postImages}
+                alt={data?.post?.title ?? ""}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
       </Card>
 
       <div className="rounded-md border">

@@ -115,14 +115,11 @@ export default function LoginForm() {
     try {
       const response = await login(email, password, newPasswordValue);
 
-      if (typeof response === "string") {
-        router.push("/");
-        toast({
-          title: t("loginSuccess"),
-          description: t("loginSuccessDescription"),
-        });
-      } else {
-        if (response.error === "InvalidCredentialsError") {
+      if (response && typeof response === "object" && "error" in response && response.error) {
+        if (
+          response.error === "InvalidCredentialsError" ||
+          response.error === "CredentialsSignin"
+        ) {
           toast({
             title: t("loginFailed"),
             description: t("InvalidCredentialsError"),
@@ -141,13 +138,24 @@ export default function LoginForm() {
         } else {
           toast({
             title: t("loginFailed"),
-            description: t("AuthError"),
+            description: (response as any).message || t("AuthError"),
             variant: "destructive",
           });
         }
+      } else {
+        router.push("/");
+        toast({
+          title: t("loginSuccess"),
+          description: t("loginSuccessDescription"),
+        });
       }
     } catch (error) {
       console.error("Login failed", error);
+      toast({
+        title: t("loginFailed"),
+        description: t("AuthError"),
+        variant: "destructive",
+      });
     }
   };
 
@@ -253,7 +261,7 @@ export default function LoginForm() {
                   isLoading={googleLoading}
                   icon={
                     <Image
-                      loader={localImageLoader}
+                      unoptimized
                       src="/assets/google_logo.webp"
                       alt="Google Logo"
                       width={16}

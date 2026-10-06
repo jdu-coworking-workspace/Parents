@@ -1,9 +1,9 @@
 import { useCallback, useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Alert,
   Dimensions,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -27,6 +27,7 @@ import { fetchStudentMessage } from "@/services/student-messages";
 import type { Message } from "@/types/message";
 import { useFontSize } from "@/contexts/font-size-context";
 import { getMessageImageUrls } from "@/utils/image-url";
+import { downloadFileFromUrl, getDownloadFileName } from "@/utils/file-download";
 
 export type TranslationKeys = {
   critical: string;
@@ -73,27 +74,18 @@ export default function MessageDetailScreen() {
 
   const messageId = Array.isArray(id) ? id[0] : id;
 
+  const [activeTab, setActiveTab] = useState<"message" | "files">("message");
+  const [downloadingUri, setDownloadingUri] = useState<string | null>(null);
+
   const [message, setMessage] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [inlineZoomImage, setInlineZoomImage] = useState<string | null>(null);
-  const [imageAspectRatios, setImageAspectRatios] = useState<
-    Record<string, number>
-  >({});
-
-  const screenWidth = Dimensions.get("window").width;
-  const imageContainerWidth = screenWidth - 32; // scrollContent paddingHorizontal: 16 * 2
-
-  const handleImageLoad = useCallback(
-    (uri: string, width: number, height: number) => {
-      setImageAspectRatios((prev) =>
-        prev[uri] ? prev : { ...prev, [uri]: width / height },
-      );
-    },
-    [],
-  );
+  const [inlineZoomGroup, setInlineZoomGroup] = useState<{
+    images: string[];
+    index: number;
+  } | null>(null);
 
   const loadMessage = useCallback(async () => {
     if (!messageId) {
@@ -130,8 +122,8 @@ export default function MessageDetailScreen() {
     () => imageUrls.map((uri) => ({ uri })),
     [imageUrls],
   );
-  const zoomGalleryImages = inlineZoomImage
-    ? [{ uri: inlineZoomImage }]
+  const zoomGalleryImages = inlineZoomGroup
+    ? inlineZoomGroup.images.map((uri) => ({ uri }))
     : imagesForZoomGallery;
 
   const getPriorityLabel = (priority: Message["priority"]) => {
@@ -149,6 +141,15 @@ export default function MessageDetailScreen() {
 
     // Assert the type to bypass the error
     showCopiedToast(t("messageCopiedToClipboard" as keyof typeof t | any));
+  };
+
+  const handleDownloadFile = async (uri: string) => {
+    try {
+      setDownloadingUri(uri);
+      await downloadFileFromUrl(uri, t);
+    } finally {
+      setDownloadingUri(null);
+    }
   };
 
   if (isLoading) {
@@ -215,131 +216,329 @@ export default function MessageDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
-          <View
+        {/* Top Segment Tabs: Message | Files */}
+        <View
+          style={[
+            styles.tabBar,
+            { backgroundColor: isDark ? "#1C1D22" : "#F3F4F6" },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setActiveTab("message")}
             style={[
-              styles.titleRow,
-              multiplier > 1
-                ? { flexDirection: "column-reverse", alignItems: "flex-start" }
-                : {
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  },
+              styles.tabButton,
+              activeTab === "message" && [
+                styles.activeTabButton,
+                { backgroundColor: isDark ? "#2A2B32" : "#FFFFFF" },
+              ],
             ]}
           >
+            <Ionicons
+              name="chatbox-outline"
+              size={18}
+              color={
+                activeTab === "message"
+                  ? "#0A84FF"
+                  : isDark
+                    ? "#9CA3AF"
+                    : "#6B7280"
+              }
+            />
             <ThemedText
               style={[
-                styles.title,
-                {
-                  color: isDark ? "#FFFFFF" : "#111827",
-                  textAlign: "left",
-                  flex: multiplier > 1 ? 0 : 1,
-                  flexShrink: multiplier > 1 ? 0 : 1,
-                  width: multiplier > 1 ? "100%" : "auto",
-                },
+                styles.tabButtonText,
+                { fontSize: 15 * multiplier },
+                activeTab === "message"
+                  ? [styles.activeTabText, { color: isDark ? "#FFFFFF" : "#111827" }]
+                  : { color: isDark ? "#9CA3AF" : "#6B7280" },
               ]}
             >
-              {message.title}
+              {t("messageTab")}
             </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setActiveTab("files")}
+            style={[
+              styles.tabButton,
+              activeTab === "files" && [
+                styles.activeTabButton,
+                { backgroundColor: isDark ? "#2A2B32" : "#FFFFFF" },
+              ],
+            ]}
+          >
+            <Ionicons
+              name="attach-outline"
+              size={18}
+              color={
+                activeTab === "files"
+                  ? "#0A84FF"
+                  : isDark
+                    ? "#9CA3AF"
+                    : "#6B7280"
+              }
+            />
+            <ThemedText
+              style={[
+                styles.tabButtonText,
+                { fontSize: 15 * multiplier },
+                activeTab === "files"
+                  ? [styles.activeTabText, { color: isDark ? "#FFFFFF" : "#111827" }]
+                  : { color: isDark ? "#9CA3AF" : "#6B7280" },
+              ]}
+            >
+              {t("filesTab")}
+            </ThemedText>
+            {imageUrls.length > 0 && (
+              <View
+                style={[
+                  styles.tabBadge,
+                  {
+                    backgroundColor:
+                      activeTab === "files"
+                        ? "#0A84FF"
+                        : isDark
+                          ? "#374151"
+                          : "#E5E7EB",
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.tabBadgeText,
+                    {
+                      color:
+                        activeTab === "files"
+                          ? "#FFFFFF"
+                          : isDark
+                            ? "#D1D5DB"
+                            : "#4B5563",
+                    },
+                  ]}
+                >
+                  {imageUrls.length}
+                </ThemedText>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab 1: Message Content */}
+        {activeTab === "message" ? (
+          <View style={[styles.card, { backgroundColor: pageBackgroundColor }]}>
             <View
               style={[
-                styles.badge,
-                {
-                  backgroundColor: getPriorityBadgeColor(message.priority),
-                  borderRadius: 4,
-                  paddingHorizontal: 6 * multiplier,
-                  paddingVertical: 4 * multiplier,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginLeft: multiplier > 1 ? 0 : 10,
-                  alignSelf: multiplier > 1 ? "flex-end" : "center",
-                },
+                styles.titleRow,
+                multiplier > 1
+                  ? { flexDirection: "column-reverse", alignItems: "flex-start" }
+                  : {
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    },
               ]}
             >
               <ThemedText
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 11,
-                  textAlign: "center",
-                  fontWeight: "500",
-                }}
+                style={[
+                  styles.title,
+                  {
+                    color: isDark ? "#FFFFFF" : "#111827",
+                    textAlign: "left",
+                    flex: multiplier > 1 ? 0 : 1,
+                    flexShrink: multiplier > 1 ? 0 : 1,
+                    width: multiplier > 1 ? "100%" : "auto",
+                  },
+                ]}
               >
-                {getPriorityLabel(message.priority)}
+                {message.title}
               </ThemedText>
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: getPriorityBadgeColor(message.priority),
+                    borderRadius: 4,
+                    paddingHorizontal: 6 * multiplier,
+                    paddingVertical: 4 * multiplier,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginLeft: multiplier > 1 ? 0 : 10,
+                    alignSelf: multiplier > 1 ? "flex-end" : "center",
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 11,
+                    textAlign: "center",
+                    fontWeight: "500",
+                  }}
+                >
+                  {getPriorityLabel(message.priority)}
+                </ThemedText>
+              </View>
+            </View>
+
+            <View style={styles.preview}>
+              <MessageDescription
+                content={message.content}
+                textColor={isDark ? "#E5E7EB" : "#1F2937"}
+                fontSize={16 * multiplier}
+                onImagePress={(uri, groupImages, groupIndex) => {
+                  const group =
+                    groupImages && groupImages.length > 0 ? groupImages : [uri];
+                  const idx = groupIndex !== undefined ? groupIndex : 0;
+                  setInlineZoomGroup({ images: group, index: idx });
+                  setCurrentImageIndex(idx);
+                  setZoomVisible(true);
+                }}
+              />
+            </View>
+
+            <View style={styles.footerRow}>
+              <ThemedText
+                style={[styles.date, { color: isDark ? "#6B7280" : "#6B7280" }]}
+              >
+                {formattedTime}
+              </ThemedText>
+
+              <Pressable onPress={handleCopy} style={styles.copyButton}>
+                <Ionicons name="copy-outline" size={20} color="#0A84FF" />
+                <ThemedText style={styles.copyText}>Copy</ThemedText>
+              </Pressable>
             </View>
           </View>
+        ) : (
+          /* Tab 2: Files View (No carousel, individual clean cards with preview & direct download) */
+          <View style={styles.filesContainer}>
+            {imageUrls.length === 0 ? (
+              <View style={styles.emptyFilesContainer}>
+                <Ionicons
+                  name="folder-open-outline"
+                  size={54}
+                  color={isDark ? "#4B5563" : "#9CA3AF"}
+                />
+                <ThemedText
+                  style={[
+                    styles.emptyFilesTitle,
+                    {
+                      color: isDark ? "#FFFFFF" : "#111827",
+                      fontSize: 16 * multiplier,
+                    },
+                  ]}
+                >
+                  {t("noAttachedFiles")}
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.emptyFilesDesc,
+                    {
+                      color: isDark ? "#9CA3AF" : "#6B7280",
+                      fontSize: 14 * multiplier,
+                    },
+                  ]}
+                >
+                  {t("noAttachedFilesDescription")}
+                </ThemedText>
+              </View>
+            ) : (
+              <View style={styles.filesList}>
+                {imageUrls.map((uri, index) => {
+                  const rawFilename = getDownloadFileName(uri);
+                  const isThisDownloading = downloadingUri === uri;
 
-          {imageUrls.length > 0 && (
-            <View style={styles.imageContainer}>
-              {imageUrls.map((uri, index) => {
-                const aspectRatio = imageAspectRatios[uri];
-                const computedHeight = aspectRatio
-                  ? imageContainerWidth / aspectRatio
-                  : 260;
-
-                return (
-                  <View key={`${uri}-${index}`} style={styles.imageItem}>
+                  return (
                     <TouchableOpacity
+                      key={`${uri}-${index}`}
+                      activeOpacity={0.8}
                       onPress={() => {
-                        setInlineZoomImage(null);
-                        setCurrentImageIndex(index);
+                        setInlineZoomGroup({ images: [uri], index: 0 });
+                        setCurrentImageIndex(0);
                         setZoomVisible(true);
                       }}
+                      style={[
+                        styles.fileCard,
+                        {
+                          backgroundColor: isDark ? "#1C1D22" : "#F9FAFB",
+                          borderColor: isDark ? "#2A2B32" : "#E5E7EB",
+                        },
+                      ]}
                     >
-                      <View style={styles.imageWrapper}>
-                        <Image
-                          style={[styles.image, { height: computedHeight }]}
-                          source={{ uri }}
-                          resizeMode="contain"
-                          onLoad={(e) => {
-                            const { width, height } = e.nativeEvent.source;
-                            handleImageLoad(uri, width, height);
-                          }}
-                        />
+                      <Image
+                        source={{ uri }}
+                        style={styles.fileThumbnail}
+                        resizeMode="cover"
+                      />
+
+                      <View style={styles.fileInfo}>
+                        <ThemedText
+                          numberOfLines={1}
+                          style={[
+                            styles.fileName,
+                            {
+                              color: isDark ? "#FFFFFF" : "#111827",
+                              fontSize: 14 * multiplier,
+                            },
+                          ]}
+                        >
+                          {rawFilename}
+                        </ThemedText>
+                        <ThemedText
+                          style={[
+                            styles.fileMeta,
+                            {
+                              color: isDark ? "#9CA3AF" : "#6B7280",
+                              fontSize: 12 * multiplier,
+                            },
+                          ]}
+                        >
+                          {index + 1} / {imageUrls.length}
+                        </ThemedText>
                       </View>
+
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => void handleDownloadFile(uri)}
+                        disabled={isThisDownloading}
+                        style={[
+                          styles.fileDownloadButton,
+                          {
+                            backgroundColor: isDark ? "#2A2B32" : "#E5E7EB",
+                          },
+                        ]}
+                      >
+                        {isThisDownloading ? (
+                          <ActivityIndicator size="small" color="#0A84FF" />
+                        ) : (
+                          <Ionicons
+                            name="download-outline"
+                            size={20}
+                            color={isDark ? "#FFFFFF" : "#111827"}
+                          />
+                        )}
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          <View style={styles.preview}>
-            <MessageDescription
-              content={message.content}
-              textColor={isDark ? "#E5E7EB" : "#1F2937"}
-              fontSize={16 * multiplier}
-              onImagePress={(uri) => {
-                setInlineZoomImage(uri);
-                setCurrentImageIndex(0);
-                setZoomVisible(true);
-              }}
-            />
+                  );
+                })}
+              </View>
+            )}
           </View>
-
-          <View style={styles.footerRow}>
-            <ThemedText
-              style={[styles.date, { color: isDark ? "#6B7280" : "#6B7280" }]}
-            >
-              {formattedTime}
-            </ThemedText>
-
-            <Pressable onPress={handleCopy} style={styles.copyButton}>
-              <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-              <ThemedText style={styles.copyText}>Copy</ThemedText>
-            </Pressable>
-          </View>
-        </View>
+        )}
       </ScrollView>
 
+      {/* Full screen vertical scroll ZoomGallery */}
       <ZoomGallery
         visible={zoomVisible}
         images={zoomGalleryImages}
-        initialIndex={inlineZoomImage ? 0 : currentImageIndex}
+        initialIndex={
+          inlineZoomGroup ? inlineZoomGroup.index : currentImageIndex
+        }
         onRequestClose={() => {
           setZoomVisible(false);
-          setInlineZoomImage(null);
+          setInlineZoomGroup(null);
         }}
       />
     </ThemedView>
@@ -354,6 +553,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 24,
+  },
+  tabBar: {
+    flexDirection: "row",
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9,
+    borderRadius: 8,
+    gap: 6,
+  },
+  activeTabButton: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabButtonText: {
+    fontWeight: "500",
+  },
+  activeTabText: {
+    fontWeight: "600",
+  },
+  tabBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 2,
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   centeredContainer: {
     flex: 1,
@@ -401,25 +638,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "lowercase",
-  },
-  imageContainer: {
-    marginTop: 12,
-  },
-  imageItem: {
-    marginBottom: 10,
-  },
-  imageWrapper: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  image: {
-    width: "100%",
-  },
   preview: {
     marginTop: 8,
   },
@@ -442,5 +660,60 @@ const styles = StyleSheet.create({
     color: "#0A84FF",
     fontSize: 14,
     fontWeight: "500",
+  },
+  // Files tab styles
+  filesContainer: {
+    paddingVertical: 4,
+  },
+  filesList: {
+    gap: 12,
+  },
+  fileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  fileThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#2A2B32",
+  },
+  fileInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: "center",
+  },
+  fileName: {
+    fontWeight: "600",
+  },
+  fileMeta: {
+    marginTop: 3,
+  },
+  fileDownloadButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  emptyFilesContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  emptyFilesTitle: {
+    fontWeight: "600",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  emptyFilesDesc: {
+    textAlign: "center",
+    maxWidth: 260,
   },
 });

@@ -12,6 +12,24 @@ function normalizeMessageImages(post: Message): string[] | null {
     return post.images.filter(Boolean);
   }
 
+  const rawImages: unknown = post.images;
+  if (typeof rawImages === 'string' && rawImages.trim()) {
+    const trimmed = rawImages.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(Boolean);
+        }
+      } catch {}
+    }
+    if (trimmed.includes(',')) {
+      const parts = trimmed.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (parts.length > 0) return parts;
+    }
+    return [trimmed];
+  }
+
   if (post.image) {
     return [post.image];
   }

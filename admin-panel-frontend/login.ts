@@ -1,7 +1,6 @@
 "use server";
 
 import { signIn } from "@/auth";
-import { AuthError } from "next-auth";
 
 export const login = async (
   email: string,
@@ -15,12 +14,69 @@ export const login = async (
       newPassword,
       redirect: false,
     });
-    
-    return response;
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { ...error, error: error.name, message: error.message };
+
+    if (typeof response === "string") {
+      try {
+        const url = new URL(response, "http://localhost:3000");
+        const errorCode = url.searchParams.get("code");
+        const errorParam = url.searchParams.get("error");
+
+        if (errorCode === "OTPError" || errorParam === "OTPError") {
+          return { error: "OTPError", message: "OTP required" };
+        }
+        if (
+          errorCode === "InvalidCredentialsError" ||
+          errorParam === "InvalidCredentialsError" ||
+          errorParam === "CredentialsSignin"
+        ) {
+          return {
+            error: "InvalidCredentialsError",
+            message: "Invalid credentials",
+          };
+        }
+        if (errorParam) {
+          return { error: errorParam, message: errorParam };
+        }
+      } catch {
+        // Ignored
+      }
     }
-    throw error;
+
+    return response;
+  } catch (error: any) {
+    // Check if error is an internal Next.js redirect
+    if (
+      error?.message === "NEXT_REDIRECT" ||
+      (typeof error?.digest === "string" &&
+        error.digest.startsWith("NEXT_REDIRECT"))
+    ) {
+      throw error;
+    }
+
+    const causeErr = error?.cause?.err || error?.cause;
+    const code = causeErr?.code || error?.code;
+    const name = causeErr?.name || error?.name;
+
+    if (code === "OTPError" || name === "OTPError") {
+      return { error: "OTPError", message: "OTP required" };
+    }
+
+    if (
+      code === "InvalidCredentialsError" ||
+      name === "InvalidCredentialsError" ||
+      code === "credentials" ||
+      name === "CredentialsSignin"
+    ) {
+      return {
+        error: "InvalidCredentialsError",
+        message: "Invalid credentials",
+      };
+    }
+
+    const errorMsg = causeErr?.message || error?.message || "AuthError";
+    return {
+      error: name || "AuthError",
+      message: errorMsg,
+    };
   }
 };

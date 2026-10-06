@@ -221,6 +221,10 @@ export type TranslationKeys = {
   accessDenied: string;
   notFound: string;
   tooManyAttempts: string;
+  messageTab: string;
+  filesTab: string;
+  noAttachedFiles: string;
+  noAttachedFilesDescription: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';

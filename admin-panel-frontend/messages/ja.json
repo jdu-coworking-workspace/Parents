@@ -268,7 +268,13 @@
     "editMessage": "メッセージを編集",
     "editReceivers": "受信者を編集",
     "Groups": "グループ",
-    "Students": "学生"
+    "Students": "学生",
+    "messageTab": "メッセージ本文",
+    "filesTab": "添付ファイル",
+    "noFiles": "添付ファイルはありません",
+    "noFilesDescription": "このメッセージには添付画像やファイルがありません。",
+    "download": "ダウンロード",
+    "openFull": "フルサイズで表示"
   },
   "ThisGroup": {
     "GroupView": "グループの詳細",
