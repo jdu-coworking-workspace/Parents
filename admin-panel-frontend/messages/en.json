@@ -948,6 +948,7 @@
     "postsDeleted": "Posts Deleted Successfully",
     "postsDeletedDescription": "Posts Deleted Successfully",
     "postsUploaded": "Posts Uploaded Successfully",
+    "postsUploadedWithWarnings": "Posts Uploaded with Warnings",
     "csvFile": "CSV File",
     "invalid_email": "Invalid email",
     "invalid_phone_number": "Invalid phone number",
