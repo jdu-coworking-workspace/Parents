@@ -478,6 +478,11 @@ export default function StudentMessagesScreen() {
             );
           }
           const localDateTime = utcDateTime.setZone(userTimeZone);
+          const imagesCount = Array.isArray(message.images)
+            ? message.images.length
+            : message.image
+              ? 1
+              : 0;
 
           return (
             <Pressable
@@ -550,6 +555,27 @@ export default function StudentMessagesScreen() {
                     color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
                     style={{ opacity: isRead ? 1 : 0.8 }}
                   />
+
+                  {imagesCount > 0 && (
+                    <View style={styles.imageBadge}>
+                      <Ionicons
+                        name="document-text-outline"
+                        size={13}
+                        color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.imageBadgeText,
+                          {
+                            color:
+                              colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+                          },
+                        ]}
+                      >
+                        {imagesCount}
+                      </ThemedText>
+                    </View>
+                  )}
                 </View>
 
                 <Pressable
@@ -748,7 +774,20 @@ const styles = StyleSheet.create({
   dateAndStatus: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+  },
+  imageBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: "rgba(156, 163, 175, 0.15)",
+  },
+  imageBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   bottomRow: {
     flexDirection: "row",

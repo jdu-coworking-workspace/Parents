@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
@@ -11,7 +11,7 @@ import ImageLightbox from "@/components/ImageLightbox";
 import {
   MAX_IMAGE_BYTES,
   MAX_POST_IMAGES,
-  readFileAsDataUrl,
+  compressAndReadFileAsDataUrl,
 } from "@/lib/postImages";
 
 type UploadImageResponse = {
@@ -34,6 +34,7 @@ export default function MessageImagePicker({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileKey, setFileKey] = useState(0);
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const uploadImageMutation = useApiMutation<
     UploadImageResponse,
@@ -65,11 +66,8 @@ export default function MessageImagePicker({
   const displayedImages = [...value, ...pendingPreviews];
   const remainingSlots = MAX_POST_IMAGES - value.length;
 
-  const handleFilesSelected = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
+  const processAndUploadFiles = async (rawFiles: File[]) => {
+    const files = rawFiles.filter((f) => f.type.startsWith("image/"));
     if (files.length === 0) return;
 
     if (remainingSlots <= 0) {
@@ -101,7 +99,9 @@ export default function MessageImagePicker({
 
     try {
       onUploadingChange?.(true);
-      const dataUrls = await Promise.all(validFiles.map(readFileAsDataUrl));
+      const dataUrls = await Promise.all(
+        validFiles.map((file) => compressAndReadFileAsDataUrl(file))
+      );
       setPendingPreviews(dataUrls);
       uploadImageMutation.mutate({ images: dataUrls });
     } catch {
@@ -111,6 +111,58 @@ export default function MessageImagePicker({
         title: t("error"),
         description: t("imageUploadFailed"),
       });
+    }
+  };
+
+  const handleFilesSelected = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length > 0) {
+      processAndUploadFiles(files);
+    }
+  };
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (remainingSlots <= 0 || uploadImageMutation.isPending) return;
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const imageFiles: File[] = [];
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length > 0) {
+        processAndUploadFiles(imageFiles);
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [remainingSlots, uploadImageMutation.isPending, value]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!uploadImageMutation.isPending && remainingSlots > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (uploadImageMutation.isPending || remainingSlots <= 0) return;
+    const files = Array.from(e.dataTransfer.files ?? []);
+    if (files.length > 0) {
+      processAndUploadFiles(files);
     }
   };
 
@@ -126,8 +178,17 @@ export default function MessageImagePicker({
       : t("filesChosen", { count: displayedImages.length });
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
+    <div
+      className={`space-y-3 rounded-lg border-2 p-3 transition-colors ${
+        isDragging
+          ? "border-primary bg-primary/5"
+          : "border-transparent"
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="flex items-center gap-2 flex-wrap">
         <Input
           type="file"
           accept="image/*"
@@ -143,9 +204,13 @@ export default function MessageImagePicker({
           disabled={remainingSlots <= 0 || uploadImageMutation.isPending}
           onClick={() => fileInputRef.current?.click()}
         >
+          <ImageIcon className="h-4 w-4 mr-1.5" />
           {t("chooseFile")}
         </Button>
         <span className="text-sm text-muted-foreground">{chosenLabel}</span>
+        <span className="text-xs text-muted-foreground/70 hidden sm:inline ml-auto">
+          (Ctrl+V yoki rasmni sudrab tashlang)
+        </span>
       </div>
       {displayedImages.length > 0 && (
         <div className="flex flex-wrap gap-3">

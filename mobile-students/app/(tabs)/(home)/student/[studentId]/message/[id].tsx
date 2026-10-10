@@ -396,6 +396,38 @@ export default function MessageDetailScreen() {
                   setZoomVisible(true);
                 }}
               />
+
+              {imageUrls.length > 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setActiveTab("files")}
+                  style={[
+                    styles.goToFilesBanner,
+                    {
+                      backgroundColor: isDark ? "#1C1D22" : "#F3F4F6",
+                      borderColor: isDark ? "#2A2B32" : "#E5E7EB",
+                    },
+                  ]}
+                >
+                  <View style={styles.goToFilesLeft}>
+                    <Ionicons name="attach-outline" size={18} color="#0A84FF" />
+                    <ThemedText
+                      style={[
+                        styles.goToFilesText,
+                        { color: isDark ? "#E5E7EB" : "#1F2937" },
+                      ]}
+                    >
+                      {imageUrls.length} {t("picture" as any) || "rasm"}{imageUrls.length > 1 ? "lar" : ""} biriktirilgan
+                    </ThemedText>
+                  </View>
+                  <View style={styles.goToFilesRight}>
+                    <ThemedText style={styles.goToFilesActionText}>
+                      {t("filesTab" as any) || "Fayllar"}
+                    </ThemedText>
+                    <Ionicons name="chevron-forward" size={16} color="#0A84FF" />
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.footerRow}>
@@ -715,5 +747,35 @@ const styles = StyleSheet.create({
   emptyFilesDesc: {
     textAlign: "center",
     maxWidth: 260,
+  },
+  goToFilesBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  goToFilesLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  goToFilesText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  goToFilesRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  goToFilesActionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#0A84FF",
   },
 });
