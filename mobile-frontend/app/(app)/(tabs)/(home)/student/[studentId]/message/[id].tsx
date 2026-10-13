@@ -494,7 +494,24 @@ export default function DetailsScreen() {
 
   const copyToClipboard = async () => {
     if (message?.content) {
-      await Clipboard.setStringAsync(message.content);
+      // Strip HTML tags to copy only the text content (no images)
+      const plainText = message.content
+        .replace(/<img\b[^>]*>/gi, '')           // Remove img tags
+        .replace(/<br\s*\/?>/gi, '\n')            // Convert <br> to newline
+        .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n') // Block-level closing tags to newline
+        .replace(/<[^>]+>/g, '')                  // Remove all remaining HTML tags
+        .replace(/&nbsp;/g, ' ')                  // Decode common entities
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n{3,}/g, '\n\n')              // Collapse excessive newlines
+        .trim();
+
+      if (!plainText) return;
+
+      await Clipboard.setStringAsync(plainText);
 
       ToastAndroid.show('Text copied to clipboard!', ToastAndroid.SHORT);
     }
