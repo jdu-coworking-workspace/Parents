@@ -27,7 +27,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { File as FileIcon, Info } from "lucide-react";
+import { File as FileIcon, Info, UploadIcon, Download } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import {
@@ -45,11 +45,26 @@ import Post from "@/types/post";
 import { convertToUtf8IfNeeded, download } from "@/lib/utils";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
-import { Download } from "lucide-react";
 import { getCsvUploadSchema } from "@/lib/validationSchemas";
 
 export default function MessageFromCSV() {
   const t = useTranslations("fromcsv");
+  const tErrors = useTranslations("errors");
+
+  const translateKey = (key?: string) => {
+    const k = (key ?? "").split(".").pop() || "";
+    if (!k) return tErrors("unexpected_error");
+    try {
+      return t(k);
+    } catch {
+      try {
+        return tErrors(k);
+      } catch {
+        return tErrors("unexpected_error");
+      }
+    }
+  };
+
   const formSchema = getCsvUploadSchema();
 
   const queryClient = useQueryClient();
@@ -58,7 +73,7 @@ export default function MessageFromCSV() {
     resolver: zodResolver(formSchema),
     mode: "onChange",
   });
-  const { mutate, error, isPending } = useFormMutation<{ message: string }>(
+  const { mutate, data, error, isPending } = useFormMutation<Upload<Post>>(
     `post/upload`,
     "POST",
     ["uploadPosts"],
@@ -68,11 +83,46 @@ export default function MessageFromCSV() {
           queryKey: ["posts"],
         });
         form.reset();
+
+        // Show success/warning toast based on results (localized)
+        if (data?.success && data?.summary) {
+          const { errors: errorCount } = data.summary;
+          if (errorCount > 0) {
+            toast({
+              title: t("postsUploadedWithWarnings"),
+              description: t("csv_processed_with_errors"),
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: t("postsUploaded"),
+              description: t("csv_processed_successfully"),
+            });
+            router.push("/messages");
+          }
+        } else {
+          toast({
+            title: t("postsUploaded"),
+            description: translateKey(
+              (data as { message?: string } | undefined)?.message ??
+                "csv_processed_successfully"
+            ),
+          });
+          if (!data?.summary?.errors || data.summary.errors === 0) {
+            router.push("/messages");
+          }
+        }
+      },
+      onError(error) {
+        const e = error as
+          | { body?: { error?: string }; message?: string }
+          | undefined;
+        const errKey = e?.body?.error ?? e?.message ?? "unexpected_error";
         toast({
-          title: t("postsUploaded"),
-          description: t(data?.message),
+          title: t("uploadError"),
+          description: translateKey(errKey),
+          variant: "destructive",
         });
-        router.push("/messages");
       },
     }
   );
@@ -81,9 +131,13 @@ export default function MessageFromCSV() {
     const file = values.csvFile;
     const formData = new FormData();
 
-    const utf8Blob = await convertToUtf8IfNeeded(file);
+    const converted = await convertToUtf8IfNeeded(file);
+    const convertedFile = new File([converted], file.name, {
+      type: converted.type || "text/csv",
+      lastModified: Date.now(),
+    });
 
-    formData.append("file", utf8Blob);
+    formData.append("file", convertedFile);
     formData.append("throwInError", "false");
     formData.append("withCSV", "true");
 
@@ -93,17 +147,20 @@ export default function MessageFromCSV() {
   const { mutate: downloadTemplate, isPending: isDownloading } =
     useFileMutation<Blob>("post/template", ["downloadTemplate"]);
 
-  // Safely derive structured CSV upload result from possible error body shape
+  // Safely derive structured CSV upload result from possible error body shape or response
+  const responseData =
+    (error?.body as Record<string, unknown> | undefined) ??
+    (data as Record<string, unknown> | undefined);
+
   let errors: Upload<Post> | null = null;
-  if (error?.body && typeof error.body === "object") {
-    const body = error.body as Record<string, unknown>;
+  if (responseData && typeof responseData === "object") {
     if (
-      Array.isArray(body?.errors) &&
-      Array.isArray(body?.inserted) &&
-      Array.isArray(body?.updated) &&
-      Array.isArray(body?.deleted)
+      Array.isArray(responseData?.errors) &&
+      Array.isArray(responseData?.inserted) &&
+      Array.isArray(responseData?.updated) &&
+      Array.isArray(responseData?.deleted)
     ) {
-      errors = body as unknown as Upload<Post>;
+      errors = responseData as unknown as Upload<Post>;
     }
   }
 
@@ -147,18 +204,21 @@ export default function MessageFromCSV() {
                     />
                   </FormControl>
                   <FormDescription>{t("Upload csv file")}</FormDescription>
-                   {form.formState.errors.csvFile && (
+                  {form.formState.errors.csvFile && (
                     <p className="text-[0.8rem] font-medium text-destructive mt-2">
-                      {t("inputNotInstanceOfFile")} 
+                      {t("inputNotInstanceOfFile")}
                     </p>
                   )}
-                  
                 </FormItem>
               )}
             />
 
-            <Button type="submit" isLoading={isPending}>
-              {t("Upload csv file")}
+            <Button
+              type="submit"
+              isLoading={isPending}
+              icon={<UploadIcon size={16} />}
+            >
+              {isPending ? t("processing") : t("Upload csv file")}
             </Button>
           </form>
         </Form>
@@ -172,7 +232,23 @@ export default function MessageFromCSV() {
         <CardHeader className="flex flex-row justify-between items-center ">
           <div>
             <CardTitle>{t("postsschema")}</CardTitle>
-            <CardDescription>{t("errorsInPosts")}</CardDescription>
+            <CardDescription>
+              {errors?.summary && (
+                <div className="mt-2 space-y-1">
+                  <div>Total records: {errors.summary.total}</div>
+                  <div>Processed: {errors.summary.processed}</div>
+                  <div>Inserted: {errors.summary.inserted}</div>
+                  <div>Updated: {errors.summary.updated}</div>
+                  <div>Deleted: {errors.summary.deleted}</div>
+                  <div className="text-red-500">
+                    Errors: {errors.summary.errors}
+                  </div>
+                </div>
+              )}
+              {errors && errors?.errors?.length > 0 && (
+                <div className="text-red-500 mt-2">{t("errorsInPosts")}</div>
+              )}
+            </CardDescription>
           </div>
           <Button
             size="sm"
@@ -181,6 +257,7 @@ export default function MessageFromCSV() {
               errors?.csvFile && download(errors?.csvFile, "errors.csv")
             }
             className="h-7 gap-1 text-sm"
+            disabled={!errors?.csvFile}
           >
             <FileIcon className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only">{t("export")}</span>
@@ -194,7 +271,7 @@ export default function MessageFromCSV() {
                 <TableHead>description</TableHead>
                 <TableHead>priority</TableHead>
                 <TableHead>group_names</TableHead>
-                <TableHead>student_number</TableHead>
+                <TableHead>student_numbers</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -264,6 +341,22 @@ const ErrorCell = ({
   error: Upload<Post>["errors"][0];
 }) => {
   const t = useTranslations("fromcsv");
+  const tErrors = useTranslations("errors");
+
+  const translateKey = (key?: string) => {
+    const k = (key ?? "").split(".").pop() || "";
+    if (!k) return tErrors("unexpected_error");
+    try {
+      return t(k);
+    } catch {
+      try {
+        return tErrors(k);
+      } catch {
+        return tErrors("unexpected_error");
+      }
+    }
+  };
+
   return (
     <div className="w-full flex justify-between">
       {error?.row[name] !== undefined && (
@@ -283,7 +376,7 @@ const ErrorCell = ({
             <Info className="text-red-500" />
           </HoverCardTrigger>
           <HoverCardContent className="text-red-500">
-            {t(error.errors[name] || "")}
+            {translateKey(error.errors[name])}
           </HoverCardContent>
         </HoverCard>
       )}

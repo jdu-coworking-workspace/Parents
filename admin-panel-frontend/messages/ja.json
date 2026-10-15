@@ -945,6 +945,7 @@
     "postsDeleted": "投稿が正常に削除されました",
     "postsDeletedDescription": "投稿が正常に削除されました",
     "postsUploaded": "投稿が正常にアップロードされました",
+    "postsUploadedWithWarnings": "投稿がアップロードされました（警告あり）",
     "csvFile": "CSVファイル",
     "invalid_email": "無効なメールアドレス",
     "invalid_phone_number": "無効な電話番号",

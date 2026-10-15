@@ -216,26 +216,42 @@ export function detectEncoding(arrayBuffer: ArrayBuffer) {
 }
 
 export function download(bufferData: unknown, filename: string = "") {
-  let buffer: Buffer;
+  let blob: Blob;
 
-  if (
+  if (bufferData instanceof Blob) {
+    blob = bufferData;
+  } else if (
     typeof bufferData === "object" &&
     bufferData !== null &&
     (bufferData as { type?: string }).type === "Buffer" &&
     Array.isArray((bufferData as { data?: unknown }).data)
   ) {
-    buffer = Buffer.from((bufferData as { data: number[] }).data);
+    const dataArray = (bufferData as { data: number[] }).data;
+    blob = new Blob([new Uint8Array(dataArray)], {
+      type: "text/csv;charset=utf-8",
+    });
+  } else if (
+    bufferData instanceof Uint8Array ||
+    bufferData instanceof ArrayBuffer
+  ) {
+    blob = new Blob([bufferData as BlobPart], {
+      type: "text/csv;charset=utf-8",
+    });
   } else if (typeof bufferData === "string") {
-    buffer = Buffer.from(bufferData);
-  } else if (bufferData instanceof Buffer) {
-    buffer = bufferData;
+    blob = new Blob([bufferData], {
+      type: "text/csv;charset=utf-8",
+    });
+  } else if (
+    typeof Buffer !== "undefined" &&
+    bufferData instanceof Buffer
+  ) {
+    blob = new Blob([new Uint8Array(bufferData) as BlobPart], {
+      type: "text/csv;charset=utf-8",
+    });
   } else {
     throw new Error("Unsupported data type for download");
   }
 
-  const blob = new Blob([new Uint8Array(buffer)], {
-    type: "application/octet-stream",
-  });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.href = url;
