@@ -229,7 +229,7 @@ export default function SendMessageConfirmDialog({
             {images.length > 0 && (
               <div className="mt-3">
                 <p className="mb-1 text-xs text-muted-foreground">
-                  📎 {images.length} {t("picture")}{images.length > 1 ? "lar" : ""} biriktirilgan
+                  📎 {t("imagesAttached", { count: images.length })}
                 </p>
                 <MessageImageGrid images={images} />
               </div>

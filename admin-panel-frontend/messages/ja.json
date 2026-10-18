@@ -224,7 +224,20 @@
     "toStudents": "学生へ",
     "error": "エラー",
     "selectAtLeastOne": "少なくとも1人の生徒またはグループを選択してください",
-    "noTitleAvailable": "タイトルがありません"
+    "noTitleAvailable": "タイトルがありません",
+    "imageLayoutStack": "連続表示",
+    "imageLayoutStackTooltip": "連続表示（標準）",
+    "imageLayoutCarousel": "カルーセル",
+    "imageLayoutCarouselTooltip": "カルーセル（スライド）",
+    "imageLayoutGrid": "グリッド",
+    "imageLayoutGridTooltip": "グリッド（コラージュ）",
+    "addImage": "画像を追加",
+    "addMoreImages": "さらに画像を追加",
+    "deleteGroup": "グループを削除",
+    "deleteImage": "画像を削除",
+    "addSeparateImageBelow": "下に別の画像を追加",
+    "addParagraphBelow": "下に新しい行を追加",
+    "imagesAttached": "{count}枚の画像が添付されています"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "予約されたメッセージを見る",
@@ -274,7 +287,10 @@
     "noFiles": "添付ファイルはありません",
     "noFilesDescription": "このメッセージには添付画像やファイルがありません。",
     "download": "ダウンロード",
-    "openFull": "フルサイズで表示"
+    "openFull": "フルサイズで表示",
+    "viewModeCards": "リスト",
+    "viewModeGrid": "グリッド",
+    "viewModeCarousel": "カルーセル"
   },
   "ThisGroup": {
     "GroupView": "グループの詳細",

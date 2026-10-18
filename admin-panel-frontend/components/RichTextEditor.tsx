@@ -23,8 +23,10 @@ import {
   Bold as BoldIcon,
   ChevronLeft,
   ChevronRight,
+  CornerDownLeft,
   GalleryHorizontal,
   Image as ImageIcon,
+  ImagePlus,
   Italic as ItalicIcon,
   LayoutGrid,
   Link as LinkIcon,
@@ -70,15 +72,68 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
   updateAttributes,
   deleteNode,
   selected,
+  getPos,
+  editor,
 }) => {
+  const t = useTranslations("sendmessage");
   const images = ((node.attrs.images as string[]) || []).filter(Boolean);
   const layout = (node.attrs.layout as "carousel" | "grid" | "stack") || "carousel";
   const [activeIdx, setActiveIdx] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const addBelowFileInputRef = React.useRef<HTMLInputElement>(null);
   const context = React.useContext(ImageGroupContext);
   const [localUploading, setLocalUploading] = React.useState(false);
 
   const safeIdx = Math.min(Math.max(0, activeIdx), Math.max(0, images.length - 1));
+
+  const getEndPos = () => {
+    if (typeof getPos === "function") {
+      return getPos() + node.nodeSize;
+    }
+    return editor ? editor.state.doc.content.size : 0;
+  };
+
+  const handleAddParagraphBelow = () => {
+    if (!editor) return;
+    const endPos = getEndPos();
+    editor
+      .chain()
+      .insertContentAt(endPos, { type: "paragraph" })
+      .setTextSelection(endPos + 1)
+      .focus()
+      .run();
+  };
+
+  const handleAddSeparateBelow = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(e.target.files ?? []).filter((f) =>
+      f.type.startsWith("image/")
+    );
+    e.target.value = "";
+    if (files.length === 0 || !context || !editor) return;
+    setLocalUploading(true);
+    try {
+      const urls = await context.uploadFiles(files);
+      if (urls.length > 0) {
+        const endPos = getEndPos();
+        const nextLayout = urls.length > 1 ? "carousel" : "stack";
+        editor
+          .chain()
+          .insertContentAt(endPos, [
+            {
+              type: "descriptionImageGroup",
+              attrs: { layout: nextLayout, images: urls },
+            },
+            { type: "paragraph" },
+          ])
+          .focus()
+          .run();
+      }
+    } finally {
+      setLocalUploading(false);
+    }
+  };
 
   const handleAddFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((f) =>
@@ -135,10 +190,10 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
                   : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => updateAttributes({ layout: "stack" })}
-              title="Oddiy (ketma-ket)"
+              title={t("imageLayoutStackTooltip")}
             >
               <Rows className="h-3.5 w-3.5" />
-              <span>Oddiy</span>
+              <span>{t("imageLayoutStack")}</span>
             </button>
             <button
               type="button"
@@ -148,10 +203,10 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
                   : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => updateAttributes({ layout: "carousel" })}
-              title="Karusel (slayd)"
+              title={t("imageLayoutCarouselTooltip")}
             >
               <GalleryHorizontal className="h-3.5 w-3.5" />
-              <span>Karusel</span>
+              <span>{t("imageLayoutCarousel")}</span>
             </button>
             <button
               type="button"
@@ -161,10 +216,10 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
                   : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => updateAttributes({ layout: "grid" })}
-              title="Guruh (Grid)"
+              title={t("imageLayoutGridTooltip")}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Guruh</span>
+              <span>{t("imageLayoutGrid")}</span>
             </button>
           </div>
 
@@ -183,21 +238,21 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
               disabled={localUploading}
               className="flex items-center gap-1 rounded bg-muted px-2 py-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               onClick={() => fileInputRef.current?.click()}
-              title="Yana rasm qo'shish"
+              title={t("addMoreImages")}
             >
               {localUploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Plus className="h-3.5 w-3.5" />
               )}
-              <span>Rasm qo'shish</span>
+              <span>{t("addImage")}</span>
             </button>
             <button
               type="button"
               className="rounded p-1 text-destructive hover:bg-destructive/10"
               onClick={deleteNode}
-              title="Guruhni o'chirish"
-              aria-label="Delete group"
+              title={t("deleteGroup")}
+              aria-label={t("deleteGroup")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -223,7 +278,7 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
                   e.stopPropagation();
                   removeImageAt(safeIdx);
                 }}
-                title="Ushbu rasmni o'chirish"
+                title={t("deleteImage")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -320,7 +375,7 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
                     e.stopPropagation();
                     removeImageAt(idx);
                   }}
-                  title="Rasmni o'chirish"
+                  title={t("deleteImage")}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -350,7 +405,7 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
                     e.stopPropagation();
                     removeImageAt(idx);
                   }}
-                  title="Rasmni o'chirish"
+                  title={t("deleteImage")}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -358,6 +413,47 @@ const DescriptionImageGroupView: React.FC<NodeViewProps> = ({
             ))}
           </div>
         )}
+
+        {/* Pastki Harakatlar Paneli (Pastga yangi alohida rasm yoki yangi qator ochish) */}
+        <div
+          contentEditable={false}
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-xs"
+        >
+          <div className="flex items-center gap-1.5">
+            <input
+              ref={addBelowFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleAddSeparateBelow}
+            />
+            <button
+              type="button"
+              disabled={localUploading}
+              onClick={() => addBelowFileInputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-md border border-dashed border-primary/50 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 hover:border-primary transition-colors disabled:opacity-50"
+              title={t("addSeparateImageBelow")}
+            >
+              {localUploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5" />
+              )}
+              <span>{t("addSeparateImageBelow")}</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddParagraphBelow}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title={t("addParagraphBelow")}
+          >
+            <CornerDownLeft className="h-3.5 w-3.5" />
+            <span>{t("addParagraphBelow")}</span>
+          </button>
+        </div>
       </div>
     </NodeViewWrapper>
   );
@@ -886,8 +982,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               size="sm"
               variant="outline"
               disabled={isUploading}
-              aria-label="Image"
-              title="Image"
+              aria-label={t("picture")}
+              title={t("picture")}
               onClick={() => fileInputRef.current?.click()}
             >
               {isUploading ? (

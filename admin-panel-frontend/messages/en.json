@@ -225,7 +225,20 @@
     "toStudents": "to Students",
     "error": "Error",
     "selectAtLeastOne": "Select at least one student or group",
-    "noTitleAvailable": "No title available"
+    "noTitleAvailable": "No title available",
+    "imageLayoutStack": "Stack",
+    "imageLayoutStackTooltip": "Stack (sequential)",
+    "imageLayoutCarousel": "Carousel",
+    "imageLayoutCarouselTooltip": "Carousel (slides)",
+    "imageLayoutGrid": "Grid",
+    "imageLayoutGridTooltip": "Grid (collage)",
+    "addImage": "Add image",
+    "addMoreImages": "Add more images",
+    "deleteGroup": "Delete group",
+    "deleteImage": "Delete image",
+    "addSeparateImageBelow": "Add separate image below",
+    "addParagraphBelow": "Add new line below",
+    "imagesAttached": "{count, plural, one {# image attached} other {# images attached}}"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "View Scheduled Message",
@@ -277,7 +290,10 @@
     "noFiles": "No Attached Files",
     "noFilesDescription": "This message has no attached images or files.",
     "download": "Download",
-    "openFull": "View Full Size"
+    "openFull": "View Full Size",
+    "viewModeCards": "List",
+    "viewModeGrid": "Grid",
+    "viewModeCarousel": "Carousel"
   },
   "ThisGroup": {
     "GroupView": "Group Details",

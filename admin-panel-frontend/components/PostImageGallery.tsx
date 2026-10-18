@@ -71,7 +71,7 @@ export default function PostImageGallery({
               }`}
             >
               <List className="h-3.5 w-3.5" />
-              <span>Ro‘yxat</span>
+              <span>{t("viewModeCards")}</span>
             </button>
             <button
               type="button"
@@ -83,7 +83,7 @@ export default function PostImageGallery({
               }`}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Guruh</span>
+              <span>{t("viewModeGrid")}</span>
             </button>
             <button
               type="button"
@@ -95,7 +95,7 @@ export default function PostImageGallery({
               }`}
             >
               <GalleryHorizontal className="h-3.5 w-3.5" />
-              <span>Karusel</span>
+              <span>{t("viewModeCarousel")}</span>
             </button>
           </div>
         </div>

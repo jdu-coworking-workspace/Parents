@@ -227,7 +227,20 @@
     "toStudents": "Talabalarga",
     "error": "Xato",
     "selectAtLeastOne": "Kamida bitta o‘quvchi yoki guruhni tanlang",
-    "noTitleAvailable": "Sarlavha mavjud emas"
+    "noTitleAvailable": "Sarlavha mavjud emas",
+    "imageLayoutStack": "Ketma-ket",
+    "imageLayoutStackTooltip": "Ketma-ket",
+    "imageLayoutCarousel": "Karusel",
+    "imageLayoutCarouselTooltip": "Karusel (slayd)",
+    "imageLayoutGrid": "Guruh",
+    "imageLayoutGridTooltip": "Guruh",
+    "addImage": "Rasm qo'shish",
+    "addMoreImages": "Yana rasm qo'shish",
+    "deleteGroup": "Guruhni o'chirish",
+    "deleteImage": "Rasmni o'chirish",
+    "addSeparateImageBelow": "Pastiga alohida rasm qo'shish",
+    "addParagraphBelow": "Pastga yangi qator ochish",
+    "imagesAttached": "{count} ta rasm biriktirilgan"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Rejalashtirilgan xabar",
@@ -277,7 +290,10 @@
     "noFiles": "Biriktirilgan fayllar mavjud emas",
     "noFilesDescription": "Ushbu xabarga biriktirilgan rasm yoki fayllar yo'q.",
     "download": "Yuklab olish",
-    "openFull": "Kattalashtirib ko'rish"
+    "openFull": "Kattalashtirib ko'rish",
+    "viewModeCards": "Ro‘yxat",
+    "viewModeGrid": "Guruh",
+    "viewModeCarousel": "Karusel"
   },
   "ThisGroup": {
     "GroupView": "Guruh Tafsilotlari",

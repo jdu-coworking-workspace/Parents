@@ -223,7 +223,20 @@
     "toStudents": "Студентам",
     "error": "Ошибка",
     "selectAtLeastOne": "Выберите хотя бы одного студента или группу",
-    "noTitleAvailable": "Название недоступно"
+    "noTitleAvailable": "Название недоступно",
+    "imageLayoutStack": "По порядку",
+    "imageLayoutStackTooltip": "По порядку (друг за другом)",
+    "imageLayoutCarousel": "Карусель",
+    "imageLayoutCarouselTooltip": "Карусель (слайдер)",
+    "imageLayoutGrid": "Сетка",
+    "imageLayoutGridTooltip": "Сетка (коллаж)",
+    "addImage": "Добавить изображение",
+    "addMoreImages": "Добавить еще изображения",
+    "deleteGroup": "Удалить группу",
+    "deleteImage": "Удалить изображение",
+    "addSeparateImageBelow": "Добавить отдельное фото ниже",
+    "addParagraphBelow": "Добавить новую строку ниже",
+    "imagesAttached": "Прикреплено изображений: {count}"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Просмотр запланированного сообщения",
@@ -273,7 +286,10 @@
     "noFiles": "Нет прикрепленных файлов",
     "noFilesDescription": "К этому сообщению не прикреплены изображения или файлы.",
     "download": "Скачать",
-    "openFull": "Открыть в полном размере"
+    "openFull": "Открыть в полном размере",
+    "viewModeCards": "Список",
+    "viewModeGrid": "Сетка",
+    "viewModeCarousel": "Карусель"
   },
   "ThisGroup": {
     "GroupView": "Детали группы",

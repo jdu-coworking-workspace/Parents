@@ -417,12 +417,12 @@ export default function MessageDetailScreen() {
                         { color: isDark ? "#E5E7EB" : "#1F2937" },
                       ]}
                     >
-                      {imageUrls.length} {t("picture" as any) || "rasm"}{imageUrls.length > 1 ? "lar" : ""} biriktirilgan
+                      {t("imagesAttached", { count: imageUrls.length })}
                     </ThemedText>
                   </View>
                   <View style={styles.goToFilesRight}>
                     <ThemedText style={styles.goToFilesActionText}>
-                      {t("filesTab" as any) || "Fayllar"}
+                      {t("filesTab") || "Fayllar"}
                     </ThemedText>
                     <Ionicons name="chevron-forward" size={16} color="#0A84FF" />
                   </View>

@@ -77,6 +77,7 @@ const translations = {
     filesTab: "Files",
     noAttachedFiles: "No Attached Files",
     noAttachedFilesDescription: "This message does not contain any attached files.",
+    imagesAttached: "{count} image(s) attached",
     resetPasswordTitle: "Secret Code Recovery",
     enterPhoneNumberText:
       "Please enter your phone number. A verification code will be sent to this number.",
@@ -344,6 +345,7 @@ const translations = {
     filesTab: "添付ファイル",
     noAttachedFiles: "添付ファイルはありません",
     noAttachedFilesDescription: "このメッセージには添付ファイルがありません。",
+    imagesAttached: "{count}枚の画像が添付されています",
     resetPasswordTitle: "秘密コードの復元",
     enterPhoneNumberText:
       "電話番号を入力してください。この番号に確認コードが送信されます。",
@@ -608,6 +610,7 @@ const translations = {
     filesTab: "Fayllar",
     noAttachedFiles: "Biriktirilgan fayllar yo'q",
     noAttachedFilesDescription: "Ushbu xabarda biriktirilgan fayllar mavjud emas.",
+    imagesAttached: "{count} ta rasm biriktirilgan",
     /*forgot password pages*/
     resetPasswordTitle: "Maxfiy kodni tiklash",
     enterPhoneNumberText:
@@ -910,6 +913,7 @@ const translations = {
     filesTab: "Файлы",
     noAttachedFiles: "Нет прикрепленных файлов",
     noAttachedFilesDescription: "В этом сообщении нет прикрепленных файлов.",
+    imagesAttached: "Прикреплено изображений: {count}",
     /*forgot password pages*/
     resetPasswordTitle: "Восстановление секретного кода",
     enterPhoneNumberText:

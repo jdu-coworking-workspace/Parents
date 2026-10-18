@@ -225,6 +225,7 @@ export type TranslationKeys = {
   filesTab: string;
   noAttachedFiles: string;
   noAttachedFilesDescription: string;
+  imagesAttached: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';

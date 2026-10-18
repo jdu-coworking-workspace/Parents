@@ -10,7 +10,7 @@ export interface I18nContextType {
   language: Language;
   setLanguage: (language: Language) => void;
   i18n: Translations;
-  t: (key: keyof TranslationKeys) => string;
+  t: (key: keyof TranslationKeys, params?: Record<string, string | number>) => string;
 }
 
 const i18n: Translations = translation;
@@ -19,7 +19,7 @@ export const I18nContext = createContext<I18nContextType>({
   language: 'en',
   setLanguage: () => {},
   i18n: i18n,
-  t: (key: keyof TranslationKeys) => '',
+  t: (key: keyof TranslationKeys, _params?: Record<string, string | number>) => '',
 });
 
 interface I18nProviderProps {
@@ -104,8 +104,17 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
     }
   };
 
-  const t = (key: keyof TranslationKeys): string => {
-    return i18n[language][key] || key;
+  const t = (
+    key: keyof TranslationKeys,
+    params?: Record<string, string | number>
+  ): string => {
+    let text = i18n[language][key] || key;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+      });
+    }
+    return text;
   };
 
   return (
