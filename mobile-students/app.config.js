@@ -141,6 +141,7 @@ module.exports = ({ config }) => {
       "expo-font",
       "expo-localization",
       "expo-sharing",
+      "expo-status-bar",
       [
         "expo-splash-screen",
         {
