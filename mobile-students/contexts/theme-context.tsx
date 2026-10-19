@@ -39,7 +39,7 @@ function resolveScheme(mode: ThemeMode, systemScheme: ColorScheme): ColorScheme 
 
 function applyNativeAppearance(mode: ThemeMode, scheme: ColorScheme) {
   if (typeof Appearance.setColorScheme === 'function') {
-    Appearance.setColorScheme(mode === 'system' ? null : mode);
+    Appearance.setColorScheme(mode === 'system' ? 'unspecified' : mode);
   }
 SystemUI.setBackgroundColorAsync(Colors[scheme].background).catch(err =>
   console.warn('Failed to set system UI background:', err)
