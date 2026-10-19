@@ -138,6 +138,10 @@ module.exports = ({ config }) => {
         },
       ],
       "expo-router",
+      "expo-font",
+      "expo-localization",
+      "expo-sharing",
+      "expo-status-bar",
       [
         "expo-splash-screen",
         {
