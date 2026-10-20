@@ -773,8 +773,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     );
   };
 
-
-
   const handleConfirmImageInsert = async () => {
     if (selectedFiles.length === 0 || !editor) {
       setImageModalOpen(false);

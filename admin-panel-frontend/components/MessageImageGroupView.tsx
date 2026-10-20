@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
-import { getPostImageSrc } from "@/lib/postImages";
 import { cn } from "@/lib/utils";
 
 export type ImageGroupLayout = "sequential" | "carousel" | "group";
