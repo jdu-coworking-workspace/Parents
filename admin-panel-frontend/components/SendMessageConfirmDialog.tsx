@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import ImageLightbox from "@/components/ImageLightbox";
 import PostDescriptionContent from "@/components/PostDescriptionContent";
+import { Paperclip } from "lucide-react";
 import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
@@ -227,15 +228,23 @@ export default function SendMessageConfirmDialog({
               />
             </div>
             {images.length > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {images.map((image, index) => (
-                  <ImageLightbox
-                    key={`${image}-${index}`}
-                    src={image}
-                    alt={t("picture")}
-                    className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
-                  />
-                ))}
+              <div className="mt-5 border-t border-border pt-4">
+                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Paperclip className="h-3.5 w-3.5 text-primary" />
+                  <span>
+                    {t("attachedFiles")} ({images.length})
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {images.map((image, index) => (
+                    <ImageLightbox
+                      key={`${image}-${index}`}
+                      src={image}
+                      alt={t("picture")}
+                      className="h-[116px] w-[116px] rounded-xl border border-border bg-muted/40 object-contain dark:border-zinc-700/70 dark:bg-muted/20 sm:h-[124px] sm:w-[124px]"
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
