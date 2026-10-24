@@ -1432,8 +1432,10 @@
   },
   "faq": {
     "title": "よくある質問",
-    "parents": "保護者アプリ",
-    "students": "学生アプリ",
+    "parents": "保護者",
+    "students": "学生",
+    "showMore": "もっと見る",
+    "showLess": "閉じる",
     "add": "質問を追加",
     "edit": "質問を編集",
     "delete": "削除",

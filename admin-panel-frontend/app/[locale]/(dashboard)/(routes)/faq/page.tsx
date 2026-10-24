@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pencil, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import PageHeader from "@/components/PageHeader";
+import FaqAnswer from "@/components/faq/FaqAnswer";
 import FaqDeleteDialog from "@/components/faq/FaqDeleteDialog";
 import FaqFormDialog from "@/components/faq/FaqFormDialog";
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,7 @@ function FaqList({ audience }: { audience: FaqAudience }) {
         >
           <div className="min-w-0 space-y-2">
             <p className="break-words font-medium">{faq.question}</p>
-            <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-              {faq.answer}
-            </p>
+            <FaqAnswer text={faq.answer} />
           </div>
           <div className="flex shrink-0">
             <FaqFormDialog

@@ -1433,8 +1433,10 @@
   },
   "faq": {
     "title": "FAQ",
-    "parents": "Parents app",
-    "students": "Students app",
+    "parents": "Parents",
+    "students": "Students",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "add": "Add question",
     "edit": "Edit question",
     "delete": "Delete",

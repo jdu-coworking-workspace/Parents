@@ -1431,8 +1431,10 @@
   },
   "faq": {
     "title": "FAQ",
-    "parents": "Ota-onalar ilovasi",
-    "students": "Talabalar ilovasi",
+    "parents": "Ota-onalar",
+    "students": "Talabalar",
+    "showMore": "Ko'proq ko'rsatish",
+    "showLess": "Yopish",
     "add": "Savol qo'shish",
     "edit": "Savolni tahrirlash",
     "delete": "O'chirish",
