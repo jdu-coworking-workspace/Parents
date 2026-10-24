@@ -224,7 +224,8 @@ export default function SendMessageConfirmDialog({
             >
               <PostDescriptionContent
                 description={description}
-                className="min-h-[120px] w-full rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-sm text-foreground dark:border-zinc-700/70 dark:bg-zinc-800/50 sm:min-h-[140px] sm:px-4 sm:py-3.5 sm:text-base"
+                variant="modal"
+                className="min-h-[100px] w-full rounded-xl border border-border/80 bg-muted/30 p-3.5 text-sm text-foreground dark:border-zinc-700/60 dark:bg-zinc-800/40 sm:p-4 sm:text-base leading-relaxed"
               />
             </div>
             {images.length > 0 && (

@@ -12,6 +12,7 @@ export interface MessageImageGroupViewProps {
   layout?: ImageGroupLayout;
   alt?: string;
   className?: string;
+  variant?: "default" | "modal";
 }
 
 export default function MessageImageGroupView({
@@ -19,19 +20,30 @@ export default function MessageImageGroupView({
   layout = "sequential",
   alt = "",
   className,
+  variant = "default",
 }: MessageImageGroupViewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!images || images.length === 0) return null;
 
+  const isModal = variant === "modal";
+
   // If only 1 image, layout differences are minimal, render single clean image
   if (images.length === 1) {
     return (
-      <div className={cn("my-3 max-w-full overflow-hidden", className)}>
+      <div
+        className={cn(
+          isModal ? "my-2.5 max-w-full overflow-hidden" : "my-3 max-w-full overflow-hidden",
+          className
+        )}
+      >
         <ImageLightbox
           src={images[0]}
           alt={alt}
-          className="max-h-[420px] max-w-full rounded-md border border-border bg-muted/40 object-contain shadow-sm"
+          className={cn(
+            "w-full rounded-lg border border-border bg-muted/30 object-contain shadow-sm",
+            isModal ? "max-h-[300px] sm:max-h-[340px]" : "max-h-[420px]"
+          )}
         />
       </div>
     );
@@ -40,11 +52,13 @@ export default function MessageImageGroupView({
   // 1. CAROUSEL
   if (layout === "carousel") {
     const handlePrev = (e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
       setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
     };
 
     const handleNext = (e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
       setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
     };
@@ -54,16 +68,27 @@ export default function MessageImageGroupView({
     return (
       <div
         className={cn(
-          "relative my-3 max-w-2xl overflow-hidden rounded-xl border border-border bg-muted/30 shadow-sm",
+          "relative overflow-hidden rounded-xl border border-border bg-muted/30 shadow-sm",
+          isModal ? "my-2.5 w-full max-w-full" : "my-3 max-w-2xl",
           className
         )}
       >
         {/* Main slide image */}
-        <div className="relative flex min-h-[240px] max-h-[440px] items-center justify-center bg-black/5 dark:bg-black/20">
+        <div
+          className={cn(
+            "relative flex items-center justify-center bg-black/5 dark:bg-black/20",
+            isModal
+              ? "min-h-[190px] max-h-[300px] sm:max-h-[340px]"
+              : "min-h-[240px] max-h-[440px]"
+          )}
+        >
           <ImageLightbox
             src={activeImage}
             alt={`${alt} ${currentIndex + 1}/${images.length}`}
-            className="max-h-[440px] w-full object-contain"
+            className={cn(
+              "w-full object-contain",
+              isModal ? "max-h-[300px] sm:max-h-[340px]" : "max-h-[440px]"
+            )}
           />
 
           {/* Left Arrow */}
@@ -71,9 +96,9 @@ export default function MessageImageGroupView({
             type="button"
             aria-label="Previous image"
             onClick={handlePrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-105 active:scale-95 shadow-md"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-105 active:scale-95 shadow-md"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           {/* Right Arrow */}
@@ -81,9 +106,9 @@ export default function MessageImageGroupView({
             type="button"
             aria-label="Next image"
             onClick={handleNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-105 active:scale-95 shadow-md"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-105 active:scale-95 shadow-md"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           {/* Badge indicator */}
@@ -93,13 +118,14 @@ export default function MessageImageGroupView({
         </div>
 
         {/* Dots Pagination */}
-        <div className="flex items-center justify-center gap-1.5 py-2.5 bg-background/80 border-t border-border/60">
+        <div className="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 bg-background/80 border-t border-border/60">
           {images.map((_, idx) => (
             <button
               key={idx}
               type="button"
               aria-label={`Go to slide ${idx + 1}`}
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 setCurrentIndex(idx);
               }}
@@ -121,7 +147,13 @@ export default function MessageImageGroupView({
     // 2 images: 2-col grid
     if (images.length === 2) {
       return (
-        <div className={cn("my-3 grid grid-cols-2 gap-2 max-w-2xl", className)}>
+        <div
+          className={cn(
+            "grid grid-cols-2 gap-2",
+            isModal ? "my-2.5 w-full max-w-full" : "my-3 max-w-2xl",
+            className
+          )}
+        >
           {images.map((img, idx) => (
             <div
               key={idx}
@@ -143,7 +175,8 @@ export default function MessageImageGroupView({
       return (
         <div
           className={cn(
-            "my-3 grid grid-cols-2 gap-2 max-w-2xl aspect-[16/10]",
+            "grid grid-cols-2 gap-2 aspect-[16/10]",
+            isModal ? "my-2.5 w-full max-w-full" : "my-3 max-w-2xl",
             className
           )}
         >
@@ -175,7 +208,13 @@ export default function MessageImageGroupView({
     // 4 images: 2x2 grid
     if (images.length === 4) {
       return (
-        <div className={cn("my-3 grid grid-cols-2 gap-2 max-w-2xl", className)}>
+        <div
+          className={cn(
+            "grid grid-cols-2 gap-2",
+            isModal ? "my-2.5 w-full max-w-full" : "my-3 max-w-2xl",
+            className
+          )}
+        >
           {images.map((img, idx) => (
             <div
               key={idx}
@@ -196,7 +235,8 @@ export default function MessageImageGroupView({
     return (
       <div
         className={cn(
-          "my-3 grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl",
+          "grid grid-cols-2 sm:grid-cols-3 gap-2",
+          isModal ? "my-2.5 w-full max-w-full" : "my-3 max-w-2xl",
           className
         )}
       >
@@ -218,7 +258,13 @@ export default function MessageImageGroupView({
 
   // 3. SEQUENTIAL (Ketma-ket)
   return (
-    <div className={cn("my-3 flex flex-col gap-3 max-w-2xl", className)}>
+    <div
+      className={cn(
+        "flex flex-col gap-2.5 sm:gap-3",
+        isModal ? "my-2.5 w-full max-w-full" : "my-3 max-w-2xl",
+        className
+      )}
+    >
       {images.map((img, idx) => (
         <div
           key={idx}
@@ -227,7 +273,10 @@ export default function MessageImageGroupView({
           <ImageLightbox
             src={img}
             alt={`${alt} ${idx + 1}`}
-            className="max-h-[420px] w-full object-contain"
+            className={cn(
+              "w-full object-contain",
+              isModal ? "max-h-[300px] sm:max-h-[340px]" : "max-h-[420px]"
+            )}
           />
         </div>
       ))}

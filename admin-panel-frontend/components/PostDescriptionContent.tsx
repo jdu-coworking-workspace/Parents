@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type PostDescriptionContentProps = {
   description?: string | null;
   className?: string;
+  variant?: "default" | "modal";
 };
 
 function isElement(node: DOMNode): node is Element {
@@ -40,8 +41,11 @@ function extractImageSources(element: Element): string[] {
 export default function PostDescriptionContent({
   description,
   className,
+  variant = "default",
 }: PostDescriptionContentProps) {
   if (!description) return null;
+
+  const isModal = variant === "modal";
 
   const options: HTMLReactParserOptions = {
     replace: (node) => {
@@ -76,7 +80,12 @@ export default function PostDescriptionContent({
 
         if (images.length > 0) {
           return (
-            <MessageImageGroupView images={images} layout={layout} alt="" />
+            <MessageImageGroupView
+              images={images}
+              layout={layout}
+              alt=""
+              variant={variant}
+            />
           );
         }
       }
@@ -89,7 +98,12 @@ export default function PostDescriptionContent({
           <ImageLightbox
             src={src}
             alt={node.attribs?.alt ?? ""}
-            className="my-3 max-h-[420px] max-w-full rounded-md border border-border bg-muted/40 object-contain"
+            className={cn(
+              "w-full rounded-md border border-border bg-muted/40 object-contain",
+              isModal
+                ? "my-2.5 max-h-[300px] sm:max-h-[340px]"
+                : "my-3 max-h-[420px] max-w-full"
+            )}
           />
         );
       }
