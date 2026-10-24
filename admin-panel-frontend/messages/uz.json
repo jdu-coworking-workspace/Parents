@@ -114,7 +114,8 @@
     "parents": "Ota-onalar",
     "messages": "Xabarlar",
     "admins": "Adminlar",
-    "sms": "SMS"
+    "sms": "SMS",
+    "faq": "FAQ"
   },
   "dashboard": {
     "newForms": "Yangi formlar",
@@ -1427,5 +1428,23 @@
   "loginBadge": {
     "loggedIn": "Login qilgan",
     "notLoggedIn": "Login qilmagan"
+  },
+  "faq": {
+    "title": "FAQ",
+    "parents": "Ota-onalar ilovasi",
+    "students": "Talabalar ilovasi",
+    "add": "Savol qo'shish",
+    "edit": "Savolni tahrirlash",
+    "delete": "O'chirish",
+    "deleteConfirm": "Ushbu savolni o'chirmoqchimisiz?",
+    "question": "Savol",
+    "answer": "Javob",
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "empty": "Hozircha savollar yo'q.",
+    "loadError": "Savollarni yuklab bo'lmadi.",
+    "created": "Savol qo'shildi",
+    "updated": "Savol yangilandi",
+    "deleted": "Savol o'chirildi"
   }
 }
