@@ -114,7 +114,8 @@
     "parents": "保護者",
     "messages": "メッセージ",
     "admins": "管理者",
-    "sms": "SMS"
+    "sms": "SMS",
+    "faq": "よくある質問"
   },
   "dashboard": {
     "newForms": "新しいフォーム",
@@ -1428,5 +1429,25 @@
   "loginBadge": {
     "loggedIn": "ログイン済み",
     "notLoggedIn": "未ログイン"
+  },
+  "faq": {
+    "title": "よくある質問",
+    "parents": "保護者",
+    "students": "学生",
+    "showMore": "もっと見る",
+    "showLess": "閉じる",
+    "add": "質問を追加",
+    "edit": "質問を編集",
+    "delete": "削除",
+    "deleteConfirm": "この質問を削除しますか？",
+    "question": "質問",
+    "answer": "回答",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "empty": "まだ質問はありません。",
+    "loadError": "質問を読み込めませんでした。",
+    "created": "質問を追加しました",
+    "updated": "質問を更新しました",
+    "deleted": "質問を削除しました"
   }
 }

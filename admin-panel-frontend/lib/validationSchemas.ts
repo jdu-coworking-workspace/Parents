@@ -170,6 +170,11 @@ export const scheduledPostEditSchema = z.object({
   scheduled_at: commonValidation.scheduledAt,
 });
 
+export const faqSchema = z.object({
+  question: z.string().trim().min(1).max(500),
+  answer: z.string().trim().min(1).max(10000),
+});
+
 export const loginSchema = z.object({
   email: commonValidation.email,
   password: commonValidation.password,
