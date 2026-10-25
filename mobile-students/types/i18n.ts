@@ -241,6 +241,8 @@ export type TranslationKeys = {
   messageImportance: string;
   anyImportance: string;
   messageStatus: string;
+  resetFilters: string;
+  applyFilters: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';

@@ -109,6 +109,16 @@ function getMessagePreview(content: string) {
     .trim();
 }
 
+function getMessageDateTime(sentTime: string) {
+  if (sentTime.includes("T")) {
+    return DateTime.fromISO(sentTime, { zone: "utc" }).toLocal();
+  }
+
+  return DateTime.fromFormat(sentTime, "yyyy-MM-dd HH:mm", {
+    zone: "utc",
+  }).toLocal();
+}
+
 function getImportanceLabel(
   priority: Message["priority"],
   t: (k: any) => string,
@@ -464,9 +474,7 @@ export default function StudentMessagesScreen() {
             (item === "read" && !!message.viewed_at) ||
             (item === "unread" && !message.viewed_at),
         );
-      const messageDate = DateTime.fromISO(message.sent_time.replace(" ", "T"))
-        .toLocal()
-        .toISODate();
+      const messageDate = getMessageDateTime(message.sent_time).toISODate();
       const matchesDate = !selectedDate || messageDate === selectedDate;
       const matchesFavorite =
         !filters.includes("favorite") ||
@@ -562,6 +570,13 @@ export default function StudentMessagesScreen() {
     );
     setUnreadCount((prev) => prev + 1);
     setSelectedMessageId(null);
+  };
+
+  const resetFilters = () => {
+    setFilters([]);
+    setSelectedDate(null);
+    setPriorityFilter("any");
+    setIsFilterOpen(false);
   };
 
   if (isLoading && messages.length === 0) {
@@ -682,6 +697,7 @@ export default function StudentMessagesScreen() {
               <ThemedText
                 style={[
                   styles.quickFilterText,
+                  colorScheme === "dark" && styles.quickFilterTextDark,
                   active && styles.activeQuickFilterText,
                 ]}
               >
@@ -786,25 +802,7 @@ export default function StudentMessagesScreen() {
         {displayMessages.map((message, index) => {
           const isRead = !!message.viewed_at;
           const messagePreview = getMessagePreview(message.content);
-          const sentTimeString = message.sent_time;
-          const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-          // Handle both ISO format (demo data) and database format (regular data)
-          let utcDateTime;
-          if (sentTimeString.includes("T")) {
-            // ISO format: 2025-08-30T10:30:00Z
-            utcDateTime = DateTime.fromISO(sentTimeString, { zone: "utc" });
-          } else {
-            // Database format: 2025-08-30 10:30
-            utcDateTime = DateTime.fromFormat(
-              sentTimeString,
-              "yyyy-MM-dd HH:mm",
-              {
-                zone: "utc",
-              },
-            );
-          }
-          const localDateTime = utcDateTime.setZone(userTimeZone);
+          const localDateTime = getMessageDateTime(message.sent_time);
 
           const isPinned = pinnedMessageIds.includes(message.id);
           const showPinnedHeading =
@@ -1060,8 +1058,8 @@ export default function StudentMessagesScreen() {
               [
                 ["read", t("readMessages"), "mail-open-outline"],
                 ["unread", t("unreadMessages"), "mail-unread-outline"],
-                ["date", t("sortByDate"), "calendar-outline"],
                 ["favorite", t("favoriteMessages"), "star-outline"],
+                ["date", t("sortByDate"), "calendar-outline"],
               ] as const
             ).map(([value, label, icon]) => (
               <Pressable
@@ -1079,6 +1077,9 @@ export default function StudentMessagesScreen() {
                       ? prev.filter((item) => item !== value)
                       : [...prev, value],
                   );
+                  if (value === "date" && filters.includes("date")) {
+                    setSelectedDate(null);
+                  }
                   if (value === "date") setCalendarMonth(DateTime.local().startOf("month"));
                 }}
               >
@@ -1147,7 +1148,6 @@ export default function StudentMessagesScreen() {
                         style={[styles.calendarDay, isSelected && styles.calendarDaySelected]}
                         onPress={() => {
                           setSelectedDate(date);
-                          setIsFilterOpen(false);
                         }}
                       >
                         <ThemedText
@@ -1161,6 +1161,21 @@ export default function StudentMessagesScreen() {
                 </View>
               </View>
             ) : null}
+            <View style={styles.filterActions}>
+              <Pressable style={styles.resetFilterButton} onPress={resetFilters}>
+                <ThemedText style={styles.resetFilterText}>
+                  {t("resetFilters")}
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                style={styles.applyFilterButton}
+                onPress={() => setIsFilterOpen(false)}
+              >
+                <ThemedText style={styles.applyFilterText}>
+                  {t("applyFilters")}
+                </ThemedText>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1352,6 +1367,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  quickFilterTextDark: {
+    color: "#F3F4F6",
+  },
   activeQuickFilterText: {
     color: "#FFFFFF",
   },
@@ -1507,6 +1525,37 @@ const styles = StyleSheet.create({
   },
   activeFilterChoiceText: {
     color: "#FFFFFF",
+  },
+  filterActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 18,
+  },
+  resetFilterButton: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resetFilterText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  applyFilterButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: "#2F5BD3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  applyFilterText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
   },
   calendar: {
     marginTop: 10,

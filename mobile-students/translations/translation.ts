@@ -93,6 +93,8 @@ const translations = {
     messageImportance: "Importance",
     anyImportance: "Any",
     messageStatus: "Status",
+    resetFilters: "Reset",
+    applyFilters: "Apply",
     resetPasswordTitle: "Secret Code Recovery",
     enterPhoneNumberText:
       "Please enter your phone number. A verification code will be sent to this number.",
@@ -582,6 +584,8 @@ const translations = {
     messageImportance: "重要度",
     anyImportance: "すべて",
     messageStatus: "ステータス",
+    resetFilters: "リセット",
+    applyFilters: "適用",
   },
   uz: {
     /*sign in page*/
@@ -865,6 +869,8 @@ const translations = {
     messageImportance: "Muhimlik",
     anyImportance: "Barchasi",
     messageStatus: "Holat",
+    resetFilters: "Tozalash",
+    applyFilters: "Qo'llash",
     emailRequired: "Iltimos, elektron pochtangizni kiriting.",
     forgotPasswordCodeSent: "Tasdiqlash kodi muvaffaqiyatli yuborildi.",
     forgotPasswordCodeResent:
@@ -974,6 +980,8 @@ const translations = {
     messageImportance: "Важность",
     anyImportance: "Любая",
     messageStatus: "Статус",
+    resetFilters: "Сбросить",
+    applyFilters: "Применить",
     /*forgot password pages*/
     resetPasswordTitle: "Восстановление секретного кода",
     enterPhoneNumberText:
