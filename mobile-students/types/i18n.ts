@@ -221,6 +221,26 @@ export type TranslationKeys = {
   accessDenied: string;
   notFound: string;
   tooManyAttempts: string;
+  universityContact: string;
+  universityPhone: string;
+  searchMessages: string;
+  filterMessages: string;
+  filtersSelected: string;
+  allMessages: string;
+  readMessages: string;
+  unreadMessages: string;
+  sortByDate: string;
+  noMatchingMessages: string;
+  messageActions: string;
+  copyLink: string;
+  pinMessage: string;
+  markUnread: string;
+  favoriteMessages: string;
+  pinnedMessages: string;
+  importantMessages: string;
+  messageImportance: string;
+  anyImportance: string;
+  messageStatus: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';
