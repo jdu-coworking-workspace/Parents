@@ -23,6 +23,7 @@ import {
 } from "@/services/secure-store";
 import {
   initPushNotifications,
+  isPushSupported,
   sendPushTokenToBackend,
   setupNotificationHandler,
 } from "@/services/push-notifications";
@@ -245,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (pushSetupStartedRef.current) {
+    if (pushSetupStartedRef.current || !isPushSupported) {
       return;
     }
 

@@ -1,8 +1,12 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { isRunningInExpoGo } from "expo";
 import { Platform } from "react-native";
 import api from "@/services/api-client";
+
+// Remote push was removed from Expo Go on Android in SDK 53; calling push APIs there throws.
+export const isPushSupported = !(isRunningInExpoGo() && Platform.OS === "android");
 
 export type PushPermission =
     | "granted"
