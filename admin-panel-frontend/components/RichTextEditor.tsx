@@ -325,7 +325,8 @@ const DescriptionImageGroupView = ({
               variant="ghost"
               className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={deleteNode}
-              aria-label="Delete group"
+              aria-label={t("deleteGroup")}
+              title={t("deleteGroup")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -378,7 +379,8 @@ const DescriptionImageGroupView = ({
                   type="button"
                   onClick={() => handleRemoveImage(carouselIndex)}
                   className="absolute top-2 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 transition-all shadow-md"
-                  title="Remove image"
+                  aria-label={t("remove")}
+                  title={t("remove")}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -429,7 +431,8 @@ const DescriptionImageGroupView = ({
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
                     className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition-all hover:bg-red-700 hover:scale-105"
-                    title="Remove image"
+                    aria-label={t("remove")}
+                    title={t("remove")}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -454,7 +457,8 @@ const DescriptionImageGroupView = ({
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
                     className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition-all hover:bg-red-700 hover:scale-105"
-                    title="Remove image"
+                    aria-label={t("remove")}
+                    title={t("remove")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -885,8 +889,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     const href = normalizeEditorHref(linkUrl);
     if (!href) {
       toast({
-        title: "Error",
-        description: "Enter a valid http, https, mailto, or tel link",
+        title: t("error"),
+        description: t("invalidLinkUrl"),
       });
       return;
     }
@@ -996,7 +1000,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             size="sm"
             variant="outline"
             disabled={isUploading}
-            aria-label="Image"
+            aria-label={t("insertImages")}
             title={t("insertImages")}
             onClick={() => setImageModalOpen(true)}
           >
@@ -1101,7 +1105,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-medium text-muted-foreground">
-                    {selectedPreviews.length} ta rasm tanlandi
+                    {t("imagesSelected", { count: selectedPreviews.length })}
                   </Label>
                   <Input
                     ref={moreFilesInputRef}
@@ -1138,6 +1142,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveModalImage(idx)}
+                        aria-label={t("remove")}
+                        title={t("remove")}
                         className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white shadow hover:bg-red-700"
                       >
                         <X className="h-3 w-3" />
@@ -1156,10 +1162,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    Rasmlarni tanlash uchun bosing
+                    {t("clickToSelectImages")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Bir vaqtning o&apos;zida bir nechta rasm tanlashingiz mumkin
+                    {t("canSelectMultipleImages")}
                   </p>
                 </div>
               </div>
@@ -1202,11 +1208,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add link</DialogTitle>
+            <DialogTitle>
+              {editingExistingLink ? t("editLink") : t("addLink")}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="rich-text-link-url">URL</Label>
+              <Label htmlFor="rich-text-link-url">{t("linkUrl")}</Label>
               <Input
                 id="rich-text-link-url"
                 value={linkUrl}
@@ -1222,11 +1230,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="rich-text-link-text">Text</Label>
+              <Label htmlFor="rich-text-link-text">{t("linkText")}</Label>
               <Input
                 id="rich-text-link-text"
                 value={linkText}
-                placeholder="Link text"
+                placeholder={t("linkText")}
                 onChange={(event) => setLinkText(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
@@ -1240,11 +1248,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <DialogFooter>
             {editingExistingLink && (
               <Button type="button" variant="outline" onClick={removeLink}>
-                Remove link
+                {t("removeLink")}
               </Button>
             )}
             <Button type="button" onClick={applyLink}>
-              Apply
+              {t("apply")}
             </Button>
           </DialogFooter>
         </DialogContent>

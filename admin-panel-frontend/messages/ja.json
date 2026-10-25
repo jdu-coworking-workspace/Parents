@@ -234,7 +234,18 @@
     "toStudents": "学生へ",
     "error": "エラー",
     "selectAtLeastOne": "少なくとも1人の生徒またはグループを選択してください",
-    "noTitleAvailable": "タイトルがありません"
+    "noTitleAvailable": "タイトルがありません",
+    "imagesSelected": "{count}枚の画像が選択されました",
+    "clickToSelectImages": "画像を選択するにはクリックしてください",
+    "canSelectMultipleImages": "一度に複数の画像を選択できます",
+    "deleteGroup": "グループを削除",
+    "addLink": "リンクを追加",
+    "editLink": "リンクを編集",
+    "linkUrl": "URL",
+    "linkText": "テキスト",
+    "removeLink": "リンクを削除",
+    "apply": "適用",
+    "invalidLinkUrl": "有効な http、https、mailto、または tel リンクを入力してください"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "予約されたメッセージを見る",

@@ -233,7 +233,18 @@
     "toStudents": "Студентам",
     "error": "Ошибка",
     "selectAtLeastOne": "Выберите хотя бы одного студента или группу",
-    "noTitleAvailable": "Название недоступно"
+    "noTitleAvailable": "Название недоступно",
+    "imagesSelected": "Выбрано изображений: {count}",
+    "clickToSelectImages": "Нажмите, чтобы выбрать изображения",
+    "canSelectMultipleImages": "Вы можете выбрать несколько изображений одновременно",
+    "deleteGroup": "Удалить группу",
+    "addLink": "Добавить ссылку",
+    "editLink": "Редактировать ссылку",
+    "linkUrl": "URL",
+    "linkText": "Текст",
+    "removeLink": "Удалить ссылку",
+    "apply": "Применить",
+    "invalidLinkUrl": "Введите корректную ссылку http, https, mailto или tel"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Просмотр запланированного сообщения",

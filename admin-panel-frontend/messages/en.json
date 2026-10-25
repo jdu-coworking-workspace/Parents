@@ -235,7 +235,18 @@
     "toStudents": "to Students",
     "error": "Error",
     "selectAtLeastOne": "Select at least one student or group",
-    "noTitleAvailable": "No title available"
+    "noTitleAvailable": "No title available",
+    "imagesSelected": "{count} images selected",
+    "clickToSelectImages": "Click to select images",
+    "canSelectMultipleImages": "You can select multiple images at once",
+    "deleteGroup": "Delete group",
+    "addLink": "Add link",
+    "editLink": "Edit link",
+    "linkUrl": "URL",
+    "linkText": "Text",
+    "removeLink": "Remove link",
+    "apply": "Apply",
+    "invalidLinkUrl": "Enter a valid http, https, mailto, or tel link"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "View Scheduled Message",
