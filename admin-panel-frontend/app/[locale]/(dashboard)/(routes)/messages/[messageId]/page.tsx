@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import postView from "@/types/postView";
 import { Button } from "@/components/ui/button";
 import { MessageStudent, MessageStudentApi } from "@/types/studentApi";
-import { Bell, Check, CheckCheck, Edit3Icon } from "lucide-react";
+import { Bell, Check, CheckCheck, Edit3Icon, Paperclip } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import PaginationApi from "@/components/PaginationApi";
@@ -193,13 +193,21 @@ export default function ThisMessage({
           </CardTitle>
           <PostDescriptionContent
             description={data?.post?.description}
-            className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground"
+            className="mt-4 text-foreground leading-relaxed"
           />
           {postImages.length > 0 && (
-            <PostImageGallery
-              images={postImages}
-              alt={data?.post?.title ?? ""}
-            />
+            <div className="mt-6 border-t border-border pt-4">
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  {t("attachedFiles")} ({postImages.length})
+                </span>
+              </h4>
+              <PostImageGallery
+                images={postImages}
+                alt={data?.post?.title ?? ""}
+              />
+            </div>
           )}
         </div>
       </Card>

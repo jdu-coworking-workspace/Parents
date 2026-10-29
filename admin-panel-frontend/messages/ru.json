@@ -113,7 +113,8 @@
     "parents": "Родители",
     "messages": "Сообщения",
     "admins": "Администраторы",
-    "sms": "SMS"
+    "sms": "SMS",
+    "faq": "FAQ"
   },
   "dashboard": {
     "newForms": "Новые формы",
@@ -163,6 +164,16 @@
     "picture": "Картинка",
     "remove": "Удалить",
     "uploadImageFinished": "Загрузка изображения завершена",
+    "layoutSequential": "По порядку",
+    "layoutCarousel": "Карусель",
+    "layoutGroup": "Группа",
+    "imageLayout": "Вид изображений",
+    "insertImages": "Вставить изображения",
+    "addMoreImages": "Добавить еще изображения",
+    "uploadingImages": "Загрузка изображений...",
+    "createCarousel": "Добавить карусель",
+    "addAnotherCarousel": "Добавить новый блок",
+    "attachedFiles": "Прикрепленные файлы",
     "choosePriority": "Выберите приоритет",
     "selectPriority": "Выберите приоритет",
     "priority": "Приоритет",
@@ -223,7 +234,18 @@
     "toStudents": "Студентам",
     "error": "Ошибка",
     "selectAtLeastOne": "Выберите хотя бы одного студента или группу",
-    "noTitleAvailable": "Название недоступно"
+    "noTitleAvailable": "Название недоступно",
+    "imagesSelected": "Выбрано изображений: {count}",
+    "clickToSelectImages": "Нажмите, чтобы выбрать изображения",
+    "canSelectMultipleImages": "Вы можете выбрать несколько изображений одновременно",
+    "deleteGroup": "Удалить группу",
+    "addLink": "Добавить ссылку",
+    "editLink": "Редактировать ссылку",
+    "linkUrl": "URL",
+    "linkText": "Текст",
+    "removeLink": "Удалить ссылку",
+    "apply": "Применить",
+    "invalidLinkUrl": "Введите корректную ссылку http, https, mailto или tel"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Просмотр запланированного сообщения",
@@ -253,6 +275,7 @@
       "low": "Низкий"
     },
     "ViewMessage": "Просмотреть сообщение",
+    "attachedFiles": "Прикрепленные файлы",
     "back": "Назад",
     "name": "Имя",
     "email": "Email",
@@ -1425,5 +1448,25 @@
     "bulkOperations": "Массовые операции",
     "selectParentsDescription": "Выберите родителей из таблицы ниже для выполнения массовых операций. Здесь показаны только родители, которые еще не вошли в систему.",
     "selectedCount": "Выбрано {count} родителей"
+  },
+  "faq": {
+    "title": "FAQ",
+    "parents": "Родители",
+    "students": "Студенты",
+    "showMore": "Показать больше",
+    "showLess": "Свернуть",
+    "add": "Добавить вопрос",
+    "edit": "Редактировать вопрос",
+    "delete": "Удалить",
+    "deleteConfirm": "Удалить этот вопрос?",
+    "question": "Вопрос",
+    "answer": "Ответ",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "empty": "Вопросов пока нет.",
+    "loadError": "Не удалось загрузить вопросы.",
+    "created": "Вопрос добавлен",
+    "updated": "Вопрос обновлён",
+    "deleted": "Вопрос удалён"
   }
 }

@@ -113,7 +113,8 @@
     "parents": "Parents",
     "messages": "Messages",
     "admins": "Admins",
-    "sms": "SMS"
+    "sms": "SMS",
+    "faq": "FAQ"
   },
   "dashboard": {
     "newForms": "New Forms",
@@ -163,6 +164,16 @@
     "picture": "Picture",
     "remove": "Remove",
     "uploadImageFinished": "Image upload finished",
+    "layoutSequential": "Sequential",
+    "layoutCarousel": "Carousel",
+    "layoutGroup": "Group",
+    "imageLayout": "Image layout",
+    "insertImages": "Insert images",
+    "addMoreImages": "Add more images",
+    "uploadingImages": "Uploading images...",
+    "createCarousel": "Add carousel",
+    "addAnotherCarousel": "Add new block",
+    "attachedFiles": "Attached files",
     "choosePriority": "Choose priority",
     "selectPriority": "Select a priority",
     "priority": "Priority",
@@ -225,7 +236,18 @@
     "toStudents": "to Students",
     "error": "Error",
     "selectAtLeastOne": "Select at least one student or group",
-    "noTitleAvailable": "No title available"
+    "noTitleAvailable": "No title available",
+    "imagesSelected": "{count} images selected",
+    "clickToSelectImages": "Click to select images",
+    "canSelectMultipleImages": "You can select multiple images at once",
+    "deleteGroup": "Delete group",
+    "addLink": "Add link",
+    "editLink": "Edit link",
+    "linkUrl": "URL",
+    "linkText": "Text",
+    "removeLink": "Remove link",
+    "apply": "Apply",
+    "invalidLinkUrl": "Enter a valid http, https, mailto, or tel link"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "View Scheduled Message",
@@ -257,6 +279,7 @@
       "low": "Low"
     },
     "ViewMessage": "View Message",
+    "attachedFiles": "Attached files",
     "back": "Back",
     "name": "Name",
     "email": "Email",
@@ -1429,5 +1452,25 @@
   "loginBadge": {
     "loggedIn": "Logged In",
     "notLoggedIn": "Not Logged In"
+  },
+  "faq": {
+    "title": "FAQ",
+    "parents": "Parents",
+    "students": "Students",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "add": "Add question",
+    "edit": "Edit question",
+    "delete": "Delete",
+    "deleteConfirm": "Do you want to delete this question?",
+    "question": "Question",
+    "answer": "Answer",
+    "save": "Save",
+    "cancel": "Cancel",
+    "empty": "No questions yet.",
+    "loadError": "Failed to load questions.",
+    "created": "Question added",
+    "updated": "Question updated",
+    "deleted": "Question deleted"
   }
 }

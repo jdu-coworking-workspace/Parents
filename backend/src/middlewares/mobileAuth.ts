@@ -164,7 +164,8 @@ export const verifyStudentToken = async (
                     st.email,
                     st.phone_number,
                     st.given_name,
-                    st.family_name
+                    st.family_name,
+                    st.school_id
              FROM Student AS st
              WHERE st.email = :email
                 OR st.cognito_sub_id = :sub_id

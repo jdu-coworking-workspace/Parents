@@ -114,7 +114,8 @@
     "parents": "保護者",
     "messages": "メッセージ",
     "admins": "管理者",
-    "sms": "SMS"
+    "sms": "SMS",
+    "faq": "よくある質問"
   },
   "dashboard": {
     "newForms": "新しいフォーム",
@@ -164,6 +165,16 @@
     "picture": "画像",
     "remove": "削除",
     "uploadImageFinished": "画像アップロード完了",
+    "layoutSequential": "連続",
+    "layoutCarousel": "カルーセル",
+    "layoutGroup": "グループ",
+    "imageLayout": "画像のレイアウト",
+    "insertImages": "画像を挿入",
+    "addMoreImages": "画像を追加",
+    "uploadingImages": "画像をアップロード中...",
+    "createCarousel": "カルーセルを追加",
+    "addAnotherCarousel": "新しいブロックを追加",
+    "attachedFiles": "添付ファイル",
     "choosePriority": "優先度を選択してください",
     "selectPriority": "優先度を選択してください",
     "priority": "優先度",
@@ -224,7 +235,18 @@
     "toStudents": "学生へ",
     "error": "エラー",
     "selectAtLeastOne": "少なくとも1人の生徒またはグループを選択してください",
-    "noTitleAvailable": "タイトルがありません"
+    "noTitleAvailable": "タイトルがありません",
+    "imagesSelected": "{count}枚の画像が選択されました",
+    "clickToSelectImages": "画像を選択するにはクリックしてください",
+    "canSelectMultipleImages": "一度に複数の画像を選択できます",
+    "deleteGroup": "グループを削除",
+    "addLink": "リンクを追加",
+    "editLink": "リンクを編集",
+    "linkUrl": "URL",
+    "linkText": "テキスト",
+    "removeLink": "リンクを削除",
+    "apply": "適用",
+    "invalidLinkUrl": "有効な http、https、mailto、または tel リンクを入力してください"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "予約されたメッセージを見る",
@@ -254,6 +276,7 @@
       "low": "低"
     },
     "ViewMessage": "メッセージを表示",
+    "attachedFiles": "添付ファイル",
     "back": "戻る",
     "name": "名前",
     "email": "メール",
@@ -1428,5 +1451,25 @@
   "loginBadge": {
     "loggedIn": "ログイン済み",
     "notLoggedIn": "未ログイン"
+  },
+  "faq": {
+    "title": "よくある質問",
+    "parents": "保護者",
+    "students": "学生",
+    "showMore": "もっと見る",
+    "showLess": "閉じる",
+    "add": "質問を追加",
+    "edit": "質問を編集",
+    "delete": "削除",
+    "deleteConfirm": "この質問を削除しますか？",
+    "question": "質問",
+    "answer": "回答",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "empty": "まだ質問はありません。",
+    "loadError": "質問を読み込めませんでした。",
+    "created": "質問を追加しました",
+    "updated": "質問を更新しました",
+    "deleted": "質問を削除しました"
   }
 }

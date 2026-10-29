@@ -322,6 +322,28 @@ export default function SettingsScreen() {
             <ThemeSwitcher />
           </View>
 
+          <View style={styles.infoCard}>
+            <ThemedText disableScaling style={styles.sectionTitle}>
+              {t("universityContact")}
+            </ThemedText>
+            <Pressable
+              style={styles.row}
+              onPress={() => Alert.alert(t("universityPhone"), "+998 95 111 11 11")}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: "#059669" }]}>
+                <Ionicons color="#fff" name="call-outline" size={20} />
+              </View>
+              <View>
+                <ThemedText disableScaling style={styles.profileInitial}>
+                  {t("universityPhone")}
+                </ThemedText>
+                <ThemedText disableScaling style={styles.profileText}>
+                  +998 95 111 11 11
+                </ThemedText>
+              </View>
+            </Pressable>
+          </View>
+
           <View style={{ marginTop: 40, marginBottom: 20 }}>
             <Pressable style={styles.submitButton} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={30} color="#FF4444" />

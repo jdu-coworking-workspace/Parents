@@ -7,6 +7,7 @@ import {
   MessageCircle,
   ShieldCheck,
   Settings,
+  CircleHelp,
 } from "lucide-react";
 import { onlyAdminPathNameRegex } from "@/lib/routeAccess";
 import NavLink from "./NavLink";
@@ -75,6 +76,12 @@ const navLinks = [
   //   icon: MessageSquare,
   //   nameKey: "sms",
   // },
+  {
+    id: 12,
+    href: "/faq",
+    icon: CircleHelp,
+    nameKey: "faq",
+  },
   {
     id: 11,
     href: "/settings",

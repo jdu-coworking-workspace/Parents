@@ -105,7 +105,7 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
   };
 
   const t = (key: keyof TranslationKeys): string => {
-    return i18n[language][key] || key;
+    return i18n[language][key] || i18n.en[key] || key;
   };
 
   return (
