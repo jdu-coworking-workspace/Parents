@@ -196,7 +196,9 @@ export default function StudentMessagesScreen() {
   const messagesRef = useRef<Message[]>([]);
   const lastHandledRefreshVersion = useRef(refreshVersion);
 
-  messagesRef.current = messages;
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const preferencesKey = user
     ? `${MESSAGE_PREFERENCES_KEY}:${user.id}`

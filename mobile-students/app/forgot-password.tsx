@@ -116,8 +116,8 @@ export default function ForgotPasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [canResend, setCanResend] = useState(false);
   const [resendCount, setResendCount] = useState(0);
+  const canResend = step === "verify" && countdown <= 0;
 
   useEffect(() => {
     return () => {
@@ -162,7 +162,6 @@ export default function ForgotPasswordScreen() {
         setStep("verify");
         setResendCount(storedResendCount ? parseInt(storedResendCount, 10) : 0);
         setCountdown(Math.floor((expiryTime - now) / 1000));
-        setCanResend(false);
       } catch {
         // Ignore restore failures and keep the screen usable.
       }
@@ -173,14 +172,12 @@ export default function ForgotPasswordScreen() {
 
   useEffect(() => {
     if (countdown <= 0) {
-      setCanResend(step === "verify");
       return;
     }
 
-    setCanResend(false);
     const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     return () => clearTimeout(timer);
-  }, [countdown, step]);
+  }, [countdown]);
 
   useEffect(() => {
     if (step !== "verify") {
@@ -308,7 +305,6 @@ export default function ForgotPasswordScreen() {
       }
       setVerificationCode("");
       setCountdown(delay);
-      setCanResend(false);
       setResendCount(nextResendCount);
       await persistResendExpiry(newExpiryAt, normalizedEmail, nextResendCount);
 
@@ -452,7 +448,6 @@ export default function ForgotPasswordScreen() {
       void clearPersistedResendState();
       setResendCount(0);
       setCountdown(0);
-      setCanResend(false);
       return;
     }
 

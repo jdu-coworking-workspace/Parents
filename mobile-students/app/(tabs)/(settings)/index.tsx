@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useState,
   useContext,
-  useRef,
   useEffect,
 } from "react";
 import {
@@ -118,8 +117,8 @@ export default function SettingsScreen() {
 
   // --- Font Size Modal animatsiyasi ---
   const screenHeight = Dimensions.get("window").height;
-  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(screenHeight));
+  const [fadeAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (isFontSizeOpen) {
@@ -150,7 +149,7 @@ export default function SettingsScreen() {
         }),
       ]).start();
     }
-  }, [isFontSizeOpen]);
+  }, [fadeAnim, isFontSizeOpen, screenHeight, slideAnim]);
 
   const handleLanguageSelect = async (label: string, code: string) => {
     setSelectedLanguage(label);

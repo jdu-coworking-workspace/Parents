@@ -92,23 +92,18 @@ export default function ZoomGallery({
   const [lastTranslateY, setLastTranslateY] = useState(0);
 
   useEffect(() => {
+    // Keep the controlled starting image in sync when the gallery is reused.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndex(initialIndex);
   }, [initialIndex]);
-
-  useEffect(() => {
-    setScale(1);
-    setLastScale(1);
-    setTranslateX(0);
-    setTranslateY(0);
-    setLastTranslateX(0);
-    setLastTranslateY(0);
-  }, [index]);
 
   useEffect(() => {
     if (!visible) {
       return;
     }
 
+    // A newly displayed image must start from an untransformed state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScale(1);
     setLastScale(1);
     setTranslateX(0);
