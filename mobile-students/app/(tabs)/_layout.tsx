@@ -63,14 +63,26 @@ export default function TabLayout() {
         name="(home)"
         options={{
           title: t('home'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name="home"
+              size={size}
+              color={typeof color === 'string' ? color : BrandColors[theme]}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="(settings)"
         options={{
           title: t('settings'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name="settings"
+              size={size}
+              color={typeof color === 'string' ? color : BrandColors[theme]}
+            />
+          ),
         }}
       />
     </Tabs>

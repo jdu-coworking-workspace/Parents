@@ -22,7 +22,7 @@ export default function FaqScreen() {
       contentContainerStyle={styles.content}
     >
       <ThemedText disableScaling style={styles.intro}>
-        {t("faq")}
+        {t("needHelp")}
       </ThemedText>
       {studentFaqs.map((item) => {
         const open = openId === item.id;

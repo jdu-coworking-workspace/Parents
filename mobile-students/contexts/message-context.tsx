@@ -47,7 +47,9 @@ export const MessageProvider = ({
     const appStateRef = { current: AppState.currentState };
 
     const handleAppStateChange = (nextState: AppStateStatus) => {
-      const wasBackgrounded = appStateRef.current.match(/inactive|background/);
+      const wasBackgrounded = /inactive|background/.test(
+        appStateRef.current ?? ''
+      );
       appStateRef.current = nextState;
 
       if (wasBackgrounded && nextState === 'active') {
