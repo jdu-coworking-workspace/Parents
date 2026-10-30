@@ -168,12 +168,53 @@ export default function ZoomGallery({
       setTranslateY(
         Math.min(Math.max(newTranslateY, -maxTranslate), maxTranslate)
       );
+    } else if (images.length > 1 && (event.numberOfPointers ?? 1) === 1) {
+      // Horizontal swipe feedback when at 1x scale
+      const isAtStart = index === 0 && event.translationX > 0;
+      const isAtEnd = index === images.length - 1 && event.translationX < 0;
+      const damping = isAtStart || isAtEnd ? 0.25 : 1;
+      setTranslateX(event.translationX * damping);
+      setTranslateY(0);
     }
   };
 
-  const onPanEnd = () => {
-    setLastTranslateX(translateX);
-    setLastTranslateY(translateY);
+  const onPanEnd = (event: any) => {
+    if (scale > 1.1) {
+      setLastTranslateX(translateX);
+      setLastTranslateY(translateY);
+      return;
+    }
+
+    if (images.length > 1 && event) {
+      const swipeX =
+        typeof event.translationX === 'number' ? event.translationX : translateX;
+      const velocityX =
+        typeof event.velocityX === 'number' ? event.velocityX : 0;
+      const threshold = 50;
+      const velocityThreshold = 300;
+
+      if (
+        (swipeX < -threshold || velocityX < -velocityThreshold) &&
+        index < images.length - 1
+      ) {
+        setIndex((prev) => prev + 1);
+        return;
+      }
+
+      if (
+        (swipeX > threshold || velocityX > velocityThreshold) &&
+        index > 0
+      ) {
+        setIndex((prev) => prev - 1);
+        return;
+      }
+    }
+
+    // Reset position when not transitioning
+    setTranslateX(0);
+    setTranslateY(0);
+    setLastTranslateX(0);
+    setLastTranslateY(0);
   };
 
   const pinchGesture = Gesture.Pinch()

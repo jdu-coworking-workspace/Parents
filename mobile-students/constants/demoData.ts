@@ -18,6 +18,30 @@ export const DEMO_SCHOOL_NAME = 'Demo Elementary School';
 
 export const DEMO_MESSAGES: Message[] = [
   {
+    id: 9000,
+    title: 'Campus Art Exhibition Highlights',
+    content:
+      '<p>Check out the best moments from this week’s student art exhibition!</p><div class="message-image-group message-image-group-carousel" data-image-layout="carousel" data-images="[&quot;https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&quot;,&quot;https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&quot;,&quot;https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&quot;]"><img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800" data-in-group="true"><img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800" data-in-group="true"><img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800" data-in-group="true"></div><p>Swipe through the carousel above to view the artworks in detail.</p>',
+    priority: 'high',
+    group_name: 'Art Club',
+    edited_at: '2026-07-26T10:00:00Z',
+    images: null,
+    sent_time: '2026-07-26T10:00:00Z',
+    viewed_at: null,
+  },
+  {
+    id: 8999,
+    title: 'Sports Day Photo Collage',
+    content:
+      '<p>Congratulations to all participants in today’s sports tournament!</p><div class="message-image-group message-image-group-group" data-image-layout="group" data-images="[&quot;https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&quot;,&quot;https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&quot;,&quot;https://images.unsplash.com/photo-1526676037777-05a232554f77?w=800&quot;]"><img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800" data-in-group="true"><img src="https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800" data-in-group="true"><img src="https://images.unsplash.com/photo-1526676037777-05a232554f77?w=800" data-in-group="true"></div><p>Tap any photo in the collage to expand and zoom in.</p>',
+    priority: 'medium',
+    group_name: 'Athletics',
+    edited_at: '2026-07-26T09:00:00Z',
+    images: null,
+    sent_time: '2026-07-26T09:00:00Z',
+    viewed_at: null,
+  },
+  {
     id: 9001,
     title: 'Science Fair Project Reminder',
     content:
