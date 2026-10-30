@@ -27,7 +27,7 @@ import type {
 import { config } from '../../config';
 
 export class StudentService {
-    constructor(private cognitoClient: any = Student) { }
+    constructor(private cognitoClient: any = Student) {}
 
     /**
      * Get students by ID array

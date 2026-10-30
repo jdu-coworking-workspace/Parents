@@ -10,6 +10,8 @@ import { ApiError } from '../../errors/ApiError';
 import { generatePaginationLinks } from '../../utils/helper';
 import { Images3Client } from '../../utils/s3-client';
 import DB from '../../utils/db-client';
+import { pollRepository } from '../poll/poll.repository';
+import { pollService } from '../poll/poll.service';
 import type {
     CreatePostRequest,
     CreatePostResponse,
@@ -93,6 +95,7 @@ export class PostService {
             groups,
             image,
             images,
+            poll,
         } = request;
 
         const shouldAttachParents = audience === 'parents';
@@ -114,6 +117,10 @@ export class PostService {
         });
 
         await postRepository.insertImages(postId, imageNames);
+
+        if (poll?.options?.length) {
+            await pollRepository.create(postId, poll.options);
+        }
 
         // Link individual students
         if (students && Array.isArray(students) && students.length > 0) {
@@ -343,6 +350,7 @@ export class PostService {
 
         const galleryImages = await postRepository.findImagesByPostId(postId);
         const images = mergePostImageList(post.image, galleryImages);
+        const polls = await pollService.getForPosts([postId]);
 
         return {
             post: {
@@ -362,6 +370,7 @@ export class PostService {
                 given_name: post.given_name,
                 family_name: post.family_name,
             },
+            poll: polls.get(postId) ?? null,
         };
     }
 

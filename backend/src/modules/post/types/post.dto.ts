@@ -38,6 +38,21 @@ export interface PaginationData {
     links: string[];
 }
 
+export interface PollOptionResult {
+    id: number;
+    text: string;
+    votes: number | null; // null = natija yashirin (hali ovoz bermagan)
+    percent: number | null;
+}
+
+export interface PollResult {
+    id: number;
+    options: PollOptionResult[];
+    total_votes: number | null;
+    my_option_id: number | null;
+    results_visible: boolean;
+}
+
 // ==================== POST /create - Create Post ====================
 
 export interface CreatePostRequest {
@@ -49,6 +64,7 @@ export interface CreatePostRequest {
     groups?: number[];
     image?: string; // base64 or uploaded filename
     images?: string[]; // multiple base64 or uploaded filenames
+    poll?: { options: string[] };
 }
 
 export interface CreatePostResponse {
@@ -99,6 +115,7 @@ export interface ViewPostRequest {
 export interface ViewPostResponse {
     post: PostDetailData;
     admin: AdminData;
+    poll: PollResult | null;
 }
 
 // ==================== PUT /:id - Update Post ====================
