@@ -1,6 +1,6 @@
 {
   "name": "parent-notification",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "version": "1.5.0",
   "scripts": {
     "start": "expo start",
@@ -47,6 +47,7 @@
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "expo-system-ui": "~6.0.9",
+    "expo-task-manager": "~14.0.9",
     "expo-updates": "~29.0.16",
     "expo-web-browser": "~15.0.10",
     "i18n-js": "^4.4.3",
@@ -54,6 +55,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-android-widget": "^0.22.1",
     "react-native-autolink": "^4.2.0",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-international-phone-number": "^0.9.3",

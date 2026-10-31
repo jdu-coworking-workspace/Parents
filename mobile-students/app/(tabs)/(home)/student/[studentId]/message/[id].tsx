@@ -27,6 +27,8 @@ import { fetchStudentMessage } from "@/services/student-messages";
 import type { Message } from "@/types/message";
 import { useFontSize } from "@/contexts/font-size-context";
 import { getMessageImageUrls } from "@/utils/image-url";
+import { htmlToPlainText } from "@/utils/message-text";
+import { openGoogleTranslate } from "@/utils/translate";
 
 export type TranslationKeys = {
   critical: string;
@@ -63,7 +65,7 @@ export default function MessageDetailScreen() {
   const colorScheme = useColorScheme() ?? "dark";
   const isDark = colorScheme === "dark";
   const pageBackgroundColor = isDark ? "#111215" : "#fff";
-  const { t } = useContext(I18nContext);
+  const { t, language } = useContext(I18nContext);
   const { multiplier } = useFontSize();
 
   const { id } = useLocalSearchParams<{
@@ -145,20 +147,8 @@ export default function MessageDetailScreen() {
       return;
     }
 
-    // Strip HTML tags to copy only the text content (no images)
-    const plainText = message.content
-      .replace(/<img\b[^>]*>/gi, '')           // Remove img tags
-      .replace(/<br\s*\/?>/gi, '\n')            // Convert <br> to newline
-      .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n') // Block-level closing tags to newline
-      .replace(/<[^>]+>/g, '')                  // Remove all remaining HTML tags
-      .replace(/&nbsp;/g, ' ')                  // Decode common entities
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\n{3,}/g, '\n\n')              // Collapse excessive newlines
-      .trim();
+    // Copy only the text content (no images)
+    const plainText = htmlToPlainText(message.content);
 
     if (!plainText) return;
 
@@ -166,6 +156,14 @@ export default function MessageDetailScreen() {
 
     // Assert the type to bypass the error
     showCopiedToast(t("messageCopiedToClipboard" as keyof typeof t | any));
+  };
+
+  const handleTranslate = () => {
+    if (!message) return;
+    const text = [message.title, htmlToPlainText(message.content)]
+      .filter(Boolean)
+      .join("\n\n");
+    void openGoogleTranslate(text, language);
   };
 
   if (isLoading) {
@@ -342,10 +340,24 @@ export default function MessageDetailScreen() {
               {formattedTime}
             </ThemedText>
 
-            <Pressable onPress={handleCopy} style={styles.copyButton}>
-              <Ionicons name="copy-outline" size={20} color="#0A84FF" />
-              <ThemedText style={styles.copyText}>Copy</ThemedText>
-            </Pressable>
+            <View style={styles.actionsRow}>
+              <Pressable
+                onPress={handleTranslate}
+                style={styles.copyButton}
+                accessibilityRole="button"
+              >
+                <Ionicons name="language-outline" size={20} color="#0A84FF" />
+                <ThemedText style={styles.copyText}>{t("translate")}</ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={handleCopy}
+                style={styles.copyButton}
+                accessibilityRole="button"
+              >
+                <Ionicons name="copy-outline" size={20} color="#0A84FF" />
+                <ThemedText style={styles.copyText}>Copy</ThemedText>
+              </Pressable>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -443,11 +455,17 @@ const styles = StyleSheet.create({
   footerRow: {
     marginTop: 10,
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
   },
   date: {
     fontSize: 14,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
   copyButton: {
     flexDirection: "row",

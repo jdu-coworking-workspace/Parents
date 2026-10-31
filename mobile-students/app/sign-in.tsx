@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 import { I18nContext } from "@/contexts/i18n-context";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
+import { DEMO_CREDENTIALS } from "@/constants/demoData";
 
 export default function SignInScreen() {
   const [step, setStep] = useState<"email" | "password">("email");
@@ -135,6 +136,20 @@ export default function SignInScreen() {
           ? t(e.message_key as any)
           : e?.message || t("loginFailed"),
       );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Dev builds only: one tap sign-in with the built-in demo account
+  const handleDemoLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      await signIn(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
+      router.replace("/(tabs)/(home)");
+    } catch (e) {
+      console.error("Demo login failed:", e);
     } finally {
       setIsLoading(false);
     }
@@ -382,6 +397,21 @@ export default function SignInScreen() {
                 >
                   <ThemedText disableScaling style={{ color: Colors[colorScheme].text }}>
                     {t("back")}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+
+              {__DEV__ ? (
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={handleDemoLogin}
+                  disabled={isLoading}
+                >
+                  <ThemedText
+                    disableScaling
+                    style={{ color: palette.primary }}
+                  >
+                    Demo login (dev only)
                   </ThemedText>
                 </Pressable>
               ) : null}

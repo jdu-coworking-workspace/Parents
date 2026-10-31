@@ -117,6 +117,10 @@ export type TranslationKeys = {
   signIn: string;
   back: string;
   copy: string;
+  translate: string;
+  widgetTitle: string;
+  widgetEmpty: string;
+  widgetSignIn: string;
   pressBackAgainToExit: string;
   SelectStudent: string;
   noStudentsFound: string;

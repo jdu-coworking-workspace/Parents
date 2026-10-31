@@ -269,6 +269,10 @@ const translations = {
     back: "Back",
     copy: "Copy",
     messageCopiedToClipboard: "Message copied to clipboard",
+    translate: "Translate",
+    widgetTitle: "Messages",
+    widgetEmpty: "No messages yet",
+    widgetSignIn: "Sign in to see your messages",
   },
   ja: {
     welcome: "お帰りなさい",
@@ -542,6 +546,10 @@ const translations = {
     confirmLogout: "ログアウトを確認",
     logoutMessage: "ログアウトしてもよろしいですか？",
     messageCopiedToClipboard: "メッセージがクリップボードにコピーされました",
+    translate: "翻訳",
+    widgetTitle: "メッセージ",
+    widgetEmpty: "メッセージはまだありません",
+    widgetSignIn: "ログインするとメッセージが表示されます",
   },
   uz: {
     /*sign in page*/
@@ -805,6 +813,10 @@ const translations = {
     back: "Orqaga",
     copy: "Nusxa",
     messageCopiedToClipboard: "Xabar nusxalandi",
+    translate: "Tarjima",
+    widgetTitle: "Xabarlar",
+    widgetEmpty: "Hozircha xabarlar yo'q",
+    widgetSignIn: "Xabarlarni ko'rish uchun tizimga kiring",
     emailRequired: "Iltimos, elektron pochtangizni kiriting.",
     forgotPasswordCodeSent: "Tasdiqlash kodi muvaffaqiyatli yuborildi.",
     forgotPasswordCodeResent:
@@ -1105,6 +1117,10 @@ const translations = {
     back: "Назад",
     copy: "Копировать",
     messageCopiedToClipboard: "Сообщение скопировано в буфер обмена",
+    translate: "Перевести",
+    widgetTitle: "Сообщения",
+    widgetEmpty: "Сообщений пока нет",
+    widgetSignIn: "Войдите, чтобы видеть сообщения",
     emailRequired: "Пожалуйста, введите адрес электронной почты.",
     forgotPasswordCodeSent: "Код подтверждения успешно отправлен.",
     forgotPasswordCodeResent:

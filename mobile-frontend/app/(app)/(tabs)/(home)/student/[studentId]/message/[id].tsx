@@ -29,6 +29,9 @@ import MessageDescription from '@/components/MessageDescription';
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
+import { htmlToPlainText } from '@/utils/message-text';
+import { openGoogleTranslate } from '@/utils/translate';
+import { syncMessagesWidgetFromDB } from '@/widgets/widget-sync';
 
 const normalizeMessageImages = (post: any): string[] | null => {
   if (Array.isArray(post.images) && post.images.length > 0) {
@@ -78,15 +81,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 260,
   },
-  copyButton: {
-    marginTop: -15,
-    marginBottom: 20,
-    backgroundColor: '#005678',
-    padding: 10,
-    borderRadius: 5,
+  actionsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    display: 'flex',
-    alignSelf: 'flex-end',
+    gap: 4,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  actionText: {
+    color: '#007AFF',
+    marginLeft: 5,
   },
   imageContainer: {
     marginVertical: 15,
@@ -388,6 +395,8 @@ export default function DetailsScreen() {
           for (const unreadMsg of unreadGroupMessages) {
             await markMessageAsRead(unreadMsg.id, fullMessage.student_id);
           }
+          // Refresh unread state on the home screen widget
+          syncMessagesWidgetFromDB(db);
         }
       } catch (error) {
         console.error('Error in fetchMessage:', error);
@@ -493,28 +502,20 @@ export default function DetailsScreen() {
     : imagesForZoomGallery;
 
   const copyToClipboard = async () => {
-    if (message?.content) {
-      // Strip HTML tags to copy only the text content (no images)
-      const plainText = message.content
-        .replace(/<img\b[^>]*>/gi, '')           // Remove img tags
-        .replace(/<br\s*\/?>/gi, '\n')            // Convert <br> to newline
-        .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n') // Block-level closing tags to newline
-        .replace(/<[^>]+>/g, '')                  // Remove all remaining HTML tags
-        .replace(/&nbsp;/g, ' ')                  // Decode common entities
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/\n{3,}/g, '\n\n')              // Collapse excessive newlines
-        .trim();
+    // Copy only the text content (no images)
+    const plainText = htmlToPlainText(message?.content);
+    if (!plainText) return;
 
-      if (!plainText) return;
+    await Clipboard.setStringAsync(plainText);
 
-      await Clipboard.setStringAsync(plainText);
+    ToastAndroid.show('Text copied to clipboard!', ToastAndroid.SHORT);
+  };
 
-      ToastAndroid.show('Text copied to clipboard!', ToastAndroid.SHORT);
-    }
+  const translateMessage = () => {
+    const text = [message.title, htmlToPlainText(message.content)]
+      .filter(Boolean)
+      .join('\n\n');
+    openGoogleTranslate(text, language);
   };
 
   const sentTimeString = message.sent_time;
@@ -638,13 +639,14 @@ export default function DetailsScreen() {
           />
         </View>
 
-        {/* Date and Copy button on the same level */}
+        {/* Date and Translate/Copy buttons on the same level */}
         <View
           style={[
             styles.dateRow,
             {
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
               marginTop: 10,
             },
           ]}
@@ -658,26 +660,28 @@ export default function DetailsScreen() {
             {formattedTime}
           </ThemedText>
 
-          <Pressable
-            style={[
-              styles.copyButton,
-              { marginTop: 0, marginBottom: 0, backgroundColor: 'transparent' },
-            ]}
-            onPress={copyToClipboard}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={styles.actionsRow}>
+            <Pressable
+              style={styles.actionButton}
+              onPress={translateMessage}
+              accessibilityRole='button'
+            >
+              <Ionicons name='language-outline' size={20} color='#007AFF' />
+              <Text style={[styles.actionText, { fontSize: 14 * multiplier }]}>
+                {i18n[language].translate}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.actionButton}
+              onPress={copyToClipboard}
+              accessibilityRole='button'
+            >
               <Ionicons name='copy-outline' size={20} color='#007AFF' />
-              <Text
-                style={{
-                  color: '#007AFF',
-                  marginLeft: 5,
-                  fontSize: 14 * multiplier,
-                }}
-              >
+              <Text style={[styles.actionText, { fontSize: 14 * multiplier }]}>
                 Copy
               </Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
         </View>
         <ZoomGallery
           visible={zoomVisible}

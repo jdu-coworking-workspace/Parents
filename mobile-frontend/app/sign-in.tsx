@@ -21,12 +21,16 @@ import {
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import ThemedPhoneInput from '@/components/atomic/ThemedPhoneInput';
-import { ICountry } from 'react-native-international-phone-number';
+import {
+  ICountry,
+  getCountryByCca2,
+} from 'react-native-international-phone-number';
 import { ICountryCca2 } from 'react-native-international-phone-number/lib/interfaces/countryCca2';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ICountryName } from 'react-native-international-phone-number/lib/interfaces/countryName';
 import { AuthErrorHandler } from '@/lib/errorHandler';
 import SecureInput from '@/components/atomic/secure-input';
+import { DEMO_CREDENTIALS } from '@/constants/demoData';
 
 export default function SignIn() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -39,6 +43,24 @@ export default function SignIn() {
   const { language, i18n } = useContext(I18nContext);
   const router = useRouter();
   const params = useLocalSearchParams<{ phone?: string }>();
+  const [isDemoLoginPending, setIsDemoLoginPending] = useState(false);
+
+  // Dev builds only: one tap sign-in with the built-in demo account
+  const handleDemoLogin = async () => {
+    const uzbekistan = getCountryByCca2('UZ') ?? null;
+    setIsDemoLoginPending(true);
+    try {
+      await signIn(
+        uzbekistan,
+        DEMO_CREDENTIALS.phoneNumber.replace(/^998/, ''),
+        DEMO_CREDENTIALS.password
+      );
+    } catch (error) {
+      console.error('Demo login failed:', error);
+    } finally {
+      setIsDemoLoginPending(false);
+    }
+  };
 
   React.useEffect(() => {
     const loadCredentials = async () => {
@@ -258,6 +280,18 @@ export default function SignIn() {
                 : i18n[language].usePasswordInstead || 'Use password instead'}
             </ThemedText>
           </TouchableOpacity>
+
+          {__DEV__ && (
+            <TouchableOpacity
+              onPress={handleDemoLogin}
+              disabled={isDemoLoginPending}
+              style={styles.linkButton}
+            >
+              <ThemedText style={styles.linkText}>
+                {isDemoLoginPending ? '...' : 'Demo login (dev only)'}
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </ThemedView>
       </SafeAreaView>
     </TouchableWithoutFeedback>

@@ -1,4 +1,5 @@
 require("dotenv").config();
+const fs = require("fs");
 const packageJson = require("./package.json");
 
 const getVariant = () =>
@@ -46,6 +47,11 @@ const configByVariant = {
 };
 
 const variantConfig = configByVariant[variant] || configByVariant.development;
+
+const googleServicesFile = [
+  process.env.GOOGLE_SERVICES_JSON,
+  "./google-services.json",
+].find((file) => file && fs.existsSync(file));
 
 console.log(`Using variant: ${variant}`);
 
@@ -100,8 +106,8 @@ module.exports = ({ config }) => {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: variantConfig.androidPackage,
-      googleServicesFile:
-        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+      // Optional locally: without it the app builds, only push notifications are off
+      ...(googleServicesFile && { googleServicesFile }),
       statusBar: {
         barStyle: "light-content",
         backgroundColor: "#3B81F6",
@@ -172,6 +178,25 @@ module.exports = ({ config }) => {
       ],
       "expo-secure-store",
       "expo-web-browser",
+      [
+        "react-native-android-widget",
+        {
+          widgets: [
+            {
+              name: "RecentMessages",
+              label: "Messages",
+              description: "Latest messages from school",
+              minWidth: "250dp",
+              minHeight: "180dp",
+              targetCellWidth: 4,
+              targetCellHeight: 3,
+              resizeMode: "horizontal|vertical",
+              // Android minimum is 30 minutes
+              updatePeriodMillis: 1800000,
+            },
+          ],
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,

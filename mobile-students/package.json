@@ -1,6 +1,6 @@
 {
   "name": "mobile-students",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
@@ -37,6 +37,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-android-widget": "^0.22.1",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-otp-entry": "^1.8.6",
     "react-native-reanimated": "~4.1.1",

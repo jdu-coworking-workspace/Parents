@@ -246,6 +246,12 @@ export type TranslationKeys = {
   accessDenied: string;
   notFound: string;
   tooManyAttempts: string;
+
+  // Message actions & home screen widget
+  translate: string;
+  widgetTitle: string;
+  widgetEmpty: string;
+  widgetSignIn: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';
