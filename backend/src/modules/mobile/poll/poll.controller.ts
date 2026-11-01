@@ -18,15 +18,28 @@ export class MobilePollModuleController implements IController {
     }
 
     initRoutes(): void {
+        // Ota-ona
         this.router.post('/poll/vote', verifyToken, this.parentVote);
+        this.router.delete(
+            '/poll/vote/:post_id',
+            verifyToken,
+            this.parentRemoveVote
+        );
+
+        // O'quvchi
         this.router.post(
             '/student/poll/vote',
             verifyStudentToken,
             this.studentVote
         );
+        this.router.delete(
+            '/student/poll/vote/:post_id',
+            verifyStudentToken,
+            this.studentRemoveVote
+        );
     }
 
-    private parseBody(req: ExtendedRequest) {
+    private parseVoteBody(req: ExtendedRequest) {
         const postId = parsePositiveInt(req.body?.post_id);
         const optionId = parsePositiveInt(req.body?.option_id);
         if (!postId || !optionId) {
@@ -35,16 +48,42 @@ export class MobilePollModuleController implements IController {
         return { postId, optionId };
     }
 
+    private parsePostIdParam(req: ExtendedRequest) {
+        const postId = parsePositiveInt(req.params?.post_id);
+        if (!postId) {
+            throw new ApiError(400, 'invalid_poll_vote');
+        }
+        return postId;
+    }
+
     parentVote = async (
         req: ExtendedRequest,
         res: Response,
         next: NextFunction
     ) => {
         try {
-            const { postId, optionId } = this.parseBody(req);
+            const { postId, optionId } = this.parseVoteBody(req);
             const result = await pollService.vote({
                 postId,
                 optionId,
+                voterType: 'parent',
+                voterId: req.user.id,
+            });
+            return res.status(200).json(result).end();
+        } catch (e: any) {
+            return next(e);
+        }
+    };
+
+    parentRemoveVote = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const postId = this.parsePostIdParam(req);
+            const result = await pollService.removeVote({
+                postId,
                 voterType: 'parent',
                 voterId: req.user.id,
             });
@@ -60,10 +99,28 @@ export class MobilePollModuleController implements IController {
         next: NextFunction
     ) => {
         try {
-            const { postId, optionId } = this.parseBody(req);
+            const { postId, optionId } = this.parseVoteBody(req);
             const result = await pollService.vote({
                 postId,
                 optionId,
+                voterType: 'student',
+                voterId: req.user.id,
+            });
+            return res.status(200).json(result).end();
+        } catch (e: any) {
+            return next(e);
+        }
+    };
+
+    studentRemoveVote = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const postId = this.parsePostIdParam(req);
+            const result = await pollService.removeVote({
+                postId,
                 voterType: 'student',
                 voterId: req.user.id,
             });

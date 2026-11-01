@@ -102,20 +102,39 @@ export class PollRepository {
     }
 
     /**
-     * Ovoz qo'shish. Allaqachon ovoz bergan bo'lsa false qaytaradi.
+     * Ovoz berish yoki almashtirish.
+     * Foydalanuvchi allaqachon ovoz bergan bo'lsa, variant yangilanadi.
+     * (UNIQUE KEY poll_id + voter_type + voter_id ga tayanadi)
      */
-    async insertVote(data: {
+    async upsertVote(data: {
         poll_id: number;
         option_id: number;
         voter_type: VoterType;
         voter_id: number;
-    }): Promise<boolean> {
-        const result = await DB.execute(
-            `INSERT IGNORE INTO PollVote (poll_id, option_id, voter_type, voter_id)
-             VALUES (:poll_id, :option_id, :voter_type, :voter_id)`,
+    }): Promise<void> {
+        await DB.execute(
+            `INSERT INTO PollVote (poll_id, option_id, voter_type, voter_id)
+             VALUES (:poll_id, :option_id, :voter_type, :voter_id)
+             ON DUPLICATE KEY UPDATE option_id = :option_id, created_at = NOW()`,
             data
         );
-        return result.affectedRows > 0;
+    }
+
+    /**
+     * Foydalanuvchining ovozini olib tashlash
+     */
+    async deleteVote(
+        postId: number,
+        voterType: VoterType,
+        voterId: number
+    ): Promise<void> {
+        await DB.execute(
+            `DELETE FROM PollVote
+             WHERE voter_type = :voter_type
+               AND voter_id = :voter_id
+               AND poll_id IN (SELECT id FROM Poll WHERE post_id = :post_id)`,
+            { post_id: postId, voter_type: voterType, voter_id: voterId }
+        );
     }
 
     /**

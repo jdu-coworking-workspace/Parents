@@ -18,7 +18,8 @@ export class PollService {
     /**
      * Postlar uchun poll natijalari.
      * viewer berilmasa (admin) natija doim ko'rinadi.
-     * viewer berilsa, natija faqat ovoz bergandan keyin ko'rinadi.
+     * viewer berilsa, natija (ovoz soni va foiz) faqat ovoz bergandan keyin ko'rinadi.
+     * Ovoz olib tashlansa, natija yana yashiriladi.
      */
     async getForPosts(
         postIds: number[],
@@ -104,7 +105,25 @@ export class PollService {
     }
 
     /**
-     * Ovoz berish (ota-ona yoki o'quvchi)
+     * Postga ruxsat bormi (ota-ona yoki o'quvchiga yuborilganmi)
+     */
+    private async assertAccess(
+        postId: number,
+        voterType: VoterType,
+        voterId: number
+    ) {
+        const hasAccess =
+            voterType === 'parent'
+                ? await pollRepository.parentHasPost(postId, voterId)
+                : await pollRepository.studentHasPost(postId, voterId);
+        if (!hasAccess) {
+            throw new ApiError(403, 'poll_forbidden');
+        }
+    }
+
+    /**
+     * Ovoz berish yoki ovozni almashtirish (ota-ona yoki o'quvchi).
+     * Agar avval ovoz bergan bo'lsa, yangi variantga o'tkaziladi.
      */
     async vote(params: {
         postId: number;
@@ -114,28 +133,42 @@ export class PollService {
     }) {
         const { postId, optionId, voterType, voterId } = params;
 
-        const hasAccess =
-            voterType === 'parent'
-                ? await pollRepository.parentHasPost(postId, voterId)
-                : await pollRepository.studentHasPost(postId, voterId);
-        if (!hasAccess) {
-            throw new ApiError(403, 'poll_forbidden');
-        }
+        await this.assertAccess(postId, voterType, voterId);
 
         const option = await pollRepository.findOption(postId, optionId);
         if (!option) {
             throw new ApiError(404, 'poll_option_not_found');
         }
 
-        const inserted = await pollRepository.insertVote({
+        await pollRepository.upsertVote({
             poll_id: option.poll_id,
             option_id: optionId,
             voter_type: voterType,
             voter_id: voterId,
         });
-        if (!inserted) {
-            throw new ApiError(409, 'poll_already_voted');
-        }
+
+        const polls = await this.getForPosts([postId], {
+            type: voterType,
+            id: voterId,
+        });
+        return { poll: polls.get(postId) ?? null };
+    }
+
+    /**
+     * Ovozni olib tashlash.
+     * Ovoz bermagan bo'lsa ham xato bermaydi (idempotent).
+     * Natija: results_visible=false, votes/percent=null.
+     */
+    async removeVote(params: {
+        postId: number;
+        voterType: VoterType;
+        voterId: number;
+    }) {
+        const { postId, voterType, voterId } = params;
+
+        await this.assertAccess(postId, voterType, voterId);
+
+        await pollRepository.deleteVote(postId, voterType, voterId);
 
         const polls = await this.getForPosts([postId], {
             type: voterType,
