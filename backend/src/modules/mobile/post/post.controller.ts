@@ -8,6 +8,7 @@ import {
 } from '../../../middlewares/mobileAuth';
 import { mobilePostService } from './post.service';
 import { mobileStudentPostService } from './student-post.service';
+import { pollService } from '../../poll/poll.service'; // [POLL] yangi import
 import { ApiError } from '../../../errors/ApiError';
 import {
     isValidId,
@@ -73,6 +74,12 @@ export class MobilePostModuleController implements IController {
                 return res.status(404).json({ error: 'Post not found' }).end();
             }
 
+            // [POLL]
+            await pollService.attachToRows(post, {
+                type: 'parent',
+                id: req.user.id,
+            });
+
             return res.status(200).json({ post: post[0] }).end();
         } catch (e: any) {
             return next(e);
@@ -95,6 +102,12 @@ export class MobilePostModuleController implements IController {
             }
 
             await mobilePostService.markPostViewedByPostId(post_id);
+
+            // [POLL]
+            await pollService.attachToRows(post, {
+                type: 'parent',
+                id: req.user.id,
+            });
 
             post[0].images = post[0].images ?? [];
 
@@ -122,6 +135,12 @@ export class MobilePostModuleController implements IController {
                 lastPostId: last_post_id,
                 lastSentAt: last_sent_at,
                 readPostIds: read_post_ids,
+            });
+
+            // [POLL]
+            await pollService.attachToRows(posts, {
+                type: 'parent',
+                id: req.user.id,
             });
 
             return res
@@ -205,6 +224,12 @@ export class MobilePostModuleController implements IController {
                 readPostIds: safeReadPostIds,
             });
 
+            // [POLL]
+            await pollService.attachToRows(posts, {
+                type: 'student',
+                id: req.user.id,
+            });
+
             return res
                 .status(200)
                 .json({
@@ -250,6 +275,12 @@ export class MobilePostModuleController implements IController {
             await mobileStudentPostService.viewPost({
                 postStudentId,
                 studentId: req.user.id,
+            });
+
+            // [POLL]
+            await pollService.attachToRows(post, {
+                type: 'student',
+                id: req.user.id,
             });
 
             post[0].images =

@@ -1,7 +1,11 @@
 import express, { NextFunction, Response, Router } from 'express';
 import { ScheduleService } from './schedule.service';
 import { ExtendedRequest } from '../../middlewares/auth';
-import { isValidAudience, isValidId, isValidPriority } from '../../utils/validate';
+import {
+    isValidAudience,
+    isValidId,
+    isValidPriority,
+} from '../../utils/validate';
 import cron from 'node-cron';
 import { ApiError } from '../../errors/ApiError';
 import { config } from '../../config';

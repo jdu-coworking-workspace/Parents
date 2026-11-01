@@ -6,6 +6,7 @@ import ParentController from './parent';
 import PostController from './post';
 import StudentController from './student';
 import { IController } from 'utils/icontroller';
+import PollController from './poll';
 
 console.log('starting Mobile');
 
@@ -23,6 +24,7 @@ class MobileController implements IController {
         this.router.use(new ParentController().router);
         this.router.use(new PostController().router);
         this.router.use(new StudentController().router);
+        this.router.use(new PollController().router);
         this.router.use(new FaqController().router);
     }
 }
