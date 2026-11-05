@@ -50,6 +50,26 @@ export default function SettingsLayout() {
           headerTitleAlign: 'center',
         }}
       />
+      <Stack.Screen
+        name="faq"
+        options={{
+          headerShown: true,
+          title: t("faqTitle"),
+          headerStyle: {
+            backgroundColor: headerBg,
+          },
+          headerTintColor: "#fff",
+          headerBackButtonDisplayMode: "minimal",
+          headerBackTitle: "",
+          headerTitleStyle: {
+            fontWeight: "bold",
+            fontSize: 18,
+            color: "#fff",
+          },
+          headerShadowVisible: false,
+          headerTitleAlign: "center",
+        }}
+      />
     </Stack>
   );
 }

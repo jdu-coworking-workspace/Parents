@@ -318,6 +318,20 @@ export default function SettingsScreen() {
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>
 
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push("/(tabs)/(settings)/faq" as any)}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
+                <Ionicons color="#fff" name="help-circle-outline" size={20} />
+              </View>
+              <ThemedText disableScaling style={styles.rowLabel}>
+                {t("faqTitle")}
+              </ThemedText>
+              <View style={styles.rowSpacer} />
+              <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
+            </Pressable>
+
             <ThemeSwitcher />
           </View>
 
