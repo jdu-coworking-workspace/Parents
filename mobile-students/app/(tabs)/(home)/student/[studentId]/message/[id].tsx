@@ -1,4 +1,5 @@
 import { useCallback, useContext, useMemo, useState } from "react";
+import PollView from "@/components/PollView";
 import {
   ActivityIndicator,
   Image,
@@ -23,7 +24,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { I18nContext } from "@/contexts/i18n-context";
-import { fetchStudentMessage } from "@/services/student-messages";
+import {
+  fetchStudentMessage,
+  voteStudentPoll,
+  removeStudentPollVote,
+} from "@/services/student-messages";
 import type { Message } from "@/types/message";
 import { useFontSize } from "@/contexts/font-size-context";
 import { getMessageImageUrls } from "@/utils/image-url";
@@ -63,7 +68,7 @@ export default function MessageDetailScreen() {
   const colorScheme = useColorScheme() ?? "dark";
   const isDark = colorScheme === "dark";
   const pageBackgroundColor = isDark ? "#111215" : "#fff";
-  const { t } = useContext(I18nContext);
+  const { t, language } = useContext(I18nContext);
   const { multiplier } = useFontSize();
 
   const { id } = useLocalSearchParams<{
@@ -138,6 +143,18 @@ export default function MessageDetailScreen() {
     if (priority === "high") return t("critical");
     if (priority === "medium") return t("important");
     return t("ordinary");
+  };
+
+  const handleVote = async (optionId: number) => {
+    if (!message?.post_id) return;
+    const poll = await voteStudentPoll(message.post_id, optionId);
+    setMessage((prev) => (prev ? { ...prev, poll } : prev));
+  };
+
+  const handleRemoveVote = async () => {
+    if (!message?.post_id) return;
+    const poll = await removeStudentPollVote(message.post_id);
+    setMessage((prev) => (prev ? { ...prev, poll } : prev));
   };
 
   const handleCopy = async () => {
@@ -334,6 +351,17 @@ export default function MessageDetailScreen() {
               }}
             />
           </View>
+
+          {message.poll ? (
+            <PollView
+              poll={message.poll}
+              language={language}
+              isDark={isDark}
+              textColor={isDark ? "#E5E7EB" : "#1F2937"}
+              onVote={handleVote}
+              onRemoveVote={handleRemoveVote}
+            />
+          ) : null}
 
           <View style={styles.footerRow}>
             <ThemedText

@@ -9,6 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SendMessageConfirmDialog from "@/components/SendMessageConfirmDialog";
 import MessageImagePicker from "@/components/MessageImagePicker";
 import RichTextEditor from "@/components/RichTextEditor";
+import PollEditor, {
+  cleanPollOptions,
+  isPollValid,
+} from "@/components/PollEditor"; // [POLL]
 import Group from "@/types/group";
 import { GroupTable } from "@/components/GroupTable";
 import Student from "@/types/student";
@@ -66,6 +70,7 @@ interface CreatePostPayload {
   groups: number[];
   image: string;
   images: string[];
+  poll?: { options: string[] }; // [POLL]
   scheduled_at?: string;
 }
 
@@ -87,6 +92,16 @@ export default function SendMessagePage() {
   const [draftsData, setDraftsData] = useState<DraftData[]>([]);
   const [shouldPersistForm, setShouldPersistForm] = useState(true);
   const [isImageUploading, setIsImageUploading] = useState(false);
+
+  // [POLL] so'rovnoma holati
+  const [pollEnabled, setPollEnabled] = useState(false);
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const pollValid = !pollEnabled || isPollValid(pollOptions);
+  const resetPoll = () => {
+    setPollEnabled(false);
+    setPollOptions(["", ""]);
+  };
+
   const formRef = React.useRef<HTMLFormElement>(null);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -116,6 +131,7 @@ export default function SendMessagePage() {
       });
       setSelectedStudents([]);
       setSelectedGroups([]);
+      resetPoll(); // [POLL]
       clearFormPersistence();
       form.reset({
         title: "",
@@ -155,6 +171,7 @@ export default function SendMessagePage() {
         }
         setSelectedStudents([]);
         setSelectedGroups([]);
+        resetPoll(); // [POLL]
         clearFormPersistence();
         form.reset({
           title: "",
@@ -215,8 +232,25 @@ export default function SendMessagePage() {
     if (isImageUploading) {
       return;
     }
+
+    // [POLL] tekshiruvlar
+    if (pollEnabled && !isPollValid(pollOptions)) {
+      toast({
+        title: t("error"),
+        description: t("pollMinOptions"),
+      });
+      return;
+    }
+    if (pollEnabled && scheduleEnabled) {
+      toast({
+        title: t("error"),
+        description: t("pollNoSchedule"),
+      });
+      return;
+    }
+
     const images = normalizePostImages(data.image, data.images);
-    const payload = {
+    const payload: CreatePostPayload = {
       title: data.title,
       description: data.description,
       priority: data.priority,
@@ -225,6 +259,10 @@ export default function SendMessagePage() {
       groups: selectedGroups.map((group) => group.id),
       image: images[0] ?? "",
       images,
+      // [POLL]
+      ...(pollEnabled
+        ? { poll: { options: cleanPollOptions(pollOptions) } }
+        : {}),
     };
 
     if (scheduleEnabled) {
@@ -244,7 +282,7 @@ export default function SendMessagePage() {
     }
   };
 
-  const isFormValid = form.formState.isValid;
+  const isFormValid = form.formState.isValid && pollValid; // [POLL]
   const hasRecipients =
     selectedStudents.length > 0 || selectedGroups.length > 0;
   const isSubmitting =
@@ -278,6 +316,7 @@ export default function SendMessagePage() {
 
     setSelectedStudents([]);
     setSelectedGroups([]);
+    resetPoll(); // [POLL] qoralamada so'rovnoma saqlanmaydi
     form.reset({
       title: "",
       description: "",
@@ -423,6 +462,17 @@ export default function SendMessagePage() {
               </FormItem>
             )}
           />
+
+          {/* [POLL] So'rovnoma */}
+          <PollEditor
+            enabled={pollEnabled}
+            onEnabledChange={setPollEnabled}
+            options={pollOptions}
+            onOptionsChange={setPollOptions}
+            switchDisabled={scheduleEnabled}
+            disabledHint={t("pollNoSchedule")}
+          />
+
           <FormField
             control={form.control}
             name="priority"
@@ -499,12 +549,20 @@ export default function SendMessagePage() {
           </Tabs>
           <div className="flex flex-col gap-4 border p-4 rounded-md bg-muted/40">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">
-                {t("doYouWantSchedule")}
-              </Label>
+              <div className="flex flex-col">
+                <Label className="text-base font-medium">
+                  {t("doYouWantSchedule")}
+                </Label>
+                {pollEnabled && (
+                  <span className="text-xs text-muted-foreground mt-1">
+                    {t("pollNoSchedule")}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={scheduleEnabled}
+                  disabled={pollEnabled} // [POLL]
                   onCheckedChange={setScheduleEnabled}
                   id="schedule-switch"
                 />

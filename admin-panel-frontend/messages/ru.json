@@ -245,7 +245,15 @@
     "linkText": "Текст",
     "removeLink": "Удалить ссылку",
     "apply": "Применить",
-    "invalidLinkUrl": "Введите корректную ссылку http, https, mailto или tel"
+    "invalidLinkUrl": "Введите корректную ссылку http, https, mailto или tel",
+    "pollAdd": "Добавить опрос",
+    "pollHint": "Получатели могут выбрать один вариант. Добавьте не менее 2 и не более 10 вариантов.",
+    "pollOptionPlaceholder": "Вариант {number}",
+    "pollAddOption": "Добавить вариант",
+    "pollRemoveOption": "Удалить вариант",
+    "pollMinOptions": "Введите не менее 2 разных вариантов",
+    "pollDuplicateOptions": "Варианты не должны повторяться",
+    "pollNoSchedule": "Сообщения с опросом нельзя запланировать"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Просмотр запланированного сообщения",
