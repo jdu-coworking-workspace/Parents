@@ -31,6 +31,60 @@ export function isPollValid(options: string[]): boolean {
   return new Set(lower).size === lower.length;
 }
 
+export function extractPollFromHtml(html: string): {
+  question?: string;
+  options: string[];
+} | null {
+  if (!html || !html.includes("data-poll")) return null;
+  const match = html.match(/data-poll-options=["']([^"']+)["']/i);
+  if (!match) return null;
+  try {
+    const raw = match[1].replace(/&quot;/g, '"').replace(/&#34;/g, '"');
+    const options = JSON.parse(raw);
+    if (Array.isArray(options)) {
+      const cleaned = cleanPollOptions(options);
+      if (cleaned.length >= POLL_MIN_OPTIONS) {
+        const questionMatch = html.match(
+          /data-poll-question=["']([^"']*)["']/i
+        );
+        const question = questionMatch ? questionMatch[1] : undefined;
+        return { question, options: cleaned };
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export function extractAllPollsFromHtml(html: string): Array<{
+  question?: string;
+  options: string[];
+}> {
+  if (!html || !html.includes("data-poll")) return [];
+  const results: Array<{ question?: string; options: string[] }> = [];
+  const regex = /<div\b[^>]*\bdata-poll=["']true["'][^>]*>/gi;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    const tag = match[0];
+    const optionsMatch = tag.match(/data-poll-options=["']([^"']+)["']/i);
+    if (!optionsMatch) continue;
+    try {
+      const raw = optionsMatch[1].replace(/&quot;/g, '"').replace(/&#34;/g, '"');
+      const options = JSON.parse(raw);
+      if (Array.isArray(options)) {
+        const cleaned = cleanPollOptions(options);
+        if (cleaned.length >= POLL_MIN_OPTIONS) {
+          const questionMatch = tag.match(
+            /data-poll-question=["']([^"']*)["']/i
+          );
+          const question = questionMatch ? questionMatch[1] : undefined;
+          results.push({ question, options: cleaned });
+        }
+      }
+    } catch {}
+  }
+  return results;
+}
+
 interface PollEditorProps {
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;

@@ -1,5 +1,6 @@
-import { useCallback, useContext, useMemo, useState } from "react";
-import PollView from "@/components/PollView";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import PollView, { Poll, PollOption } from "@/components/PollView";
 import {
   ActivityIndicator,
   Image,
@@ -91,6 +92,24 @@ export default function MessageDetailScreen() {
   const screenWidth = Dimensions.get("window").width;
   const imageContainerWidth = screenWidth - 32; // scrollContent paddingHorizontal: 16 * 2
 
+  const [userPollVotes, setUserPollVotes] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    if (!messageId) return;
+    AsyncStorage.getItem(`@student_poll_votes_${messageId}`)
+      .then((stored) => {
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed && typeof parsed === "object") {
+              setUserPollVotes((prev) => ({ ...parsed, ...prev }));
+            }
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, [messageId]);
+
   const handleImageLoad = useCallback(
     (uri: string, width: number, height: number) => {
       setImageAspectRatios((prev) =>
@@ -112,6 +131,22 @@ export default function MessageDetailScreen() {
       setIsError(false);
       const post = await fetchStudentMessage(messageId);
       setMessage(post);
+      if (Array.isArray(post.polls) && post.polls.length > 0) {
+        setUserPollVotes((prev) => {
+          const next = { ...prev };
+          post.polls?.forEach((p) => {
+            if (p.id && p.my_option_id) {
+              next[p.id] = p.my_option_id;
+            }
+          });
+          return next;
+        });
+      } else if (post.poll?.id && post.poll.my_option_id) {
+        setUserPollVotes((prev) => ({
+          ...prev,
+          [post.poll!.id]: post.poll!.my_option_id!,
+        }));
+      }
     } catch (error) {
       console.error("Error loading student message:", error);
       setIsError(true);
@@ -139,22 +174,232 @@ export default function MessageDetailScreen() {
     ? [{ uri: inlineZoomImage }]
     : imagesForZoomGallery;
 
+  const fallbackPollQuestions = useMemo(() => {
+    if (!message?.content) return [];
+    const questions: string[] = [];
+    const regex = /data-poll-question=["']([^"']*)["']/gi;
+    let match;
+    while ((match = regex.exec(message.content)) !== null) {
+      questions.push(match[1]);
+    }
+    return questions;
+  }, [message?.content]);
+
+  const pollsToRender = useMemo(() => {
+    const enrichPoll = (p: Poll, pIdx: number): Poll => {
+      let myOptionId =
+        userPollVotes[p.id] ??
+        userPollVotes[pIdx] ??
+        p.my_option_id ??
+        null;
+
+      if (myOptionId === null && message?.poll?.my_option_id) {
+        const hasOpt = p.options.some((o) => o.id === message.poll?.my_option_id);
+        if (hasOpt) {
+          myOptionId = message.poll.my_option_id;
+        }
+      }
+
+      const isVoted = myOptionId !== null;
+      let total = p.options.reduce(
+        (sum, o) => sum + (typeof o.votes === "number" ? o.votes : 0),
+        0
+      );
+      if (isVoted && total === 0) {
+        total = 1;
+      }
+
+      const options = p.options.map((opt) => {
+        const isThisSelected = opt.id === myOptionId;
+        const votes =
+          typeof opt.votes === "number"
+            ? opt.votes
+            : isThisSelected
+            ? 1
+            : isVoted
+            ? 0
+            : null;
+        const percent =
+          isVoted && total > 0 && typeof votes === "number"
+            ? Math.round((votes / total) * 1000) / 10
+            : opt.percent;
+        return {
+          ...opt,
+          votes,
+          percent,
+        };
+      });
+
+      return {
+        ...p,
+        options,
+        my_option_id: myOptionId,
+        total_votes: isVoted ? total : p.total_votes,
+        results_visible: isVoted || p.results_visible,
+      };
+    };
+
+    // 1. Agar backend allaqachon bir nechta poll qaytargan bo'lsa
+    if (Array.isArray(message?.polls) && message.polls.length > 1) {
+      return message.polls.map(enrichPoll);
+    }
+
+    // 2. Agar content ichida bir nechta poll bo'lsa, ularni ajratib backend options bilan moslashtirish
+    if (message?.content && message.content.includes("data-poll")) {
+      const rawPolls: Array<{ question: string; optionTexts: string[] }> = [];
+      const regex = /<div\b[^>]*\bdata-poll=["']true["'][^>]*>/gi;
+      let match;
+      while ((match = regex.exec(message.content)) !== null) {
+        const tag = match[0];
+        const optionsMatch = tag.match(/data-poll-options=["']([^"']+)["']/i);
+        if (!optionsMatch) continue;
+        try {
+          const raw = optionsMatch[1]
+            .replace(/&quot;/g, '"')
+            .replace(/&#34;/g, '"');
+          const options = JSON.parse(raw);
+          if (Array.isArray(options) && options.length >= 2) {
+            const questionMatch = tag.match(
+              /data-poll-question=["']([^"']*)["']/i
+            );
+            const question = questionMatch ? questionMatch[1] : "";
+            rawPolls.push({ question, optionTexts: options });
+          }
+        } catch {}
+      }
+
+      if (rawPolls.length > 1) {
+        const backendOptions: PollOption[] = message?.poll?.options ?? [];
+        let backendOptionIdx = 0;
+
+        return rawPolls.map((rp, pIdx) => {
+          const pollOptions: PollOption[] = [];
+          for (let i = 0; i < rp.optionTexts.length; i++) {
+            const text = rp.optionTexts[i];
+            const matchedByText = backendOptions.find(
+              (bo) => bo.text.trim().toLowerCase() === text.trim().toLowerCase()
+            );
+            const matchedByIndex = backendOptions[backendOptionIdx];
+            const matched = matchedByText ?? matchedByIndex;
+            backendOptionIdx++;
+
+            pollOptions.push({
+              id: matched ? matched.id : pIdx * 100 + i + 1,
+              text,
+              votes: matched?.votes ?? null,
+              percent: matched?.percent ?? null,
+            });
+          }
+
+          const basePoll: Poll = {
+            id: message?.poll?.id ? message.poll.id + pIdx : pIdx + 1,
+            question: rp.question || null,
+            options: pollOptions,
+            my_option_id: null,
+            total_votes: null,
+            results_visible: false,
+          };
+
+          return enrichPoll(basePoll, pIdx);
+        });
+      }
+    }
+
+    // 3. Standart holat
+    if (Array.isArray(message?.polls) && message.polls.length > 0) {
+      return message.polls.map(enrichPoll);
+    }
+    if (message?.poll) {
+      return [enrichPoll(message.poll, 0)];
+    }
+    return [];
+  }, [message?.poll, message?.polls, message?.content, userPollVotes]);
+
   const getPriorityLabel = (priority: Message["priority"]) => {
     if (priority === "high") return t("critical");
     if (priority === "medium") return t("important");
     return t("ordinary");
   };
 
-  const handleVote = async (optionId: number) => {
+  const handleVote = async (pollId: number, optionId: number) => {
     if (!message?.post_id) return;
-    const poll = await voteStudentPoll(message.post_id, optionId);
-    setMessage((prev) => (prev ? { ...prev, poll } : prev));
+
+    setUserPollVotes((prev) => {
+      const next = { ...prev, [pollId]: optionId };
+      if (messageId) {
+        AsyncStorage.setItem(
+          `@student_poll_votes_${messageId}`,
+          JSON.stringify(next)
+        ).catch(() => {});
+      }
+      return next;
+    });
+
+    try {
+      const result = await voteStudentPoll(message.post_id, optionId);
+      if (result) {
+        setMessage((prev) => {
+          if (!prev) return prev;
+          const returnedPolls =
+            'polls' in result && Array.isArray(result.polls)
+              ? result.polls
+              : undefined;
+          const returnedPoll =
+            'poll' in result ? result.poll : (result as Poll);
+
+          let updatedPolls = prev.polls;
+          if (returnedPolls) {
+            updatedPolls = returnedPolls;
+          } else if (returnedPoll && Array.isArray(prev.polls)) {
+            updatedPolls = prev.polls.map((p) =>
+              p.id === returnedPoll.id ? returnedPoll : p
+            );
+          }
+
+          return {
+            ...prev,
+            polls: updatedPolls,
+          };
+        });
+      }
+    } catch (e) {
+      console.error("Error voting:", e);
+    }
   };
 
-  const handleRemoveVote = async () => {
+  const handleRemoveVote = async (pollId: number) => {
     if (!message?.post_id) return;
-    const poll = await removeStudentPollVote(message.post_id);
-    setMessage((prev) => (prev ? { ...prev, poll } : prev));
+
+    setUserPollVotes((prev) => {
+      const next = { ...prev };
+      delete next[pollId];
+      if (messageId) {
+        AsyncStorage.setItem(
+          `@student_poll_votes_${messageId}`,
+          JSON.stringify(next)
+        ).catch(() => {});
+      }
+      return next;
+    });
+
+    try {
+      const result = await removeStudentPollVote(message.post_id, pollId);
+      if (result) {
+        setMessage((prev) => {
+          if (!prev) return prev;
+          const returnedPolls =
+            'polls' in result && Array.isArray(result.polls)
+              ? result.polls
+              : undefined;
+          return {
+            ...prev,
+            polls: returnedPolls ?? prev.polls,
+          };
+        });
+      }
+    } catch (e) {
+      console.error("Error removing vote:", e);
+    }
   };
 
   const handleCopy = async () => {
@@ -352,16 +597,18 @@ export default function MessageDetailScreen() {
             />
           </View>
 
-          {message.poll ? (
+          {pollsToRender.map((p, idx) => (
             <PollView
-              poll={message.poll}
+              key={p.id || idx}
+              poll={p}
               language={language}
               isDark={isDark}
               textColor={isDark ? "#E5E7EB" : "#1F2937"}
-              onVote={handleVote}
-              onRemoveVote={handleRemoveVote}
+              onVote={(optionId) => handleVote(p.id, optionId)}
+              onRemoveVote={() => handleRemoveVote(p.id)}
+              fallbackQuestion={fallbackPollQuestions[idx] || null}
             />
-          ) : null}
+          ))}
 
           <View style={styles.footerRow}>
             <ThemedText

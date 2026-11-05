@@ -9,9 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SendMessageConfirmDialog from "@/components/SendMessageConfirmDialog";
 import MessageImagePicker from "@/components/MessageImagePicker";
 import RichTextEditor from "@/components/RichTextEditor";
-import PollEditor, {
-  cleanPollOptions,
-  isPollValid,
+import {
+  extractAllPollsFromHtml,
+  extractPollFromHtml,
 } from "@/components/PollEditor"; // [POLL]
 import Group from "@/types/group";
 import { GroupTable } from "@/components/GroupTable";
@@ -70,7 +70,8 @@ interface CreatePostPayload {
   groups: number[];
   image: string;
   images: string[];
-  poll?: { options: string[] }; // [POLL]
+  poll?: { question?: string; options: string[] }; // [POLL]
+  polls?: Array<{ question?: string; options: string[] }>; // [POLL]
   scheduled_at?: string;
 }
 
@@ -93,13 +94,8 @@ export default function SendMessagePage() {
   const [shouldPersistForm, setShouldPersistForm] = useState(true);
   const [isImageUploading, setIsImageUploading] = useState(false);
 
-  // [POLL] so'rovnoma holati
-  const [pollEnabled, setPollEnabled] = useState(false);
-  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
-  const pollValid = !pollEnabled || isPollValid(pollOptions);
   const resetPoll = () => {
-    setPollEnabled(false);
-    setPollOptions(["", ""]);
+    // Poll is embedded in form description, resetting form already resets it
   };
 
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -115,6 +111,12 @@ export default function SendMessagePage() {
     },
   });
   const formValues = useWatch({ control: form.control });
+  const watchedDescription = formValues.description ?? "";
+  const allExtractedPolls = React.useMemo(
+    () => extractAllPollsFromHtml(watchedDescription),
+    [watchedDescription]
+  );
+  const hasPoll = allExtractedPolls.length > 0;
   const router = useRouter();
   const clearFormPersistence = () => {
     setShouldPersistForm(false);
@@ -234,14 +236,7 @@ export default function SendMessagePage() {
     }
 
     // [POLL] tekshiruvlar
-    if (pollEnabled && !isPollValid(pollOptions)) {
-      toast({
-        title: t("error"),
-        description: t("pollMinOptions"),
-      });
-      return;
-    }
-    if (pollEnabled && scheduleEnabled) {
+    if (hasPoll && scheduleEnabled) {
       toast({
         title: t("error"),
         description: t("pollNoSchedule"),
@@ -260,8 +255,11 @@ export default function SendMessagePage() {
       image: images[0] ?? "",
       images,
       // [POLL]
-      ...(pollEnabled
-        ? { poll: { options: cleanPollOptions(pollOptions) } }
+      ...(allExtractedPolls.length > 0
+        ? {
+            poll: allExtractedPolls[0],
+            polls: allExtractedPolls,
+          }
         : {}),
     };
 
@@ -282,7 +280,7 @@ export default function SendMessagePage() {
     }
   };
 
-  const isFormValid = form.formState.isValid && pollValid; // [POLL]
+  const isFormValid = form.formState.isValid; // [POLL]
   const hasRecipients =
     selectedStudents.length > 0 || selectedGroups.length > 0;
   const isSubmitting =
@@ -453,6 +451,9 @@ export default function SendMessagePage() {
                     onChange={field.onChange}
                     onUploadingChange={setIsImageUploading}
                     enableImages
+                    enablePoll
+                    pollDisabled={scheduleEnabled}
+                    pollDisabledHint={t("pollNoSchedule")}
                   />
                 </FormControl>
                 <FormMessage>
@@ -461,16 +462,6 @@ export default function SendMessagePage() {
                 </FormMessage>
               </FormItem>
             )}
-          />
-
-          {/* [POLL] So'rovnoma */}
-          <PollEditor
-            enabled={pollEnabled}
-            onEnabledChange={setPollEnabled}
-            options={pollOptions}
-            onOptionsChange={setPollOptions}
-            switchDisabled={scheduleEnabled}
-            disabledHint={t("pollNoSchedule")}
           />
 
           <FormField
@@ -553,7 +544,7 @@ export default function SendMessagePage() {
                 <Label className="text-base font-medium">
                   {t("doYouWantSchedule")}
                 </Label>
-                {pollEnabled && (
+                {hasPoll && (
                   <span className="text-xs text-muted-foreground mt-1">
                     {t("pollNoSchedule")}
                   </span>
@@ -562,7 +553,7 @@ export default function SendMessagePage() {
               <div className="flex items-center gap-2">
                 <Switch
                   checked={scheduleEnabled}
-                  disabled={pollEnabled} // [POLL]
+                  disabled={hasPoll} // [POLL]
                   onCheckedChange={setScheduleEnabled}
                   id="schedule-switch"
                 />

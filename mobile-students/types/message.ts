@@ -12,6 +12,7 @@ export interface Message {
   viewed_at: string | null;
   post_id?: number;
   poll?: Poll | null;
+  polls?: Poll[];
 }
 
 export interface ListMessagesRequest {

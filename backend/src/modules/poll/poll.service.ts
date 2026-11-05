@@ -50,13 +50,18 @@ export class PollService {
             grouped.set(row.post_id, list);
         }
 
-        grouped.forEach((optionRows, postId) => {
+        grouped.forEach((allOptionRows, postId) => {
+            const firstPollId = allOptionRows[0].poll_id;
+            const optionRows = allOptionRows.filter(
+                r => r.poll_id === firstPollId
+            );
             const myOptionId = myVotes.get(postId) ?? null;
             const visible = !viewer || myOptionId !== null;
             const total = optionRows.reduce((s, r) => s + Number(r.votes), 0);
 
             result.set(postId, {
-                id: optionRows[0].poll_id,
+                id: firstPollId,
+                question: optionRows[0].question ?? null,
                 my_option_id: myOptionId,
                 results_visible: visible,
                 total_votes: visible ? total : null,
@@ -80,14 +85,95 @@ export class PollService {
     }
 
     /**
+     * Barcha postlar uchun barcha poll natijalari (har bir postga massiv)
+     */
+    async getAllForPosts(
+        postIds: number[],
+        viewer?: Viewer
+    ): Promise<Map<number, PollResult[]>> {
+        const result = new Map<number, PollResult[]>();
+        const uniqueIds = Array.from(new Set(postIds.filter(Boolean)));
+        if (uniqueIds.length === 0) return result;
+
+        const rows = await pollRepository.findResultsByPostIds(uniqueIds);
+        if (rows.length === 0) return result;
+
+        const myVotes = new Map<number, number>();
+        if (viewer) {
+            const votes = await pollRepository.findVotesByVoter(
+                uniqueIds,
+                viewer.type,
+                viewer.id
+            );
+            votes.forEach(v =>
+                myVotes.set(Number(v.poll_id), Number(v.option_id))
+            );
+        }
+
+        const pollGrouped = new Map<
+            number,
+            { postId: number; rows: typeof rows }
+        >();
+        for (const row of rows) {
+            const existing = pollGrouped.get(row.poll_id);
+            if (existing) {
+                existing.rows.push(row);
+            } else {
+                pollGrouped.set(row.poll_id, {
+                    postId: Number(row.post_id),
+                    rows: [row],
+                });
+            }
+        }
+
+        pollGrouped.forEach(({ postId, rows: optionRows }, pollId) => {
+            const myOptionId = myVotes.get(pollId) ?? null;
+            const visible = !viewer || myOptionId !== null;
+            const total = optionRows.reduce((s, r) => s + Number(r.votes), 0);
+
+            const pollItem: PollResult = {
+                id: pollId,
+                question: optionRows[0].question ?? null,
+                my_option_id: myOptionId,
+                results_visible: visible,
+                total_votes: visible ? total : null,
+                options: optionRows.map(r => {
+                    const votes = Number(r.votes);
+                    return {
+                        id: r.option_id,
+                        text: r.option_text,
+                        votes: visible ? votes : null,
+                        percent: visible
+                            ? total > 0
+                                ? Math.round((votes / total) * 1000) / 10
+                                : 0
+                            : null,
+                    };
+                }),
+            };
+
+            const list = result.get(postId) ?? [];
+            list.push(pollItem);
+            result.set(postId, list);
+        });
+
+        return result;
+    }
+
+    /**
      * Mobil ro'yxat/detal qatorlariga `poll` maydonini qo'shadi (joyida o'zgartiradi).
      * Har bir qatorda `post_id` bo'lishi kerak.
      */
     async attachToRows(rows: any[], viewer: Viewer): Promise<any[]> {
-        const postIds = rows.map(r => Number(r.post_id)).filter(Boolean);
+        const postIds = rows
+            .map(r => Number(r.post_id ?? r.id))
+            .filter(Boolean);
         const polls = await this.getForPosts(postIds, viewer);
+        const allPolls = await this.getAllForPosts(postIds, viewer);
         for (const row of rows) {
-            row.poll = polls.get(Number(row.post_id)) ?? null;
+            const pId = Number(row.post_id ?? row.id);
+            row.poll = polls.get(pId) ?? null;
+            row.polls = allPolls.get(pId) ?? [];
         }
         return rows;
     }
@@ -101,7 +187,47 @@ export class PollService {
             throw new ApiError(404, 'post_not_found');
         }
         const polls = await this.getForPosts([postId]);
-        return { poll: polls.get(postId) ?? null };
+        const allPolls = await this.getAllForPosts([postId]);
+        const voters = await pollRepository.findVotersByPostId(postId);
+
+        const votersByOption = new Map<number, any[]>();
+        for (const v of voters) {
+            const list = votersByOption.get(v.option_id) ?? [];
+            list.push({
+                voter_type: v.voter_type,
+                voter_id: v.voter_id,
+                given_name: v.given_name,
+                family_name: v.family_name,
+                email: v.email,
+                student_number: v.student_number,
+                created_at: v.created_at,
+            });
+            votersByOption.set(v.option_id, list);
+        }
+
+        const pollList = (allPolls.get(postId) ?? []).map(p => ({
+            ...p,
+            options: p.options.map(opt => ({
+                ...opt,
+                voters: votersByOption.get(opt.id) ?? [],
+            })),
+        }));
+
+        const singlePoll = polls.get(postId);
+        const pollWithVoters = singlePoll
+            ? {
+                  ...singlePoll,
+                  options: singlePoll.options.map(opt => ({
+                      ...opt,
+                      voters: votersByOption.get(opt.id) ?? [],
+                  })),
+              }
+            : null;
+
+        return {
+            poll: pollWithVoters,
+            polls: pollList,
+        };
     }
 
     /**
@@ -147,11 +273,17 @@ export class PollService {
             voter_id: voterId,
         });
 
-        const polls = await this.getForPosts([postId], {
+        const allPolls = await this.getAllForPosts([postId], {
             type: voterType,
             id: voterId,
         });
-        return { poll: polls.get(postId) ?? null };
+        const pollList = allPolls.get(postId) ?? [];
+        const currentPoll =
+            pollList.find(p => p.id === option.poll_id) ?? pollList[0] ?? null;
+        return {
+            poll: currentPoll,
+            polls: pollList,
+        };
     }
 
     /**
@@ -161,20 +293,25 @@ export class PollService {
      */
     async removeVote(params: {
         postId: number;
+        pollId?: number;
         voterType: VoterType;
         voterId: number;
     }) {
-        const { postId, voterType, voterId } = params;
+        const { postId, pollId, voterType, voterId } = params;
 
         await this.assertAccess(postId, voterType, voterId);
 
-        await pollRepository.deleteVote(postId, voterType, voterId);
+        await pollRepository.deleteVote(postId, voterType, voterId, pollId);
 
-        const polls = await this.getForPosts([postId], {
+        const allPolls = await this.getAllForPosts([postId], {
             type: voterType,
             id: voterId,
         });
-        return { poll: polls.get(postId) ?? null };
+        const pollList = allPolls.get(postId) ?? [];
+        return {
+            poll: pollList[0] ?? null,
+            polls: pollList,
+        };
     }
 }
 

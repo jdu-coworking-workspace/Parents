@@ -14,6 +14,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
+  BarChart2,
   Bold as BoldIcon,
   ChevronLeft,
   ChevronRight,
@@ -23,12 +24,21 @@ import {
   LayoutGrid,
   Link as LinkIcon,
   Loader2,
+  Pencil,
   Plus,
   Rows3,
   Trash2,
   Underline as UnderlineIcon,
   X,
 } from "lucide-react";
+import {
+  cleanPollOptions,
+  extractPollFromHtml,
+  isPollValid,
+  POLL_MAX_OPTIONS,
+  POLL_MIN_OPTIONS,
+  POLL_OPTION_MAX_LENGTH,
+} from "@/components/PollEditor";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -600,12 +610,178 @@ const DescriptionImageGroup = Node.create({
   },
 });
 
+const DescriptionPollView = ({
+  node,
+  deleteNode,
+  selected,
+  getPos,
+}: NodeViewProps) => {
+  const t = useTranslations("sendmessage");
+  const question = (node.attrs.question as string) || "";
+  const options = (node.attrs.options as string[]) || [];
+
+  return (
+    <NodeViewWrapper className="relative my-4 block max-w-full">
+      <div
+        className={cn(
+          "overflow-hidden rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm transition-all",
+          selected ? "ring-2 ring-primary" : ""
+        )}
+      >
+        <div className="flex items-center justify-between border-b pb-2 mb-3">
+          <div className="flex items-center gap-2 font-semibold text-sm text-primary">
+            <BarChart2 className="h-4 w-4" />
+            <span>{t("pollTitle")}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              aria-label={t("editPoll")}
+              title={t("editPoll")}
+              onClick={() => {
+                const pos = typeof getPos === "function" ? getPos() : undefined;
+                window.dispatchEvent(
+                  new CustomEvent("open-poll-dialog", {
+                    detail: { pos, question, options },
+                  })
+                );
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+              aria-label={t("deletePoll")}
+              title={t("deletePoll")}
+              onClick={deleteNode}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {question ? (
+          <p className="text-sm font-semibold mb-3 text-foreground break-words">
+            {question}
+          </p>
+        ) : null}
+
+        <div className="space-y-2">
+          {options.map((option, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-2.5 rounded-lg border border-border/80 bg-muted/40 px-3 py-2 text-sm text-foreground"
+            >
+              <span className="flex h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/50 bg-background" />
+              <span className="truncate">{option}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Yangi poll yaratish tugmasi */}
+        <div className="mt-4 pt-3 border-t border-border flex justify-start">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              const pos = typeof getPos === "function" ? getPos() : undefined;
+              const insertAfterPos =
+                typeof pos === "number" ? pos + node.nodeSize : undefined;
+              window.dispatchEvent(
+                new CustomEvent("open-poll-dialog", {
+                  detail: {
+                    isNew: true,
+                    insertAfterPos,
+                    question: "",
+                    options: ["", ""],
+                  },
+                })
+              );
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>{t("createAnotherPoll")}</span>
+          </Button>
+        </div>
+      </div>
+    </NodeViewWrapper>
+  );
+};
+
+const DescriptionPoll = Node.create({
+  name: "descriptionPoll",
+  group: "block",
+  atom: true,
+  draggable: true,
+  selectable: true,
+
+  addAttributes() {
+    return {
+      question: { default: "" },
+      options: { default: [] },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "div[data-poll]",
+        getAttrs: (dom) => {
+          if (!(dom instanceof HTMLElement)) return false;
+          const question = dom.getAttribute("data-poll-question") || "";
+          let options: string[] = [];
+          const raw = dom.getAttribute("data-poll-options");
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) options = parsed;
+            } catch {}
+          }
+          return { question, options };
+        },
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const options = (HTMLAttributes.options as string[]) || [];
+    const question = (HTMLAttributes.question as string) || "";
+    return [
+      "div",
+      mergeAttributes({
+        class: "message-poll",
+        "data-poll": "true",
+        "data-poll-question": question,
+        "data-poll-options": JSON.stringify(options),
+      }),
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(DescriptionPollView);
+  },
+});
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   modules?: Record<string, unknown>;
   onUploadingChange?: (uploading: boolean) => void;
   enableImages?: boolean;
+  enablePoll?: boolean;
+  pollDisabled?: boolean;
+  pollDisabledHint?: string;
+  onPollChange?: (
+    poll: { question?: string; options: string[] } | null
+  ) => void;
 }
 
 function escapeHtml(value: string) {
@@ -630,6 +806,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   modules: _modules,
   onUploadingChange,
   enableImages = false,
+  enablePoll = false,
+  pollDisabled = false,
+  pollDisabledHint,
+  onPollChange,
 }) => {
   const t = useTranslations("sendmessage");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -640,6 +820,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const imagesEnabledRef = useRef(enableImages);
   imagesEnabledRef.current = enableImages;
+
+  // Poll dialog state
+  const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [editingPollPos, setEditingPollPos] = useState<number | null>(null);
+  const [insertPollAfterPos, setInsertPollAfterPos] = useState<number | null>(
+    null
+  );
+  const [pollQuestionInput, setPollQuestionInput] = useState("");
+  const [pollOptionsInput, setPollOptionsInput] = useState<string[]>(["", ""]);
 
   // Dialog for inserting image(s) with layout selection
   const { data: session } = useSession();
@@ -667,6 +856,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       StarterKit,
       Underline,
       ...(enableImages ? [DescriptionImage, DescriptionImageGroup] : []),
+      ...(enablePoll ? [DescriptionPoll] : []),
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -683,7 +873,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      onChange(html);
+      if (enablePoll && onPollChange) {
+        onPollChange(extractPollFromHtml(html));
+      }
     },
     editorProps: {
       handleClick: (_view, _pos, event) => {
@@ -940,6 +1134,208 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setLinkDialogOpen(false);
   };
 
+  // Poll helpers
+  const findExistingPoll = (): {
+    pos: number;
+    question: string;
+    options: string[];
+  } | null => {
+    if (!editor) return null;
+    let found: { pos: number; question: string; options: string[] } | null =
+      null;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "descriptionPoll") {
+        found = {
+          pos,
+          question: (node.attrs.question as string) || "",
+          options: (node.attrs.options as string[]) || [],
+        };
+        return false;
+      }
+    });
+    return found;
+  };
+
+  const hasPoll = Boolean(findExistingPoll());
+
+  useEffect(() => {
+    const handleOpenPoll = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        isNew?: boolean;
+        pos?: number;
+        insertAfterPos?: number;
+        question?: string;
+        options?: string[];
+      }>;
+      if (customEvent.detail?.isNew) {
+        setEditingPollPos(null);
+        setInsertPollAfterPos(
+          typeof customEvent.detail?.insertAfterPos === "number"
+            ? customEvent.detail.insertAfterPos
+            : null
+        );
+        setPollQuestionInput("");
+        setPollOptionsInput(["", ""]);
+      } else {
+        setInsertPollAfterPos(null);
+        setEditingPollPos(
+          typeof customEvent.detail?.pos === "number"
+            ? customEvent.detail.pos
+            : null
+        );
+        setPollQuestionInput(customEvent.detail?.question || "");
+        setPollOptionsInput(
+          customEvent.detail?.options && customEvent.detail.options.length >= 2
+            ? customEvent.detail.options
+            : ["", ""]
+        );
+      }
+      setPollModalOpen(true);
+    };
+    window.addEventListener("open-poll-dialog", handleOpenPoll);
+    return () => window.removeEventListener("open-poll-dialog", handleOpenPoll);
+  }, []);
+
+  const handleOpenPollModal = () => {
+    if (pollDisabled) return;
+    setEditingPollPos(null);
+    setInsertPollAfterPos(null);
+    setPollQuestionInput("");
+    setPollOptionsInput(["", ""]);
+    setPollModalOpen(true);
+  };
+
+  const handleConfirmPoll = () => {
+    if (!editor) return;
+    if (!isPollValid(pollOptionsInput)) return;
+
+    const cleaned = cleanPollOptions(pollOptionsInput);
+
+    if (editingPollPos !== null) {
+      editor
+        .chain()
+        .focus()
+        .command(({ tr, state }) => {
+          let updated = false;
+          const nodeAtPos = state.doc.nodeAt(editingPollPos);
+          if (nodeAtPos && nodeAtPos.type.name === "descriptionPoll") {
+            tr.setNodeMarkup(editingPollPos, undefined, {
+              question: pollQuestionInput.trim(),
+              options: cleaned,
+            });
+            updated = true;
+          } else {
+            state.doc.descendants((node, pos) => {
+              if (!updated && node.type.name === "descriptionPoll") {
+                tr.setNodeMarkup(pos, undefined, {
+                  question: pollQuestionInput.trim(),
+                  options: cleaned,
+                });
+                updated = true;
+              }
+            });
+          }
+          return updated;
+        })
+        .run();
+    } else if (insertPollAfterPos !== null) {
+      editor
+        .chain()
+        .insertContentAt(insertPollAfterPos, [
+          {
+            type: "paragraph",
+          },
+          {
+            type: "descriptionPoll",
+            attrs: {
+              question: pollQuestionInput.trim(),
+              options: cleaned,
+            },
+          },
+          {
+            type: "paragraph",
+          },
+        ])
+        .focus()
+        .run();
+    } else {
+      const { selection } = editor.state;
+      const isPollSelected =
+        "node" in selection &&
+        (selection as any).node?.type?.name === "descriptionPoll";
+      if (isPollSelected) {
+        const after = selection.from + (selection as any).node.nodeSize;
+        editor
+          .chain()
+          .insertContentAt(after, [
+            {
+              type: "paragraph",
+            },
+            {
+              type: "descriptionPoll",
+              attrs: {
+                question: pollQuestionInput.trim(),
+                options: cleaned,
+              },
+            },
+            {
+              type: "paragraph",
+            },
+          ])
+          .focus()
+          .run();
+      } else {
+        editor
+          .chain()
+          .focus()
+          .insertContent([
+            {
+              type: "descriptionPoll",
+              attrs: {
+                question: pollQuestionInput.trim(),
+                options: cleaned,
+              },
+            },
+            {
+              type: "paragraph",
+            },
+          ])
+          .run();
+      }
+    }
+
+    setEditingPollPos(null);
+    setInsertPollAfterPos(null);
+    setPollModalOpen(false);
+  };
+
+  const handleDeletePoll = () => {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .command(({ tr, state }) => {
+        if (editingPollPos !== null) {
+          const nodeAtPos = state.doc.nodeAt(editingPollPos);
+          if (nodeAtPos && nodeAtPos.type.name === "descriptionPoll") {
+            tr.delete(editingPollPos, editingPollPos + nodeAtPos.nodeSize);
+            return true;
+          }
+        }
+        let deleted = false;
+        state.doc.descendants((node, pos) => {
+          if (!deleted && node.type.name === "descriptionPoll") {
+            tr.delete(pos, pos + node.nodeSize);
+            deleted = true;
+          }
+        });
+        return deleted;
+      })
+      .run();
+    setEditingPollPos(null);
+    setPollModalOpen(false);
+  };
+
   return (
     <div className="rounded-md border bg-background">
       {/* Main editor toolbar */}
@@ -1010,6 +1406,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <ImageIcon className="h-4 w-4" />
             )}
           </Button>
+        )}
+        {enablePoll && (
+          <>
+            <div className="mx-1 h-5 w-[1px] bg-border self-center" />
+            <Button
+              type="button"
+              size="sm"
+              variant={hasPoll ? "default" : "outline"}
+              disabled={pollDisabled}
+              aria-label={hasPoll ? t("editPoll") : t("pollAdd")}
+              title={
+                pollDisabled
+                  ? pollDisabledHint
+                  : hasPoll
+                    ? t("editPoll")
+                    : t("pollAdd")
+              }
+              className="gap-1.5 px-3"
+              onClick={handleOpenPollModal}
+            >
+              <BarChart2 className="h-4 w-4" />
+              <span className="font-medium text-xs sm:text-sm">Poll</span>
+            </Button>
+          </>
         )}
       </div>
 
@@ -1257,6 +1677,137 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Poll Insertion / Editing Modal */}
+      {enablePoll && (
+        <Dialog open={pollModalOpen} onOpenChange={setPollModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                <span>{editingPollPos !== null ? t("editPoll") : t("pollAdd")}</span>
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">{t("pollHint")}</p>
+
+              {/* Optional Question */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">
+                  {t("pollQuestion")}
+                </Label>
+                <Input
+                  value={pollQuestionInput}
+                  maxLength={255}
+                  placeholder={t("pollQuestionPlaceholder")}
+                  onChange={(e) => setPollQuestionInput(e.target.value)}
+                />
+              </div>
+
+              {/* Options */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {t("pollAddOption")}
+                </Label>
+                {pollOptionsInput.map((option, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={option}
+                      maxLength={POLL_OPTION_MAX_LENGTH}
+                      placeholder={t("pollOptionPlaceholder", {
+                        number: index + 1,
+                      })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPollOptionsInput((prev) =>
+                          prev.map((o, i) => (i === index ? val : o))
+                        );
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      aria-label={t("pollRemoveOption")}
+                      disabled={pollOptionsInput.length <= POLL_MIN_OPTIONS}
+                      onClick={() => {
+                        if (pollOptionsInput.length <= POLL_MIN_OPTIONS) return;
+                        setPollOptionsInput((prev) =>
+                          prev.filter((_, i) => i !== index)
+                        );
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={pollOptionsInput.length >= POLL_MAX_OPTIONS}
+                    onClick={() => {
+                      if (pollOptionsInput.length >= POLL_MAX_OPTIONS) return;
+                      setPollOptionsInput((prev) => [...prev, ""]);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    {t("pollAddOption")}
+                  </Button>
+                </div>
+              </div>
+
+              {pollOptionsInput.some((o) => o.trim()) &&
+                !isPollValid(pollOptionsInput) && (
+                  <p className="text-sm text-destructive">
+                    {new Set(
+                      cleanPollOptions(pollOptionsInput).map((o) =>
+                        o.toLowerCase()
+                      )
+                    ).size !== cleanPollOptions(pollOptionsInput).length
+                      ? t("pollDuplicateOptions")
+                      : t("pollMinOptions")}
+                  </p>
+                )}
+            </div>
+
+            <DialogFooter className="flex items-center justify-between sm:justify-between gap-2">
+              {editingPollPos !== null ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeletePoll}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  {t("deletePoll")}
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPollModalOpen(false)}
+                >
+                  {t("cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!isPollValid(pollOptionsInput)}
+                  onClick={handleConfirmPoll}
+                >
+                  {t("apply")}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

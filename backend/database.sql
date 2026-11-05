@@ -225,8 +225,9 @@ CREATE TABLE
 CREATE TABLE `Poll` (
     `id` int NOT NULL AUTO_INCREMENT,
     `post_id` int NOT NULL,
+    `question` varchar(255) DEFAULT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_poll_post_id` (`post_id`),
+    KEY `idx_poll_post_id` (`post_id`),
     CONSTRAINT `Poll_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `Post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 

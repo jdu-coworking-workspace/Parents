@@ -103,19 +103,23 @@ export async function fetchStudentUnreadCount(): Promise<number> {
 export async function voteStudentPoll(
   postId: number,
   optionId: number
-): Promise<Poll | null> {
-  const response = await api.post<{ poll: Poll | null }>(
+): Promise<{ poll: Poll | null; polls?: Poll[] } | Poll | null> {
+  const response = await api.post<{ poll: Poll | null; polls?: Poll[] }>(
     '/student/poll/vote',
     { post_id: postId, option_id: optionId }
   );
-  return response.data?.poll ?? null;
+  return (response.data as any) ?? null;
 }
 
 export async function removeStudentPollVote(
-  postId: number
-): Promise<Poll | null> {
-  const response = await api.delete<{ poll: Poll | null }>(
-    `/student/poll/vote/${postId}`
+  postId: number,
+  pollId?: number
+): Promise<{ poll: Poll | null; polls?: Poll[] } | Poll | null> {
+  const url = pollId
+    ? `/student/poll/vote/${postId}?poll_id=${pollId}`
+    : `/student/poll/vote/${postId}`;
+  const response = await api.delete<{ poll: Poll | null; polls?: Poll[] }>(
+    url
   );
-  return response.data?.poll ?? null;
+  return (response.data as any) ?? null;
 }
