@@ -406,6 +406,7 @@ export class PostModuleController implements IController {
                 image,
                 images,
                 poll, // [POLL]
+                polls, // [POLL]
             } = req.body;
 
             if (!title || !isValidString(title)) {
@@ -422,9 +423,16 @@ export class PostModuleController implements IController {
             }
 
             // [POLL] so'rovnoma variantlarini tekshirish
-            let pollOptions: string[] | undefined;
-            if (poll !== undefined && poll !== null) {
-                const options = poll.options;
+            const rawPolls: Array<{ question?: string; options: string[] }> = [];
+            if (Array.isArray(polls)) {
+                rawPolls.push(...polls);
+            } else if (poll !== undefined && poll !== null) {
+                rawPolls.push(poll);
+            }
+
+            const validatedPolls: Array<{ question?: string; options: string[] }> = [];
+            for (const p of rawPolls) {
+                const options = p.options;
                 if (
                     !Array.isArray(options) ||
                     options.length < 2 ||
@@ -438,10 +446,15 @@ export class PostModuleController implements IController {
                 ) {
                     throw new ApiError(400, 'invalid_poll_options');
                 }
-                pollOptions = options.map((o: string) => o.trim());
-                if (new Set(pollOptions).size !== pollOptions.length) {
+                const trimmed = options.map((o: string) => o.trim());
+                if (new Set(trimmed).size !== trimmed.length) {
                     throw new ApiError(400, 'duplicate_poll_options');
                 }
+                const q =
+                    typeof p.question === 'string' && p.question.trim().length > 0
+                        ? p.question.trim()
+                        : undefined;
+                validatedPolls.push({ question: q, options: trimmed });
             }
 
             const result = await postService.createPost(
@@ -454,7 +467,8 @@ export class PostModuleController implements IController {
                     groups,
                     image,
                     images,
-                    poll: pollOptions ? { options: pollOptions } : undefined, // [POLL]
+                    poll: validatedPolls[0] ?? undefined, // [POLL]
+                    polls: validatedPolls.length > 0 ? validatedPolls : undefined, // [POLL]
                 },
                 req.user.id,
                 req.user.school_id

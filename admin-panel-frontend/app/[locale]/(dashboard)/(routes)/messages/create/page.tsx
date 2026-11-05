@@ -9,6 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SendMessageConfirmDialog from "@/components/SendMessageConfirmDialog";
 import MessageImagePicker from "@/components/MessageImagePicker";
 import RichTextEditor from "@/components/RichTextEditor";
+import {
+  extractAllPollsFromHtml,
+  extractPollFromHtml,
+} from "@/components/PollEditor"; // [POLL]
 import Group from "@/types/group";
 import { GroupTable } from "@/components/GroupTable";
 import Student from "@/types/student";
@@ -66,6 +70,8 @@ interface CreatePostPayload {
   groups: number[];
   image: string;
   images: string[];
+  poll?: { question?: string; options: string[] }; // [POLL]
+  polls?: Array<{ question?: string; options: string[] }>; // [POLL]
   scheduled_at?: string;
 }
 
@@ -87,6 +93,11 @@ export default function SendMessagePage() {
   const [draftsData, setDraftsData] = useState<DraftData[]>([]);
   const [shouldPersistForm, setShouldPersistForm] = useState(true);
   const [isImageUploading, setIsImageUploading] = useState(false);
+
+  const resetPoll = () => {
+    // Poll is embedded in form description, resetting form already resets it
+  };
+
   const formRef = React.useRef<HTMLFormElement>(null);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -100,6 +111,12 @@ export default function SendMessagePage() {
     },
   });
   const formValues = useWatch({ control: form.control });
+  const watchedDescription = formValues.description ?? "";
+  const allExtractedPolls = React.useMemo(
+    () => extractAllPollsFromHtml(watchedDescription),
+    [watchedDescription]
+  );
+  const hasPoll = allExtractedPolls.length > 0;
   const router = useRouter();
   const clearFormPersistence = () => {
     setShouldPersistForm(false);
@@ -116,6 +133,7 @@ export default function SendMessagePage() {
       });
       setSelectedStudents([]);
       setSelectedGroups([]);
+      resetPoll(); // [POLL]
       clearFormPersistence();
       form.reset({
         title: "",
@@ -155,6 +173,7 @@ export default function SendMessagePage() {
         }
         setSelectedStudents([]);
         setSelectedGroups([]);
+        resetPoll(); // [POLL]
         clearFormPersistence();
         form.reset({
           title: "",
@@ -215,8 +234,18 @@ export default function SendMessagePage() {
     if (isImageUploading) {
       return;
     }
+
+    // [POLL] tekshiruvlar
+    if (hasPoll && scheduleEnabled) {
+      toast({
+        title: t("error"),
+        description: t("pollNoSchedule"),
+      });
+      return;
+    }
+
     const images = normalizePostImages(data.image, data.images);
-    const payload = {
+    const payload: CreatePostPayload = {
       title: data.title,
       description: data.description,
       priority: data.priority,
@@ -225,6 +254,13 @@ export default function SendMessagePage() {
       groups: selectedGroups.map((group) => group.id),
       image: images[0] ?? "",
       images,
+      // [POLL]
+      ...(allExtractedPolls.length > 0
+        ? {
+            poll: allExtractedPolls[0],
+            polls: allExtractedPolls,
+          }
+        : {}),
     };
 
     if (scheduleEnabled) {
@@ -244,7 +280,7 @@ export default function SendMessagePage() {
     }
   };
 
-  const isFormValid = form.formState.isValid;
+  const isFormValid = form.formState.isValid; // [POLL]
   const hasRecipients =
     selectedStudents.length > 0 || selectedGroups.length > 0;
   const isSubmitting =
@@ -278,6 +314,7 @@ export default function SendMessagePage() {
 
     setSelectedStudents([]);
     setSelectedGroups([]);
+    resetPoll(); // [POLL] qoralamada so'rovnoma saqlanmaydi
     form.reset({
       title: "",
       description: "",
@@ -414,6 +451,9 @@ export default function SendMessagePage() {
                     onChange={field.onChange}
                     onUploadingChange={setIsImageUploading}
                     enableImages
+                    enablePoll
+                    pollDisabled={scheduleEnabled}
+                    pollDisabledHint={t("pollNoSchedule")}
                   />
                 </FormControl>
                 <FormMessage>
@@ -423,6 +463,7 @@ export default function SendMessagePage() {
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="priority"
@@ -499,12 +540,20 @@ export default function SendMessagePage() {
           </Tabs>
           <div className="flex flex-col gap-4 border p-4 rounded-md bg-muted/40">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">
-                {t("doYouWantSchedule")}
-              </Label>
+              <div className="flex flex-col">
+                <Label className="text-base font-medium">
+                  {t("doYouWantSchedule")}
+                </Label>
+                {hasPoll && (
+                  <span className="text-xs text-muted-foreground mt-1">
+                    {t("pollNoSchedule")}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={scheduleEnabled}
+                  disabled={hasPoll} // [POLL]
                   onCheckedChange={setScheduleEnabled}
                   id="schedule-switch"
                 />

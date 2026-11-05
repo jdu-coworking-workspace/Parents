@@ -12,20 +12,37 @@ export type VoterType = 'parent' | 'student';
 export interface PollOptionRow {
     poll_id: number;
     post_id: number;
+    question?: string | null;
     option_id: number;
     option_text: string;
     position: number;
     votes: number;
 }
 
+export interface PollVoterRow {
+    poll_id: number;
+    option_id: number;
+    voter_type: VoterType;
+    voter_id: number;
+    given_name: string;
+    family_name: string;
+    email: string | null;
+    student_number: string | null;
+    created_at: string;
+}
+
 export class PollRepository {
     /**
      * Poll va uning variantlarini yaratish
      */
-    async create(postId: number, options: string[]): Promise<number> {
+    async create(
+        postId: number,
+        options: string[],
+        question?: string | null
+    ): Promise<number> {
         const result = await DB.execute(
-            'INSERT INTO Poll (post_id) VALUES (:post_id)',
-            { post_id: postId }
+            'INSERT INTO Poll (post_id, question) VALUES (:post_id, :question)',
+            { post_id: postId, question: question || null }
         );
         const pollId = result.insertId;
 
@@ -49,6 +66,7 @@ export class PollRepository {
         return await DB.query(
             `SELECT p.id AS poll_id,
                     p.post_id,
+                    p.question,
                     po.id AS option_id,
                     po.option_text,
                     po.position,
@@ -57,7 +75,7 @@ export class PollRepository {
              INNER JOIN PollOption po ON po.poll_id = p.id
              LEFT JOIN PollVote pv ON pv.option_id = po.id
              WHERE p.post_id IN (:postIds)
-             GROUP BY p.id, p.post_id, po.id, po.option_text, po.position
+             GROUP BY p.id, p.post_id, p.question, po.id, po.option_text, po.position
              ORDER BY p.id, po.position`,
             { postIds }
         );
@@ -70,11 +88,11 @@ export class PollRepository {
         postIds: number[],
         voterType: VoterType,
         voterId: number
-    ): Promise<Array<{ post_id: number; option_id: number }>> {
+    ): Promise<Array<{ poll_id: number; post_id: number; option_id: number }>> {
         if (postIds.length === 0) return [];
 
         return await DB.query(
-            `SELECT p.post_id, pv.option_id
+            `SELECT p.id AS poll_id, p.post_id, pv.option_id
              FROM PollVote pv
              INNER JOIN Poll p ON p.id = pv.poll_id
              WHERE p.post_id IN (:postIds)
@@ -126,15 +144,26 @@ export class PollRepository {
     async deleteVote(
         postId: number,
         voterType: VoterType,
-        voterId: number
+        voterId: number,
+        pollId?: number
     ): Promise<void> {
-        await DB.execute(
-            `DELETE FROM PollVote
-             WHERE voter_type = :voter_type
-               AND voter_id = :voter_id
-               AND poll_id IN (SELECT id FROM Poll WHERE post_id = :post_id)`,
-            { post_id: postId, voter_type: voterType, voter_id: voterId }
-        );
+        if (pollId) {
+            await DB.execute(
+                `DELETE FROM PollVote
+                 WHERE voter_type = :voter_type
+                   AND voter_id = :voter_id
+                   AND poll_id = :poll_id`,
+                { poll_id: pollId, voter_type: voterType, voter_id: voterId }
+            );
+        } else {
+            await DB.execute(
+                `DELETE FROM PollVote
+                 WHERE voter_type = :voter_type
+                   AND voter_id = :voter_id
+                   AND poll_id IN (SELECT id FROM Poll WHERE post_id = :post_id)`,
+                { post_id: postId, voter_type: voterType, voter_id: voterId }
+            );
+        }
     }
 
     /**
@@ -167,6 +196,32 @@ export class PollRepository {
             { post_id: postId, student_id: studentId }
         );
         return rows.length > 0;
+    }
+
+    /**
+     * Post bo'yicha barcha ovoz beruvchilarni olish
+     */
+    async findVotersByPostId(postId: number): Promise<PollVoterRow[]> {
+        const rows = await DB.query(
+            `SELECT 
+                pv.poll_id,
+                pv.option_id,
+                pv.voter_type,
+                pv.voter_id,
+                COALESCE(s.given_name, p.given_name, '') AS given_name,
+                COALESCE(s.family_name, p.family_name, '') AS family_name,
+                COALESCE(s.email, p.email, NULL) AS email,
+                s.student_number,
+                pv.created_at
+             FROM PollVote pv
+             JOIN Poll po ON po.id = pv.poll_id
+             LEFT JOIN Student s ON pv.voter_type = 'student' AND s.id = pv.voter_id
+             LEFT JOIN Parent p ON pv.voter_type = 'parent' AND p.id = pv.voter_id
+             WHERE po.post_id = :post_id
+             ORDER BY pv.created_at DESC`,
+            { post_id: postId }
+        );
+        return rows as PollVoterRow[];
     }
 }
 

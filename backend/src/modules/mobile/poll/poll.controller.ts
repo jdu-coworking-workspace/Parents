@@ -82,8 +82,12 @@ export class MobilePollModuleController implements IController {
     ) => {
         try {
             const postId = this.parsePostIdParam(req);
+            const pollId = req.query?.poll_id
+                ? (parsePositiveInt(req.query.poll_id) ?? undefined)
+                : undefined;
             const result = await pollService.removeVote({
                 postId,
+                pollId,
                 voterType: 'parent',
                 voterId: req.user.id,
             });
@@ -119,8 +123,12 @@ export class MobilePollModuleController implements IController {
     ) => {
         try {
             const postId = this.parsePostIdParam(req);
+            const pollId = req.query?.poll_id
+                ? (parsePositiveInt(req.query.poll_id) ?? undefined)
+                : undefined;
             const result = await pollService.removeVote({
                 postId,
+                pollId,
                 voterType: 'student',
                 voterId: req.user.id,
             });

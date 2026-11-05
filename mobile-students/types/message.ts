@@ -1,3 +1,4 @@
+import type { Poll } from '@/components/PollView';
 export interface Message {
   id: number;
   title: string;
@@ -9,6 +10,9 @@ export interface Message {
   image?: string | null;
   sent_time: string;
   viewed_at: string | null;
+  post_id?: number;
+  poll?: Poll | null;
+  polls?: Poll[];
 }
 
 export interface ListMessagesRequest {

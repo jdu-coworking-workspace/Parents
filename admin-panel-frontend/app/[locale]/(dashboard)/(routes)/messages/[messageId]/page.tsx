@@ -193,6 +193,7 @@ export default function ThisMessage({
           </CardTitle>
           <PostDescriptionContent
             description={data?.post?.description}
+            polls={data?.polls || (data?.poll ? [data.poll] : undefined)}
             className="mt-4 text-foreground leading-relaxed"
           />
           {postImages.length > 0 && (

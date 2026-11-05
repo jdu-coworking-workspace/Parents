@@ -118,8 +118,21 @@ export class PostService {
 
         await postRepository.insertImages(postId, imageNames);
 
-        if (poll?.options?.length) {
-            await pollRepository.create(postId, poll.options);
+        const pollsToCreate: Array<{ question?: string; options: string[] }> = [];
+        if (Array.isArray(request.polls) && request.polls.length > 0) {
+            pollsToCreate.push(...request.polls);
+        } else if (poll?.options?.length) {
+            pollsToCreate.push(poll);
+        }
+
+        for (const item of pollsToCreate) {
+            if (item.options?.length) {
+                await pollRepository.create(
+                    postId,
+                    item.options,
+                    item.question
+                );
+            }
         }
 
         // Link individual students
@@ -350,7 +363,7 @@ export class PostService {
 
         const galleryImages = await postRepository.findImagesByPostId(postId);
         const images = mergePostImageList(post.image, galleryImages);
-        const polls = await pollService.getForPosts([postId]);
+        const pollResults = await pollService.getAdminResults(postId, schoolId);
 
         return {
             post: {
@@ -370,7 +383,8 @@ export class PostService {
                 given_name: post.given_name,
                 family_name: post.family_name,
             },
-            poll: polls.get(postId) ?? null,
+            poll: pollResults.poll,
+            polls: pollResults.polls,
         };
     }
 

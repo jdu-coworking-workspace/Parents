@@ -47,6 +47,7 @@ export interface PollOptionResult {
 
 export interface PollResult {
     id: number;
+    question?: string | null;
     options: PollOptionResult[];
     total_votes: number | null;
     my_option_id: number | null;
@@ -64,7 +65,8 @@ export interface CreatePostRequest {
     groups?: number[];
     image?: string; // base64 or uploaded filename
     images?: string[]; // multiple base64 or uploaded filenames
-    poll?: { options: string[] };
+    poll?: { question?: string; options: string[] };
+    polls?: Array<{ question?: string; options: string[] }>;
 }
 
 export interface CreatePostResponse {
@@ -116,6 +118,7 @@ export interface ViewPostResponse {
     post: PostDetailData;
     admin: AdminData;
     poll: PollResult | null;
+    polls?: PollResult[];
 }
 
 // ==================== PUT /:id - Update Post ====================
