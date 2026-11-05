@@ -1,4 +1,5 @@
 require("dotenv").config();
+const fs = require("fs");
 const packageJson = require("./package.json");
 
 const getVariant = () =>
@@ -46,6 +47,9 @@ const configByVariant = {
 };
 
 const variantConfig = configByVariant[variant] || configByVariant.development;
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ||
+  (fs.existsSync("./google-services.json") ? "./google-services.json" : null);
 
 console.log(`Using variant: ${variant}`);
 
@@ -100,8 +104,7 @@ module.exports = ({ config }) => {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: variantConfig.androidPackage,
-      googleServicesFile:
-        process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+      ...(googleServicesFile ? { googleServicesFile } : {}),
       statusBar: {
         barStyle: "light-content",
         backgroundColor: "#3B81F6",

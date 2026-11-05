@@ -5,14 +5,12 @@ import { isRunningInExpoGo } from "expo";
 import { Platform } from "react-native";
 import api from "@/services/api-client";
 
-// Remote push was removed from Expo Go on Android in SDK 53; calling push APIs there throws.
-export const isPushSupported = !(isRunningInExpoGo() && Platform.OS === "android");
-
 export type PushPermission =
     | "granted"
     | "denied"
     | "undetermined"
     | "device_unsupported"
+    | "expo_go_unsupported"
     | "error";
 
 export type PushInitResult = {
@@ -21,8 +19,16 @@ export type PushInitResult = {
     error?: unknown;
 };
 
+export function isExpoGo(): boolean {
+    return isRunningInExpoGo();
+}
+
 export async function initPushNotifications(): Promise<PushInitResult> {
     try {
+        if (isExpoGo()) {
+            return { status: "expo_go_unsupported" };
+        }
+
         if (!Device.isDevice) {
             return { status: "device_unsupported" };
         }
