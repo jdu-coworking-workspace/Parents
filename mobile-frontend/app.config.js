@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const packageJson = require('./package.json');
 
 const getVariant = () =>
@@ -46,6 +47,9 @@ const configByVariant = {
 };
 
 const variantConfig = configByVariant[variant] || configByVariant.development;
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ||
+  (fs.existsSync('./google-services.json') ? './google-services.json' : null);
 
 console.log(`Using variant: ${variant}`);
 
@@ -103,8 +107,7 @@ module.exports = ({ config }) => {
         backgroundColor: '#ffffff',
       },
       package: variantConfig.androidPackage,
-      googleServicesFile:
-        process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+      ...(googleServicesFile ? { googleServicesFile } : {}),
       statusBar: {
         barStyle: 'light-content',
         backgroundColor: '#3B81F6',
@@ -190,6 +193,10 @@ module.exports = ({ config }) => {
       'expo-localization',
       'expo-sqlite',
       'expo-web-browser',
+      '@react-native-community/datetimepicker',
+      'expo-image',
+      'expo-sharing',
+      'expo-status-bar',
     ],
     experiments: {},
     extra: {

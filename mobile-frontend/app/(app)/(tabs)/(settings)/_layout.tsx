@@ -5,6 +5,10 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { useTheme } from '@rneui/themed';
 import { headerBg } from '@/constants/Colors';
 
+export const unstable_settings = {
+  anchor: 'settings',
+};
+
 const Layout = () => {
   const { language, i18n } = useContext(I18nContext);
   const { theme } = useTheme();
