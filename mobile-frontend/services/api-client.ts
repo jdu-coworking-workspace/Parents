@@ -156,7 +156,7 @@ async function request<TResponse, TBody = unknown>(
       if (requiresAuth) {
         // Forbidden - trigger logout
         onForbidden?.();
-        throw new ForbiddenError();
+        throw new ForbiddenError(data.error || data.message || 'Forbidden');
       }
       // For non-auth requests, throw ApiError with message
       throw new ApiError(

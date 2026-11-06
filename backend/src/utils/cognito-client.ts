@@ -869,11 +869,12 @@ class CognitoClient {
                 } as signInWithPhoneThrow;
             }
 
+            // With user-existence-error prevention enabled, Cognito reports an
+            // unknown phone number as NotAuthorizedException.
             if (e.name === 'NotAuthorizedException') {
                 throw {
                     status: 401,
-                    message:
-                        'Custom auth flow not configured or not authorized',
+                    message: 'Incorrect phone number',
                 } as signInWithPhoneThrow;
             }
 
@@ -881,6 +882,13 @@ class CognitoClient {
                 throw {
                     status: 400,
                     message: `Invalid parameter: ${e.message}`,
+                } as signInWithPhoneThrow;
+            }
+
+            if (e.name === 'TooManyRequestsException') {
+                throw {
+                    status: 429,
+                    message: 'Too many requests',
                 } as signInWithPhoneThrow;
             }
 
@@ -1049,7 +1057,7 @@ interface signInWithPhoneOutput {
 }
 
 interface signInWithPhoneThrow {
-    status: 400 | 401 | 404 | 500;
+    status: 400 | 401 | 404 | 429 | 500;
     message: string;
 }
 

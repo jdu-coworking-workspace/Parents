@@ -1,5 +1,5 @@
 import { StatusBar } from 'react-native';
-import { useFocusEffect } from 'expo-router/react-navigation';
+import { useFocusEffect } from 'expo-router';
 
 export function useGlobalStatusBar() {
   useFocusEffect(() => {
