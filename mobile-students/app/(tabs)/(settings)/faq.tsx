@@ -1,20 +1,47 @@
-import React, { useContext, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
-import { studentFaqs } from "@/constants/faq";
 import { Colors } from "@/constants/theme";
 import { I18nContext } from "@/contexts/i18n-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { fetchStudentFaqs, type StudentFaq } from "@/services/student-faq";
 
 export default function FaqScreen() {
   const { t } = useContext(I18nContext);
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
-  const [openId, setOpenId] = useState<string | null>(
-    studentFaqs[0]?.id ?? null,
-  );
+  const [faqs, setFaqs] = useState<StudentFaq[]>([]);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const loadFaqs = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const loadedFaqs = await fetchStudentFaqs();
+      setFaqs(loadedFaqs);
+      setOpenId(loadedFaqs[0]?.id ?? null);
+    } catch {
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Loading remote FAQ data is the screen's external synchronization.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadFaqs();
+  }, [loadFaqs]);
 
   return (
     <ScrollView
@@ -24,7 +51,27 @@ export default function FaqScreen() {
       <ThemedText disableScaling style={styles.intro}>
         {t("needHelp")}
       </ThemedText>
-      {studentFaqs.map((item) => {
+      {isLoading ? (
+        <ActivityIndicator color={colors.tint} style={styles.loader} />
+      ) : null}
+      {hasError ? (
+        <View style={styles.errorBox}>
+          <ThemedText disableScaling style={styles.errorText}>
+            {t("faqLoadError")}
+          </ThemedText>
+          <Pressable onPress={() => void loadFaqs()}>
+            <ThemedText disableScaling style={[styles.retry, { color: colors.tint }]}>
+              {t("tryAgain")}
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
+      {!isLoading && !hasError && faqs.length === 0 ? (
+        <ThemedText disableScaling style={styles.empty}>
+          {t("faqEmpty")}
+        </ThemedText>
+      ) : null}
+      {faqs.map((item) => {
         const open = openId === item.id;
         return (
           <View
@@ -68,6 +115,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 6,
+  },
+  loader: {
+    marginVertical: 12,
+  },
+  errorBox: {
+    alignItems: "center",
+    gap: 8,
+  },
+  errorText: {
+    textAlign: "center",
+  },
+  retry: {
+    fontWeight: "600",
+  },
+  empty: {
+    opacity: 0.7,
+    textAlign: "center",
+    marginTop: 16,
   },
   card: {
     borderWidth: 1,
