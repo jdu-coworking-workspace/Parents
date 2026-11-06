@@ -9,6 +9,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@rneui/themed';
 import { headerBg } from '@/constants/Colors';
 
+export const unstable_settings = {
+  anchor: 'index',
+};
+
 const Layout = () => {
   const [showBatteryHelper, setShowBatteryHelper] = useState(false);
   const { unreadCount } = useMessageContext();

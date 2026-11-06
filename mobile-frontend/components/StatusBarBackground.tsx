@@ -18,13 +18,8 @@ export function StatusBarBackground({
   const statusBarHeight = insets.top || (Platform.OS === 'ios' ? 44 : 25);
 
   React.useEffect(() => {
-    // For both platforms
     StatusBar.setBarStyle('light-content', true);
-
-    if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor(bgColor, true);
-    }
-  }, [bgColor, isDark]);
+  }, [isDark]);
 
   return (
     <View style={{ flex: 1 }}>

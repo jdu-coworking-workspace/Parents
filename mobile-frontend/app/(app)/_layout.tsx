@@ -2,7 +2,7 @@ import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from '@react-navigation/native';
+} from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,9 +10,12 @@ import React from 'react';
 import { useThemeMode } from '@rneui/themed';
 import { MessageProvider } from '@/contexts/message-context';
 import { StatusBar } from 'react-native';
-import { headerBg } from '@/constants/Colors';
 
 SplashScreen.preventAutoHideAsync();
+
+export const unstable_settings = {
+  anchor: '(tabs)',
+};
 
 export default function RootLayout() {
   const { mode } = useThemeMode(); // Use @rneui/themed mode
@@ -32,9 +35,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={mode === 'dark' ? DarkTheme : DefaultTheme}>
-      <StatusBar barStyle='light-content' backgroundColor={headerBg(mode)} />
+      <StatusBar barStyle='light-content' />
       <MessageProvider>
-        <Stack initialRouteName='(tabs)'>
+        <Stack>
           <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
         </Stack>
       </MessageProvider>

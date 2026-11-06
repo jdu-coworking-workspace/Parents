@@ -72,7 +72,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? 'home' : 'home-outline'}
-              color={color}
+              color={typeof color === 'string' ? color : Colors[mode].tint}
             />
           ),
           headerShown: false,
@@ -85,7 +85,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? 'settings' : 'settings-outline'}
-              color={color}
+              color={typeof color === 'string' ? color : Colors[mode].tint}
             />
           ),
         }}

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { Message, Student } from '@/constants/types';
 import { colors } from '@/constants/Colors';
 import { useNetwork } from '@/contexts/network-context';

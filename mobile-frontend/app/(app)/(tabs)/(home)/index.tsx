@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStudents } from '@/contexts/student-context';
 import { StudentSelector } from '@/components/StudentSelector';
 import { useTheme } from '@rneui/themed';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { RefreshControl, ScrollView } from 'react-native-gesture-handler';
 import NoStudentsScreen from '@/components/NoStudentsScreen';
 
