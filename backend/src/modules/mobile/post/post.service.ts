@@ -65,11 +65,10 @@ export class MobilePostService {
             };
         }
 
+        // Idempotent: the post may already be marked viewed via /posts
+        // (read_post_ids) or GET /posts/:id, so a repeat is not an error.
         if (post[0].viewed_at) {
-            throw {
-                status: 403,
-                message: 'Post already viewed',
-            };
+            return;
         }
 
         await mobilePostRepository.markViewedById(params.postParentId);

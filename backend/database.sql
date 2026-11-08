@@ -220,6 +220,40 @@ CREATE TABLE
     CONSTRAINT `PostImage_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `Post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
   ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+  -- Poll (so'rovnoma) qo'llab-quvvatlashi. MySQL 8+.
+
+CREATE TABLE `Poll` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `post_id` int NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_poll_post_id` (`post_id`),
+    CONSTRAINT `Poll_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `Post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE `PollOption` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `poll_id` int NOT NULL,
+    `option_text` varchar(255) NOT NULL,
+    `position` int NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_polloption_poll_id` (`poll_id`),
+    CONSTRAINT `PollOption_ibfk_1` FOREIGN KEY (`poll_id`) REFERENCES `Poll` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE `PollVote` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `poll_id` int NOT NULL,
+    `option_id` int NOT NULL,
+    `voter_type` enum ('parent', 'student') NOT NULL,
+    `voter_id` int NOT NULL,
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_pollvote_voter` (`poll_id`, `voter_type`, `voter_id`),
+    KEY `idx_pollvote_option_id` (`option_id`),
+    CONSTRAINT `PollVote_ibfk_1` FOREIGN KEY (`poll_id`) REFERENCES `Poll` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `PollVote_ibfk_2` FOREIGN KEY (`option_id`) REFERENCES `PollOption` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- Create PostTemplate table
 CREATE TABLE
   `PostTemplate` (
@@ -254,6 +288,25 @@ CREATE TABLE
     CONSTRAINT `Form_ibfk_2` FOREIGN KEY (`student_id`) REFERENCES `Student` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT `Form_ibfk_3` FOREIGN KEY (`parent_id`) REFERENCES `Parent` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
   ) ENGINE = InnoDB AUTO_INCREMENT = 16 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Create Faq table
+CREATE TABLE
+  `Faq` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `question` varchar(500) NOT NULL,
+    `answer` text NOT NULL,
+    `audience` enum ('parents', 'students') NOT NULL,
+    `sort_order` int NOT NULL DEFAULT '0',
+    `school_id` int NOT NULL,
+    `admin_id` int DEFAULT NULL,
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `edited_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_faq_school_audience_order` (`school_id`, `audience`, `sort_order`),
+    KEY `idx_faq_admin_id` (`admin_id`),
+    CONSTRAINT `Faq_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `School` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `Faq_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `Admin` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Insert sample data
 INSERT INTO
@@ -328,6 +381,38 @@ INSERT INTO
   `StudentParent` (`parent_id`, `student_id`)
 VALUES
   (1, 1);
+
+INSERT INTO
+  `Faq` (`question`, `answer`, `audience`, `sort_order`, `school_id`)
+VALUES
+  (
+    'Ilovaga qanday kiraman?',
+    'Telefon raqamingiz va parolingiz bilan kiring. Parolni unutsangiz, kirish sahifasidagi parolni tiklash tugmasidan foydalaning.',
+    'parents',
+    1,
+    1
+  ),
+  (
+    'Farzandim haqidagi xabarni qayerdan ko''raman?',
+    'Bosh sahifada farzandingizni tanlang. Maktab yuborgan xabarlar shu ro''yxatda chiqadi.',
+    'parents',
+    2,
+    1
+  ),
+  (
+    'Hisobga qanday kiraman?',
+    'Maktab bergan email va parol bilan kiring. Google orqali ham kirish mumkin.',
+    'students',
+    1,
+    1
+  ),
+  (
+    'Xabarlarni qanday o''qiyman?',
+    'Bosh sahifadagi xabar kartasini bosing. Muhim xabarlar rangli belgi bilan chiqadi.',
+    'students',
+    2,
+    1
+  );
 
 -- Enable foreign key checks again
 SET

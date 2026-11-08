@@ -1,6 +1,7 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { isRunningInExpoGo } from "expo";
 import { Platform } from "react-native";
 import api from "@/services/api-client";
 
@@ -9,6 +10,7 @@ export type PushPermission =
     | "denied"
     | "undetermined"
     | "device_unsupported"
+    | "expo_go_unsupported"
     | "error";
 
 export type PushInitResult = {
@@ -17,8 +19,16 @@ export type PushInitResult = {
     error?: unknown;
 };
 
+export function isExpoGo(): boolean {
+    return isRunningInExpoGo();
+}
+
 export async function initPushNotifications(): Promise<PushInitResult> {
     try {
+        if (isExpoGo()) {
+            return { status: "expo_go_unsupported" };
+        }
+
         if (!Device.isDevice) {
             return { status: "device_unsupported" };
         }

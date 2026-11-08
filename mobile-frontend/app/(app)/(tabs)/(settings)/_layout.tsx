@@ -5,6 +5,10 @@ import { I18nContext } from '@/contexts/i18n-context';
 import { useTheme } from '@rneui/themed';
 import { headerBg } from '@/constants/Colors';
 
+export const unstable_settings = {
+  anchor: 'settings',
+};
+
 const Layout = () => {
   const { language, i18n } = useContext(I18nContext);
   const { theme } = useTheme();
@@ -25,6 +29,22 @@ const Layout = () => {
           },
           headerShadowVisible: false,
           headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen
+        name='faq'
+        options={{
+          headerTitle: i18n[language].faqTitle,
+          headerTitleAlign: 'center',
+          headerStyle: {
+            backgroundColor: headerBg(theme.mode!),
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: Platform.OS === 'android' ? 16 : 17,
+          },
+          headerShadowVisible: false,
         }}
       />
       <Stack.Screen

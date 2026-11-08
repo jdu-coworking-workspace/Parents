@@ -12,6 +12,7 @@ export class MobilePostRepository {
         const rows = await DB.query(
             `SELECT pp.id,
                     po.title,
+                    po.id                                       AS post_id,
                     po.description                              AS content,
                     po.priority,
                     po.image,
@@ -43,6 +44,7 @@ export class MobilePostRepository {
         const rows = await DB.query(
             `SELECT po.id,
                     po.title,
+                    po.id                                       AS post_id,
                     po.description                              AS content,
                     po.priority,
                     po.image,
@@ -79,6 +81,7 @@ export class MobilePostRepository {
             const rows = await DB.query(
                 `SELECT pp.id,
                         po.title,
+                        po.id                                       AS post_id,
                         po.description                              AS content,
                         po.priority,
                         po.image,
@@ -107,6 +110,7 @@ export class MobilePostRepository {
         const rows = await DB.query(
             `SELECT pp.id,
                     po.title,
+                    po.id                                       AS post_id,
                     po.description                              AS content,
                     po.priority,
                     po.image,

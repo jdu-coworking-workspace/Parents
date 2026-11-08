@@ -31,6 +31,7 @@ import {
 } from '../../utils/csv-upload';
 import { ErrorKeys, createErrorResponse } from '../../utils/error-codes';
 import { collectImageInputs, resolveImageInputs } from './image-utils';
+import { pollService } from '../poll/poll.service'; // [POLL] yangi import
 
 export class PostModuleController implements IController {
     public router: Router = Router();
@@ -61,6 +62,7 @@ export class PostModuleController implements IController {
         );
 
         // ==================== View Operations (specific routes before dynamic :id) ====================
+        this.router.get('/:id/poll', verifyToken, this.getPostPoll); // [POLL] yangi route
         this.router.get('/:id/students', verifyToken, this.viewPostStudents);
         this.router.get(
             '/:id/student/:student_id',
@@ -403,6 +405,7 @@ export class PostModuleController implements IController {
                 groups,
                 image,
                 images,
+                poll, // [POLL]
             } = req.body;
 
             if (!title || !isValidString(title)) {
@@ -418,6 +421,29 @@ export class PostModuleController implements IController {
                 throw new ApiError(400, 'invalid_or_missing_audience');
             }
 
+            // [POLL] so'rovnoma variantlarini tekshirish
+            let pollOptions: string[] | undefined;
+            if (poll !== undefined && poll !== null) {
+                const options = poll.options;
+                if (
+                    !Array.isArray(options) ||
+                    options.length < 2 ||
+                    options.length > 10 ||
+                    options.some(
+                        (o: unknown) =>
+                            typeof o !== 'string' ||
+                            !isValidString(o) ||
+                            o.trim().length > 255
+                    )
+                ) {
+                    throw new ApiError(400, 'invalid_poll_options');
+                }
+                pollOptions = options.map((o: string) => o.trim());
+                if (new Set(pollOptions).size !== pollOptions.length) {
+                    throw new ApiError(400, 'duplicate_poll_options');
+                }
+            }
+
             const result = await postService.createPost(
                 {
                     title,
@@ -428,6 +454,7 @@ export class PostModuleController implements IController {
                     groups,
                     image,
                     images,
+                    poll: pollOptions ? { options: pollOptions } : undefined, // [POLL]
                 },
                 req.user.id,
                 req.user.school_id
@@ -474,6 +501,32 @@ export class PostModuleController implements IController {
                     sent_at_from,
                     sent_at_to,
                 },
+                req.user.school_id
+            );
+
+            return res.status(200).json(result).end();
+        } catch (e: any) {
+            next(e);
+        }
+    };
+
+    /**
+     * GET /:id/poll - Poll natijalari (admin uchun doim ko'rinadi) [POLL]
+     */
+    getPostPoll = async (
+        req: ExtendedRequest,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const postId = req.params.id;
+
+            if (!postId || !isValidId(postId)) {
+                throw new ApiError(400, 'invalid_or_missing_post_id');
+            }
+
+            const result = await pollService.getAdminResults(
+                parseInt(postId),
                 req.user.school_id
             );
 

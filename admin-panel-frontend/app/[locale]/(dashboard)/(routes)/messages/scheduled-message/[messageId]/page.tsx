@@ -19,6 +19,7 @@ import NotFound from "@/components/NotFound";
 import { useListQuery } from "@/lib/useListQuery";
 import ImageLightbox from "@/components/ImageLightbox";
 import PostDescriptionContent from "@/components/PostDescriptionContent";
+import { Paperclip } from "lucide-react";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 import { ColumnDef } from "@tanstack/react-table";
@@ -119,14 +120,18 @@ export default function ScheduledMessagePage({
           </CardTitle>
           <PostDescriptionContent
             description={data?.post?.description}
-            className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground"
+            className="mt-4 text-foreground leading-relaxed"
           />
           {data?.post?.image && (
-            <div className="my-2">
+            <div className="mt-6 border-t border-border pt-4">
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5 text-primary" />
+                <span>{t("attachedFiles")}</span>
+              </h4>
               <ImageLightbox
                 src={data.post.image}
                 alt={data.post.title}
-                className="h-[100px] w-[200px] rounded object-cover"
+                className="h-[110px] w-[200px] rounded-lg border border-border bg-muted/30 object-cover shadow-sm"
               />
             </div>
           )}

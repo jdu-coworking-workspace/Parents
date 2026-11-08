@@ -127,6 +127,9 @@ export type TranslationKeys = {
   noStudentsDescription: string;
   refresh: string;
   needHelp: string;
+  faqTitle: string;
+  faqLoadError: string;
+  faqEmpty: string;
   checkCorrectAccount: string;
   contactSchool: string;
   checkInternet: string;
@@ -225,6 +228,28 @@ export type TranslationKeys = {
   accessDenied: string;
   notFound: string;
   tooManyAttempts: string;
+  universityContact: string;
+  universityPhone: string;
+  searchMessages: string;
+  filterMessages: string;
+  filtersSelected: string;
+  allMessages: string;
+  readMessages: string;
+  unreadMessages: string;
+  sortByDate: string;
+  noMatchingMessages: string;
+  messageActions: string;
+  copyLink: string;
+  pinMessage: string;
+  markUnread: string;
+  favoriteMessages: string;
+  pinnedMessages: string;
+  importantMessages: string;
+  messageImportance: string;
+  anyImportance: string;
+  messageStatus: string;
+  resetFilters: string;
+  applyFilters: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';

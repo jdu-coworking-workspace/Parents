@@ -47,11 +47,9 @@ const configByVariant = {
 };
 
 const variantConfig = configByVariant[variant] || configByVariant.development;
-
-const googleServicesFile = [
-  process.env.GOOGLE_SERVICES_JSON,
-  "./google-services.json",
-].find((file) => file && fs.existsSync(file));
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ||
+  (fs.existsSync("./google-services.json") ? "./google-services.json" : null);
 
 console.log(`Using variant: ${variant}`);
 
@@ -106,8 +104,7 @@ module.exports = ({ config }) => {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: variantConfig.androidPackage,
-      // Optional locally: without it the app builds, only push notifications are off
-      ...(googleServicesFile && { googleServicesFile }),
+      ...(googleServicesFile ? { googleServicesFile } : {}),
       statusBar: {
         barStyle: "light-content",
         backgroundColor: "#3B81F6",
@@ -144,6 +141,10 @@ module.exports = ({ config }) => {
         },
       ],
       "expo-router",
+      "expo-font",
+      "expo-localization",
+      "expo-sharing",
+      "expo-status-bar",
       [
         "expo-splash-screen",
         {

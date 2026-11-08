@@ -1,8 +1,9 @@
 import React, { useContext } from 'react';
-import * as Notifications from 'expo-notifications';
+import type { Notification } from 'expo-notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider, useSession } from '@/contexts/auth-context';
 import {
+  Notifications,
   sendPushTokenToBackend,
   initPushNotifications,
   setupNotificationHandler,
@@ -50,9 +51,11 @@ const showBatteryOptimizationAlert = async (i18n: any, language: string) => {
 
 function useNotificationObserver() {
   React.useEffect(() => {
+    if (!Notifications) return;
+
     let isMounted = true;
 
-    function redirect(notification: Notifications.Notification) {
+    function redirect(notification: Notification) {
       const url = notification.request.content.data?.url as string;
       console.log('Notification URL:', url);
       if (url) {
@@ -183,7 +186,10 @@ const AppWithNotifications: React.FC = () => {
   const handleAppStateChange = (nextState: AppStateStatus) => {
     const previousState = appState.current;
 
-    if (previousState.match(/inactive|background/) && nextState === 'active') {
+    if (
+      /inactive|background/.test(previousState ?? '') &&
+      nextState === 'active'
+    ) {
       console.log(
         '[AppState] App returned to foreground - refetching students'
       );
@@ -228,6 +234,8 @@ const AppWithNotifications: React.FC = () => {
       } else if (result.status === 'denied') {
         console.log('[Push] User denied permission');
         setPermissionDenied(true);
+      } else if (result.status === 'expo_go_unsupported') {
+        console.log('[Push] Running in Expo Go - notifications disabled');
       } else if (result.status === 'device_unsupported') {
         console.log('[Push] Running in simulator - notifications disabled');
       } else if (result.status === 'error') {
@@ -247,14 +255,14 @@ const AppWithNotifications: React.FC = () => {
     })();
 
     // Keep backend in sync when token rotates
-    const sub = Notifications.addPushTokenListener(async ({ data }) => {
+    const sub = Notifications?.addPushTokenListener(async ({ data }) => {
       const success = await sendPushTokenToBackend(data);
       if (!success) {
         console.warn('[Push] Failed to update token with backend');
       }
     });
 
-    return () => sub.remove();
+    return () => sub?.remove();
   }, []);
 
   useNotificationObserver();

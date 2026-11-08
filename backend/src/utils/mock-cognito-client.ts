@@ -58,7 +58,11 @@ export class MockCognitoClient {
         };
     }
 
-    static async register(identifier: string, email: string, _phoneNumber: string) {
+    static async register(
+        identifier: string,
+        email: string,
+        _phoneNumber: string
+    ) {
         const existing = mockDatabase.get(identifier);
         if (existing) {
             return {

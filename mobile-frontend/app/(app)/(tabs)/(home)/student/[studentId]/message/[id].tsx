@@ -28,7 +28,7 @@ import ZoomGallery from '@/components/ZoomGallery';
 import MessageDescription from '@/components/MessageDescription';
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/services/api-client';
+import apiClient, { ApiError } from '@/services/api-client';
 import { htmlToPlainText } from '@/utils/message-text';
 import { openGoogleTranslate } from '@/utils/translate';
 import { syncMessagesWidgetFromDB } from '@/widgets/widget-sync';
@@ -201,11 +201,17 @@ export default function DetailsScreen() {
               student_id: targetStudentId,
             });
           } catch (error) {
-            console.error('Failed to sync read status with backend:', error);
-            await db.runAsync(
-              'UPDATE message SET sent_status = 0 WHERE id = ?',
-              [messageId]
-            );
+            // 403 = already viewed on the backend (older API versions), so
+            // the read status is in sync and must not be queued for retry.
+            if (error instanceof ApiError && error.status === 403) {
+              console.log('[View] Post already viewed on backend');
+            } else {
+              console.error('Failed to sync read status with backend:', error);
+              await db.runAsync(
+                'UPDATE message SET sent_status = 0 WHERE id = ?',
+                [messageId]
+              );
+            }
           }
         }
 

@@ -215,7 +215,18 @@ export function SessionProvider(props: React.PropsWithChildren) {
             );
             router.replace('/');
           } catch (error) {
-            console.error('Error during sign in:', error);
+            if (
+              error instanceof ApiError &&
+              error.status >= 400 &&
+              error.status < 500
+            ) {
+              // Expected rejection (wrong number/password); the screen shows a toast.
+              console.log(
+                `[Auth] Sign in rejected (${error.status}): ${error.message}`
+              );
+            } else {
+              console.error('Error during sign in:', error);
+            }
             if (error instanceof ApiError && error.status === 403) {
               await AsyncStorage.setItem('phoneNumber', phoneNumber);
               if (password)
@@ -313,7 +324,17 @@ export function SessionProvider(props: React.PropsWithChildren) {
             );
             router.replace('/');
           } catch (error) {
-            console.error('Error verifying OTP:', error);
+            if (
+              error instanceof ApiError &&
+              error.status >= 400 &&
+              error.status < 500
+            ) {
+              console.log(
+                `[Auth] OTP rejected (${error.status}): ${error.message}`
+              );
+            } else {
+              console.error('Error verifying OTP:', error);
+            }
             throw error;
           }
         },

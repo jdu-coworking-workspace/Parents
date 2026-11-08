@@ -87,10 +87,6 @@ export default function NewPassword() {
       let token = await AsyncStorage.getItem('expoPushToken');
       if (!token) {
         token = (await registerForPushNotificationsAsync()) || null;
-        if (!token) {
-          setErrorMessage('Failed to retrieve push token');
-          return;
-        }
       }
 
       const phoneNumber = await AsyncStorage.getItem('phoneNumber');

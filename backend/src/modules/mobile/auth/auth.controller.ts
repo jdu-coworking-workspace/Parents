@@ -19,10 +19,13 @@ class MobileAuthModuleController implements IController {
     public router: Router = express.Router();
     public cognitoClient: any;
     public studentCognitoClient: any;
-    private studentOAuthAttempts = new Map<string, {
-        codeVerifier: string;
-        expiresAt: number;
-    }>();
+    private studentOAuthAttempts = new Map<
+        string,
+        {
+            codeVerifier: string;
+            expiresAt: number;
+        }
+    >();
 
     // Add general rate limiting for all auth endpoints
     private authLimiter = rateLimit({
@@ -82,7 +85,11 @@ class MobileAuthModuleController implements IController {
     initRoutes(): void {
         // Apply rate limiting to login
         this.router.post('/login', this.loginLimiter, this.login);
-        this.router.get('/student/google', this.authLimiter, this.studentGoogleLogin);
+        this.router.get(
+            '/student/google',
+            this.authLimiter,
+            this.studentGoogleLogin
+        );
         this.router.get(
             '/student/google/callback',
             this.authLimiter,
@@ -93,7 +100,11 @@ class MobileAuthModuleController implements IController {
             this.studentLoginInitiateLimiter,
             this.studentLoginInitiate
         );
-        this.router.post('/student/login', this.loginLimiter, this.studentLogin);
+        this.router.post(
+            '/student/login',
+            this.loginLimiter,
+            this.studentLogin
+        );
         this.router.post(
             '/student/change-temp-password',
             this.authLimiter,
@@ -167,11 +178,13 @@ class MobileAuthModuleController implements IController {
         this.router.post(
             '/forgot-password-verify-code',
             this.forgotPasswordLimiter,
-            this.forgotPasswordVerifyCode)
+            this.forgotPasswordVerifyCode
+        );
         this.router.post(
             '/forgot-password-set-password',
             this.forgotPasswordLimiter,
-            this.forgotPasswordSetPassword)
+            this.forgotPasswordSetPassword
+        );
         this.router.post(
             '/forgot-password-confirm',
             this.authLimiter,
@@ -201,12 +214,13 @@ class MobileAuthModuleController implements IController {
     }
 
     private generatePkceCodeChallenge(codeVerifier: string): string {
-        return createHash('sha256')
-            .update(codeVerifier)
-            .digest('base64url');
+        return createHash('sha256').update(codeVerifier).digest('base64url');
     }
 
-    private storeStudentOAuthAttempt(state: string, codeVerifier: string): void {
+    private storeStudentOAuthAttempt(
+        state: string,
+        codeVerifier: string
+    ): void {
         this.studentOAuthAttempts.set(state, {
             codeVerifier,
             expiresAt: Date.now() + 10 * 60 * 1000,
@@ -258,7 +272,6 @@ class MobileAuthModuleController implements IController {
         };
     }
 
-    
     private async getStudentAuthUser(accessToken: string) {
         try {
             return await this.studentCognitoClient.accessToken(accessToken);
@@ -599,7 +612,10 @@ class MobileAuthModuleController implements IController {
 
             // ✅ Validation qo'shildi
             if (!phone_number || !verification_code) {
-                throw new ApiError(400, 'Phone number and verification code are required');
+                throw new ApiError(
+                    400,
+                    'Phone number and verification code are required'
+                );
             }
 
             // ✅ fullPhoneNumber aniqlandi
@@ -612,17 +628,22 @@ class MobileAuthModuleController implements IController {
                 verification_code
             );
 
-            const forgotPasswordSession = await setForgotPasswordSession(fullPhoneNumber, {
-                token: result.resetToken,
-                expiresAt: Date.now() + 10 * 60 * 1000,
-            });
+            const forgotPasswordSession = await setForgotPasswordSession(
+                fullPhoneNumber,
+                {
+                    token: result.resetToken,
+                    expiresAt: Date.now() + 10 * 60 * 1000,
+                }
+            );
 
-            return res.status(200).json({
-                message_key: 'verificationCodeVerified',
-                message: 'Verification code verified successfully',
-                reset_token: forgotPasswordSession.token,
-            }).end();
-
+            return res
+                .status(200)
+                .json({
+                    message_key: 'verificationCodeVerified',
+                    message: 'Verification code verified successfully',
+                    reset_token: forgotPasswordSession.token,
+                })
+                .end();
         } catch (e: any) {
             // ✅ Phone enumeration oldini olish
             if (e?.status === 404) {
@@ -658,10 +679,7 @@ class MobileAuthModuleController implements IController {
             );
 
             // Token mavjudligi, muddati va qiymati tekshirilmoqda
-            if (
-                !stored ||
-                stored.expiresAt <= Date.now()
-            ) {
+            if (!stored || stored.expiresAt <= Date.now()) {
                 await deleteForgotPasswordSession(fullPhoneNumber);
                 throw new ApiError(
                     401,
@@ -691,6 +709,10 @@ class MobileAuthModuleController implements IController {
         if (typeof raw === 'object' && typeof raw.data === 'string')
             return raw.data.trim();
         return null;
+    }
+
+    private isValidDeviceToken(token: string | null): token is string {
+        return token != null && token !== '' && token !== '[object Object]';
     }
 
     private normalizeEmail(email: string): string {
@@ -838,7 +860,8 @@ class MobileAuthModuleController implements IController {
                 return res
                     .status(400)
                     .json({
-                        message: 'Current password and new password are required',
+                        message:
+                            'Current password and new password are required',
                     })
                     .end();
             }
@@ -1062,25 +1085,29 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
-            if (
-                parents.length <= 0 ||
-                normalizedToken == null ||
-                normalizedToken == '[object Object]'
-            ) {
+            if (parents.length <= 0) {
                 throw new ApiError(401, 'Invalid phone_number or password');
             }
 
             const parent = parents[0];
 
             try {
-                // const endpoint = await ParentsSNS.createEndpoint(token)
-                await DB.execute(
-                    `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
-                    {
-                        id: parent.id,
-                        arn: normalizedToken,
-                    }
-                );
+                // Clients without push support (e.g. Expo Go) log in without a
+                // token and register it later via /device-token.
+                if (this.isValidDeviceToken(normalizedToken)) {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
+                        {
+                            id: parent.id,
+                            arn: normalizedToken,
+                        }
+                    );
+                } else {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW() WHERE id = :id;`,
+                        { id: parent.id }
+                    );
+                }
             } catch (error) {
                 console.error('Error during updating device token:', error);
             }
@@ -1103,10 +1130,13 @@ class MobileAuthModuleController implements IController {
         } catch (e: any) {
             if (e?.status === 401) {
                 // Add message_key for login failures so client can translate
-                return res.status(401).json({
-                    error: e.message,
-                    message_key: 'invalidUsernameOrPassword',
-                }).end();
+                return res
+                    .status(401)
+                    .json({
+                        error: e.message,
+                        message_key: 'invalidUsernameOrPassword',
+                    })
+                    .end();
             }
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);
@@ -1155,7 +1185,10 @@ class MobileAuthModuleController implements IController {
                             ''
                         );
 
-                    await this.syncStudentCognitoSub(email, registeredStudent.sub_id);
+                    await this.syncStudentCognitoSub(
+                        email,
+                        registeredStudent.sub_id
+                    );
                     showTemporaryPasswordMessage = true;
                 } else if (e?.status === 400) {
                     // User already activated (status is not FORCE_CHANGE_PASSWORD)
@@ -1262,7 +1295,9 @@ class MobileAuthModuleController implements IController {
                     );
 
                 if (!verificationStatus.emailVerified) {
-                    await this.studentCognitoClient.verifyEmail(normalizedEmail);
+                    await this.studentCognitoClient.verifyEmail(
+                        normalizedEmail
+                    );
                 } else {
                     console.log('Email already verified');
                 }
@@ -1348,11 +1383,14 @@ class MobileAuthModuleController implements IController {
                 );
             }
 
-            const forgotPasswordSession = await setForgotPasswordSession(normalizedEmail, {
-                token: '',
-                verificationCode: normalizedCode,
-                expiresAt: Date.now() + 10 * 60 * 1000,
-            });
+            const forgotPasswordSession = await setForgotPasswordSession(
+                normalizedEmail,
+                {
+                    token: '',
+                    verificationCode: normalizedCode,
+                    expiresAt: Date.now() + 10 * 60 * 1000,
+                }
+            );
 
             return res
                 .status(200)
@@ -1373,7 +1411,8 @@ class MobileAuthModuleController implements IController {
                     new ApiError(
                         e.status,
                         e.message,
-                        e.code || this.getStudentForgotPasswordMessageKey(e.message)
+                        e.code ||
+                            this.getStudentForgotPasswordMessageKey(e.message)
                     )
                 );
             }
@@ -1417,11 +1456,12 @@ class MobileAuthModuleController implements IController {
             }
 
             // Official Cognito Forgot Password confirm: code + new password together.
-            const result = await this.studentCognitoClient.confirmForgotPassword(
-                normalizedEmail,
-                stored.verificationCode,
-                new_password
-            );
+            const result =
+                await this.studentCognitoClient.confirmForgotPassword(
+                    normalizedEmail,
+                    stored.verificationCode,
+                    new_password
+                );
 
             await deleteForgotPasswordSession(normalizedEmail);
 
@@ -1432,7 +1472,8 @@ class MobileAuthModuleController implements IController {
                     new ApiError(
                         e.status,
                         e.message,
-                        e.code || this.getStudentForgotPasswordMessageKey(e.message)
+                        e.code ||
+                            this.getStudentForgotPasswordMessageKey(e.message)
                     )
                 );
             }
@@ -1469,7 +1510,10 @@ class MobileAuthModuleController implements IController {
 
             let authData;
             try {
-                authData = await this.studentCognitoClient.login(email, password);
+                authData = await this.studentCognitoClient.login(
+                    email,
+                    password
+                );
             } catch (e: any) {
                 throw e;
             }
@@ -1499,10 +1543,13 @@ class MobileAuthModuleController implements IController {
         } catch (e: any) {
             if (e?.status === 401) {
                 // Add message_key for login failures so client can translate
-                return res.status(401).json({
-                    error: e.message,
-                    message_key: 'invalidUsernameOrPassword',
-                }).end();
+                return res
+                    .status(401)
+                    .json({
+                        error: e.message,
+                        message_key: 'invalidUsernameOrPassword',
+                    })
+                    .end();
             }
             if (e?.status) return next(new ApiError(e.status, e.message));
             return next(e);
@@ -1664,25 +1711,22 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
-            if (
-                parents.length <= 0 ||
-                normalizedToken == null ||
-                normalizedToken == '[object Object]'
-            ) {
+            if (parents.length <= 0) {
                 throw new ApiError(401, 'Invalid phone number or password');
             }
 
             const parent = parents[0];
 
             try {
-                // const endpoint = await ParentsSNS.createEndpoint(token)
-                await DB.execute(
-                    `UPDATE Parent SET arn = :arn WHERE id = :id;`,
-                    {
-                        id: parent.id,
-                        arn: normalizedToken,
-                    }
-                );
+                if (this.isValidDeviceToken(normalizedToken)) {
+                    await DB.execute(
+                        `UPDATE Parent SET arn = :arn WHERE id = :id;`,
+                        {
+                            id: parent.id,
+                            arn: normalizedToken,
+                        }
+                    );
+                }
             } catch (error) {
                 console.error('Error during updating device token:', error);
             }
@@ -1736,12 +1780,8 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
-            if (
-                parents.length <= 0 ||
-                normalizedToken == null ||
-                normalizedToken == '[object Object]'
-            ) {
-                // Note: Auth success but user not found in DB or invalid token
+            if (parents.length <= 0) {
+                // Note: Auth success but user not found in DB
                 // In production might want to handle differently
                 throw new ApiError(401, 'User not found in database');
             }
@@ -1749,13 +1789,20 @@ class MobileAuthModuleController implements IController {
             const parent = parents[0];
 
             try {
-                await DB.execute(
-                    `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
-                    {
-                        id: parent.id,
-                        arn: normalizedToken,
-                    }
-                );
+                if (this.isValidDeviceToken(normalizedToken)) {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
+                        {
+                            id: parent.id,
+                            arn: normalizedToken,
+                        }
+                    );
+                } else {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW() WHERE id = :id;`,
+                        { id: parent.id }
+                    );
+                }
             } catch (error) {
                 console.error('Error during updating device token:', error);
             }

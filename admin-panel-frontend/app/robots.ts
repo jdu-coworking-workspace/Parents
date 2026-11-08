@@ -31,6 +31,7 @@ export default function robots(): MetadataRoute.Robots {
           "/messages",
           "/admins",
           "/settings",
+          "/faq",
           "/permissions",
           "/forms",
           "/sms",

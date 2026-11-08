@@ -174,7 +174,7 @@ export default function MessageImagePicker({
               disabled={uploadImageMutation.isPending}
               onClick={() => fileInputRef.current?.click()}
               className="h-[120px] w-[120px] rounded border-2 border-dashed border-border bg-muted/40 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Add more images"
+              aria-label={t("addMoreImages")}
             >
               <Plus className="h-8 w-8" />
             </button>

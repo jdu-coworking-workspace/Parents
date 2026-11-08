@@ -10,7 +10,6 @@ export interface ExtendedRequest extends Request {
     [k: string]: any;
 }
 
-
 async function getStudentUserData(cognitoClient: any, token: string) {
     try {
         return await cognitoClient.accessToken(token);
@@ -19,7 +18,8 @@ async function getStudentUserData(cognitoClient: any, token: string) {
             throw err;
         }
 
-        const cognitoDomain = config.STUDENT_COGNITO_DOMAIN || config.COGNITO_DOMAIN;
+        const cognitoDomain =
+            config.STUDENT_COGNITO_DOMAIN || config.COGNITO_DOMAIN;
         if (!cognitoDomain) {
             throw err;
         }
@@ -164,7 +164,8 @@ export const verifyStudentToken = async (
                     st.email,
                     st.phone_number,
                     st.given_name,
-                    st.family_name
+                    st.family_name,
+                    st.school_id
              FROM Student AS st
              WHERE st.email = :email
                 OR st.cognito_sub_id = :sub_id

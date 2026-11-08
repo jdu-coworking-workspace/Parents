@@ -7,6 +7,7 @@ import AdminController from './admin';
 import GroupController from './group';
 import FormController from './form';
 import SchoolController from './school';
+import FaqController from './faq';
 import { Router } from 'express';
 import { IController } from 'utils/icontroller';
 
@@ -30,6 +31,7 @@ class AdminPanelController implements IController {
         this.router.use('/group', new GroupController().router);
         this.router.use('/form', new FormController().router);
         this.router.use('/school', new SchoolController().router);
+        this.router.use('/faq', new FaqController().router);
     }
 }
 

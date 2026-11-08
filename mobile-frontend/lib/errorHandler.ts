@@ -144,6 +144,9 @@ export class AuthErrorHandler {
         if (lowerMessage.includes('invalid verification code')) {
           return 'invalidOtp';
         }
+        if (lowerMessage.includes('incorrect phone number')) {
+          return 'invalidPhoneNumber';
+        }
         if (
           lowerMessage.includes('incorrect') ||
           lowerMessage.includes('invalid')
