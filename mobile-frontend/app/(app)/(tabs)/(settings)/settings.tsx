@@ -298,6 +298,19 @@ export default function SettingsScreen() {
               <View style={styles.rowSpacer} />
               <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
             </Pressable>
+            <Pressable
+              style={styles.row}
+              onPress={() => router.navigate('faq' as Href)}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
+                <Ionicons color='#fff' name='help-circle-outline' size={20} />
+              </View>
+              <ThemedText style={styles.rowLabel}>
+                {i18n[language].faqTitle}
+              </ThemedText>
+              <View style={styles.rowSpacer} />
+              <Ionicons color='#C6C6C6' name='chevron-forward' size={20} />
+            </Pressable>
             <ThemeSwitcher />
           </View>
           <View
