@@ -32,6 +32,22 @@ const Layout = () => {
         }}
       />
       <Stack.Screen
+        name='faq'
+        options={{
+          headerTitle: i18n[language].faqTitle,
+          headerTitleAlign: 'center',
+          headerStyle: {
+            backgroundColor: headerBg(theme.mode!),
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: Platform.OS === 'android' ? 16 : 17,
+          },
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen
         name='change-psswd'
         options={{
           headerTitle: i18n[language].changePassword,
