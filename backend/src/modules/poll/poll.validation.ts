@@ -11,18 +11,58 @@ export interface PollInput {
     options: string[];
 }
 
+function hasImageTag(value: string): boolean {
+    const lower = value.toLowerCase();
+    let from = 0;
+    while (from < lower.length) {
+        const start = lower.indexOf('<img', from);
+        if (start === -1) return false;
+        const boundary = lower.charAt(start + 4);
+        if (
+            boundary === '' ||
+            boundary === ' ' ||
+            boundary === '\n' ||
+            boundary === '\t' ||
+            boundary === '\r' ||
+            boundary === '/' ||
+            boundary === '>'
+        ) {
+            return true;
+        }
+        from = start + 4;
+    }
+    return false;
+}
+
+function textOutsideTags(value: string): string {
+    let result = '';
+    let inTag = false;
+    for (const char of value) {
+        if (char === '<') {
+            inTag = true;
+            continue;
+        }
+        if (char === '>') {
+            inTag = false;
+            result += ' ';
+            continue;
+        }
+        if (!inTag) result += char;
+    }
+    return result;
+}
+
 function plainText(value: unknown, max: number): string | null {
     if (typeof value !== 'string') return null;
-    const text = value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    const text = value.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
     if (!text || text.length > max) return null;
     return text;
 }
 
 export function hasVisibleHtml(value: unknown): boolean {
     if (typeof value !== 'string') return false;
-    if (/<img\b/i.test(value)) return true;
-    const text = value
-        .replace(/<[^>]*>/g, ' ')
+    if (hasImageTag(value)) return true;
+    const text = textOutsideTags(value)
         .replace(/&nbsp;|&#160;/gi, ' ')
         .replace(/\s+/g, ' ')
         .trim();
