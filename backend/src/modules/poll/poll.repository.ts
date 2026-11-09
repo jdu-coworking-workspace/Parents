@@ -12,6 +12,7 @@ export type VoterType = 'parent' | 'student';
 export interface PollOptionRow {
     poll_id: number;
     post_id: number;
+    question: string;
     option_id: number;
     option_text: string;
     position: number;
@@ -22,10 +23,14 @@ export class PollRepository {
     /**
      * Poll va uning variantlarini yaratish
      */
-    async create(postId: number, options: string[]): Promise<number> {
+    async create(
+        postId: number,
+        question: string,
+        options: string[]
+    ): Promise<number> {
         const result = await DB.execute(
-            'INSERT INTO Poll (post_id) VALUES (:post_id)',
-            { post_id: postId }
+            'INSERT INTO Poll (post_id, question) VALUES (:post_id, :question)',
+            { post_id: postId, question }
         );
         const pollId = result.insertId;
 
@@ -49,6 +54,7 @@ export class PollRepository {
         return await DB.query(
             `SELECT p.id AS poll_id,
                     p.post_id,
+                    p.question,
                     po.id AS option_id,
                     po.option_text,
                     po.position,
@@ -57,7 +63,7 @@ export class PollRepository {
              INNER JOIN PollOption po ON po.poll_id = p.id
              LEFT JOIN PollVote pv ON pv.option_id = po.id
              WHERE p.post_id IN (:postIds)
-             GROUP BY p.id, p.post_id, po.id, po.option_text, po.position
+             GROUP BY p.id, p.post_id, p.question, po.id, po.option_text, po.position
              ORDER BY p.id, po.position`,
             { postIds }
         );
@@ -82,6 +88,19 @@ export class PollRepository {
                AND pv.voter_id = :voter_id`,
             { postIds, voter_type: voterType, voter_id: voterId }
         );
+    }
+
+    async findByPostId(
+        postId: number
+    ): Promise<{ id: number; question: string } | null> {
+        const rows = await DB.query(
+            `SELECT id, question
+             FROM Poll
+             WHERE post_id = :post_id
+             LIMIT 1`,
+            { post_id: postId }
+        );
+        return rows.length > 0 ? rows[0] : null;
     }
 
     /**

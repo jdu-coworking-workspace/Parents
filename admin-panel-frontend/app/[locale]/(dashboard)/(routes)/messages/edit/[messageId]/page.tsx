@@ -29,8 +29,27 @@ import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { normalizePostImages } from "@/lib/postImages";
+import { hasVisibleHtml } from "@/lib/postContent";
+import PollResults from "@/components/PollResults";
+import type { PollResult } from "@/types/poll";
 
-const formSchema = postEditSchema;
+const messageSchema = postEditSchema;
+const pollMessageSchema = postEditSchema
+  .extend({
+    title: z.string().max(255),
+    description: z.string(),
+  })
+  .superRefine((value, ctx) => {
+    const hasTitle = value.title.trim().length > 0;
+    const hasDescription = hasVisibleHtml(value.description);
+    if (hasTitle !== hasDescription) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [hasTitle ? "description" : "title"],
+        message: "incomplete_message_with_poll",
+      });
+    }
+  });
 
 type EditPostPayload = {
   title: string;
@@ -51,8 +70,12 @@ export default function SendMessagePage({
   const t = useTranslations("sendmessage");
   const [isImageUploading, setIsImageUploading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const allowEmptyRef = React.useRef(false);
+  const form = useForm<z.infer<typeof messageSchema>>({
+    resolver: (values, context, options) =>
+      zodResolver(
+        allowEmptyRef.current ? pollMessageSchema : messageSchema
+      )(values, context, options),
     defaultValues: {
       title: "",
       description: "",
@@ -64,7 +87,9 @@ export default function SendMessagePage({
   const router = useRouter();
   const { data, isLoading, isError } = useListQuery<{
     post: Post;
+    poll?: PollResult | null;
   }>(`post/${messageId}`, ["message", messageId]);
+  allowEmptyRef.current = Boolean(data?.poll);
 
   const { mutate, isPending } = useApiMutation<
     { message: string },
@@ -113,9 +138,13 @@ export default function SendMessagePage({
         <form
           onSubmit={form.handleSubmit((values) => {
             const images = normalizePostImages(values.image, values.images);
+            const title = values.title.trim();
+            const description = hasVisibleHtml(values.description)
+              ? values.description.trim()
+              : "";
             mutate({
-              title: values.title,
-              description: values.description,
+              title,
+              description,
               priority: values.priority,
               image: images[0] ?? "",
               images,
@@ -126,6 +155,9 @@ export default function SendMessagePage({
           <PageHeader title={t("editMessage")}>
             <BackButton href={`/messages/${messageId}`} />
           </PageHeader>
+          {data?.poll ? (
+            <PollResults poll={data.poll} lockedHint={t("pollLocked")} />
+          ) : null}
 
           <FormField
             control={form.control}
@@ -137,8 +169,11 @@ export default function SendMessagePage({
                   <Input {...field} placeholder={t("typeTitle")} />
                 </FormControl>
                 <FormMessage>
-                  {formState.errors.title &&
-                    "Title is required. Title should be more than 5 characters"}
+                  {formState.errors.title?.type === "custom"
+                    ? t("pollIncompleteMessage")
+                    : formState.errors.title
+                      ? "Title is required. Title should be more than 5 characters"
+                      : null}
                 </FormMessage>
               </FormItem>
             )}
@@ -159,8 +194,11 @@ export default function SendMessagePage({
                   />
                 </FormControl>
                 <FormMessage>
-                  {formState.errors.description &&
-                    "Message is required. Message should be more than 10 characters"}
+                  {formState.errors.description?.type === "custom"
+                    ? t("pollIncompleteMessage")
+                    : formState.errors.description
+                      ? "Message is required. Message should be more than 10 characters"
+                      : null}
                 </FormMessage>
               </FormItem>
             )}

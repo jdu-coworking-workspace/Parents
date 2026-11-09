@@ -37,6 +37,8 @@ import PostDescriptionContent from "@/components/PostDescriptionContent";
 import { normalizePostImages } from "@/lib/postImages";
 import { BackButton } from "@/components/ui/BackButton";
 import PageHeader from "@/components/PageHeader";
+import PollResults from "@/components/PollResults";
+import { hasVisibleHtml } from "@/lib/postContent";
 
 export default function ThisMessage({
   params,
@@ -188,13 +190,22 @@ export default function ThisMessage({
       </PageHeader>
       <Card className="space-y-8 p-4">
         <div>
-          <CardTitle className="text-xl w-2/4 font-bold break-words">
-            {data?.post?.title}
-          </CardTitle>
-          <PostDescriptionContent
-            description={data?.post?.description}
-            className="mt-4 text-foreground leading-relaxed"
-          />
+          {data?.post?.title?.trim() ? (
+            <CardTitle className="w-2/4 break-words text-xl font-bold">
+              {data?.post?.title}
+            </CardTitle>
+          ) : null}
+          {hasVisibleHtml(data?.post?.description) ? (
+            <PostDescriptionContent
+              description={data?.post?.description}
+              className="mt-4 text-foreground leading-relaxed"
+            />
+          ) : null}
+          {data?.poll ? (
+            <div className="mt-6">
+              <PollResults poll={data.poll} />
+            </div>
+          ) : null}
           {postImages.length > 0 && (
             <div className="mt-6 border-t border-border pt-4">
               <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -205,7 +216,9 @@ export default function ThisMessage({
               </h4>
               <PostImageGallery
                 images={postImages}
-                alt={data?.post?.title ?? ""}
+                alt={
+                  data?.post?.title?.trim() || data?.poll?.question || ""
+                }
               />
             </div>
           )}

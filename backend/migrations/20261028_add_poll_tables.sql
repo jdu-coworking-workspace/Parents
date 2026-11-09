@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS `Poll` (
     `id` int NOT NULL AUTO_INCREMENT,
     `post_id` int NOT NULL,
+    `question` varchar(500) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_poll_post_id` (`post_id`),
     CONSTRAINT `Poll_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `Post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE

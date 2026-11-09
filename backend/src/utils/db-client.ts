@@ -32,16 +32,16 @@ class DatabaseClient {
                 });
             }, 55_000);
 
-            // Clear interval on connection end
-            connection.on('end', () => clearInterval(pingInterval));
+            connection.on('end', () => {
+                clearInterval(pingInterval);
+                if (this.connection === connection) {
+                    this.connection = null;
+                }
+            });
             connection.on('error', err => {
                 console.error('MySQL connection error:', err.code);
-                if (
-                    ['PROTOCOL_CONNECTION_LOST', 'ECONNRESET'].includes(
-                        err.code
-                    )
-                ) {
-                    this.connection = null; // force new connection on next query
+                if (this.isDeadConnection(err) && this.connection === connection) {
+                    this.connection = null;
                 }
             });
 
@@ -57,8 +57,33 @@ class DatabaseClient {
         }
     }
 
+    private isDeadConnection(error: any): boolean {
+        const message = String(error?.message ?? '');
+        return (
+            error?.fatal === true ||
+            error?.code === 'PROTOCOL_CONNECTION_LOST' ||
+            error?.code === 'ECONNRESET' ||
+            error?.code === 'PROTOCOL_ENQUEUE_AFTER_QUIT' ||
+            error?.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR' ||
+            message.includes('closed state')
+        );
+    }
+
+    private isConnectionOpen(connection: Connection): boolean {
+        const state = (connection as { connection?: { state?: string } })
+            .connection?.state;
+        return (
+            state === undefined ||
+            state === 'connected' ||
+            state === 'authenticated'
+        );
+    }
+
     private async getConnection(): Promise<Connection | undefined> {
         try {
+            if (this.connection && !this.isConnectionOpen(this.connection)) {
+                this.connection = null;
+            }
             if (!this.connection) {
                 this.connection = (await this.createConnection()) as Connection;
             }
@@ -70,7 +95,8 @@ class DatabaseClient {
 
     public async query(
         query: string,
-        params?: any
+        params?: any,
+        retried = false
     ): Promise<RowDataPacket[] | RowDataPacket[][] | ResultSetHeader | any> {
         const db = (await this.getConnection()) as Connection;
         // console.log(db.format(query, params))
@@ -78,6 +104,10 @@ class DatabaseClient {
             const [results] = await db.query(query, params);
             return results;
         } catch (e: any) {
+            if (!retried && this.isDeadConnection(e)) {
+                if (this.connection === db) this.connection = null;
+                return this.query(query, params, true);
+            }
             console.log('error in query', e);
             throw e;
         }
@@ -85,7 +115,8 @@ class DatabaseClient {
 
     public async execute(
         query: string,
-        params?: any
+        params?: any,
+        retried = false
     ): Promise<ResultSetHeader> {
         const db = (await this.getConnection()) as Connection;
         // console.log(db.format(query, params))
@@ -93,6 +124,10 @@ class DatabaseClient {
             const [results] = await db.execute<ResultSetHeader>(query, params);
             return results;
         } catch (e: any) {
+            if (!retried && this.isDeadConnection(e)) {
+                if (this.connection === db) this.connection = null;
+                return this.execute(query, params, true);
+            }
             console.error('Error in execute:', e.message);
             throw new Error('Database execute failed');
         }

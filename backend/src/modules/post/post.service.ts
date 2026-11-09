@@ -12,6 +12,7 @@ import { Images3Client } from '../../utils/s3-client';
 import DB from '../../utils/db-client';
 import { pollRepository } from '../poll/poll.repository';
 import { pollService } from '../poll/poll.service';
+import { normalizePostContent } from '../poll/poll.validation';
 import type {
     CreatePostRequest,
     CreatePostResponse,
@@ -104,11 +105,16 @@ export class PostService {
             collectImageInputs(image, images)
         );
         const imageName = imageNames[0] ?? null;
+        const content = normalizePostContent({
+            title,
+            description,
+            allowEmpty: Boolean(poll?.question && poll.options?.length),
+        });
 
         // Create post
         const postId = await postRepository.create({
-            title,
-            description,
+            title: content.title,
+            description: content.description,
             priority,
             audience,
             admin_id: adminId,
@@ -116,11 +122,16 @@ export class PostService {
             image: imageName,
         });
 
-        await postRepository.insertImages(postId, imageNames);
-
-        if (poll?.options?.length) {
-            await pollRepository.create(postId, poll.options);
+        if (poll?.question && poll.options?.length) {
+            try {
+                await pollRepository.create(postId, poll.question, poll.options);
+            } catch (error) {
+                await postRepository.delete(postId);
+                throw error;
+            }
         }
+
+        await postRepository.insertImages(postId, imageNames);
 
         // Link individual students
         if (students && Array.isArray(students) && students.length > 0) {
@@ -262,8 +273,8 @@ export class PostService {
         return {
             post: {
                 id: postId,
-                title,
-                description,
+                title: content.title,
+                description: content.description,
                 priority,
             },
         };
@@ -319,6 +330,12 @@ export class PostService {
                 given_name: post.admin_given_name,
                 family_name: post.admin_family_name,
             },
+            poll: post.poll_id
+                ? {
+                      id: Number(post.poll_id),
+                      question: post.poll_question ?? '',
+                  }
+                : null,
         }));
 
         return {
@@ -389,6 +406,13 @@ export class PostService {
             throw new ApiError(404, 'post_not_found');
         }
 
+        const existingPoll = await pollRepository.findByPostId(postId);
+        const content = normalizePostContent({
+            title,
+            description,
+            allowEmpty: Boolean(existingPoll),
+        });
+
         const existingImages = mergePostImageList(
             post.image,
             await postRepository.findImagesByPostId(postId)
@@ -439,8 +463,8 @@ export class PostService {
         }
 
         await postRepository.update({
-            title,
-            description,
+            title: content.title,
+            description: content.description,
             priority,
             image: imageName,
             id: postId,
