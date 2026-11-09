@@ -138,6 +138,9 @@ export type TranslationKeys = {
   noStudentsDescription: string;
   refresh: string;
   needHelp: string;
+  faqTitle: string;
+  faqLoadError: string;
+  faqEmpty: string;
   checkCorrectAccount: string;
   contactSchool: string;
   checkInternet: string;

@@ -78,7 +78,8 @@ export default function MessageDetailScreen() {
   const [isError, setIsError] = useState(false);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [inlineZoomImage, setInlineZoomImage] = useState<string | null>(null);
+  const [inlineZoomImages, setInlineZoomImages] = useState<string[] | null>(null);
+  const [inlineZoomIndex, setInlineZoomIndex] = useState(0);
   const [imageAspectRatios, setImageAspectRatios] = useState<
     Record<string, number>
   >({});
@@ -130,9 +131,12 @@ export default function MessageDetailScreen() {
     () => imageUrls.map((uri) => ({ uri })),
     [imageUrls],
   );
-  const zoomGalleryImages = inlineZoomImage
-    ? [{ uri: inlineZoomImage }]
-    : imagesForZoomGallery;
+  const zoomGalleryImages = useMemo(() => {
+    if (inlineZoomImages && inlineZoomImages.length > 0) {
+      return inlineZoomImages.map((uri) => ({ uri }));
+    }
+    return imagesForZoomGallery;
+  }, [inlineZoomImages, imagesForZoomGallery]);
 
   const getPriorityLabel = (priority: Message["priority"]) => {
     if (priority === "high") return t("critical");
@@ -299,7 +303,8 @@ export default function MessageDetailScreen() {
                   <View key={`${uri}-${index}`} style={styles.imageItem}>
                     <TouchableOpacity
                       onPress={() => {
-                        setInlineZoomImage(null);
+                        setInlineZoomImages(null);
+                        setInlineZoomIndex(0);
                         setCurrentImageIndex(index);
                         setZoomVisible(true);
                       }}
@@ -327,9 +332,9 @@ export default function MessageDetailScreen() {
               content={message.content}
               textColor={isDark ? "#E5E7EB" : "#1F2937"}
               fontSize={16 * multiplier}
-              onImagePress={(uri) => {
-                setInlineZoomImage(uri);
-                setCurrentImageIndex(0);
+              onImagePress={(images, index) => {
+                setInlineZoomImages(images);
+                setInlineZoomIndex(index);
                 setZoomVisible(true);
               }}
             />
@@ -353,10 +358,11 @@ export default function MessageDetailScreen() {
       <ZoomGallery
         visible={zoomVisible}
         images={zoomGalleryImages}
-        initialIndex={inlineZoomImage ? 0 : currentImageIndex}
+        initialIndex={inlineZoomImages ? inlineZoomIndex : currentImageIndex}
         onRequestClose={() => {
           setZoomVisible(false);
-          setInlineZoomImage(null);
+          setInlineZoomImages(null);
+          setInlineZoomIndex(0);
         }}
       />
     </ThemedView>

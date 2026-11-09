@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`renders correctly 1`] = `
 <Text
@@ -6,11 +6,10 @@ exports[`renders correctly 1`] = `
     [
       {
         "color": "#11181C",
-      },
-      {
         "fontSize": 16,
-        "lineHeight": 24,
       },
+      {},
+      undefined,
       undefined,
       undefined,
       undefined,

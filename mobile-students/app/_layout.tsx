@@ -1,7 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { RootSiblingParent } from "react-native-root-siblings";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -12,7 +11,6 @@ import { MessageProvider } from "@/contexts/message-context";
 import { FontSizeProvider } from "@/contexts/font-size-context";
 
 export const unstable_settings = {
-  initialRouteName: "index",
   anchor: "index",
 };
 

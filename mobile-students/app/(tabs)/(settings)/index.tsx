@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useState,
   useContext,
-  useRef,
   useEffect,
 } from "react";
 import {
@@ -118,8 +117,8 @@ export default function SettingsScreen() {
 
   // --- Font Size Modal animatsiyasi ---
   const screenHeight = Dimensions.get("window").height;
-  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(screenHeight));
+  const [fadeAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (isFontSizeOpen) {
@@ -150,7 +149,7 @@ export default function SettingsScreen() {
         }),
       ]).start();
     }
-  }, [isFontSizeOpen]);
+  }, [fadeAnim, isFontSizeOpen, screenHeight, slideAnim]);
 
   const handleLanguageSelect = async (label: string, code: string) => {
     setSelectedLanguage(label);
@@ -315,6 +314,20 @@ export default function SettingsScreen() {
                 <Ionicons color="#fff" name="text" size={20} />
               </View>
               <ThemedText disableScaling style={styles.rowLabel}>{t("textSize")}</ThemedText>
+              <View style={styles.rowSpacer} />
+              <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
+            </Pressable>
+
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push("/(tabs)/(settings)/faq" as any)}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: "#64748B" }]}>
+                <Ionicons color="#fff" name="help-circle-outline" size={20} />
+              </View>
+              <ThemedText disableScaling style={styles.rowLabel}>
+                {t("faqTitle")}
+              </ThemedText>
               <View style={styles.rowSpacer} />
               <Ionicons color="#C6C6C6" name="chevron-forward" size={20} />
             </Pressable>

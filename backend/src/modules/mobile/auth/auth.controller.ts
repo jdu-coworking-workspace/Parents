@@ -711,6 +711,10 @@ class MobileAuthModuleController implements IController {
         return null;
     }
 
+    private isValidDeviceToken(token: string | null): token is string {
+        return token != null && token !== '' && token !== '[object Object]';
+    }
+
     private normalizeEmail(email: string): string {
         return email.trim().toLowerCase();
     }
@@ -1081,25 +1085,29 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
-            if (
-                parents.length <= 0 ||
-                normalizedToken == null ||
-                normalizedToken == '[object Object]'
-            ) {
+            if (parents.length <= 0) {
                 throw new ApiError(401, 'Invalid phone_number or password');
             }
 
             const parent = parents[0];
 
             try {
-                // const endpoint = await ParentsSNS.createEndpoint(token)
-                await DB.execute(
-                    `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
-                    {
-                        id: parent.id,
-                        arn: normalizedToken,
-                    }
-                );
+                // Clients without push support (e.g. Expo Go) log in without a
+                // token and register it later via /device-token.
+                if (this.isValidDeviceToken(normalizedToken)) {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
+                        {
+                            id: parent.id,
+                            arn: normalizedToken,
+                        }
+                    );
+                } else {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW() WHERE id = :id;`,
+                        { id: parent.id }
+                    );
+                }
             } catch (error) {
                 console.error('Error during updating device token:', error);
             }
@@ -1703,25 +1711,22 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
-            if (
-                parents.length <= 0 ||
-                normalizedToken == null ||
-                normalizedToken == '[object Object]'
-            ) {
+            if (parents.length <= 0) {
                 throw new ApiError(401, 'Invalid phone number or password');
             }
 
             const parent = parents[0];
 
             try {
-                // const endpoint = await ParentsSNS.createEndpoint(token)
-                await DB.execute(
-                    `UPDATE Parent SET arn = :arn WHERE id = :id;`,
-                    {
-                        id: parent.id,
-                        arn: normalizedToken,
-                    }
-                );
+                if (this.isValidDeviceToken(normalizedToken)) {
+                    await DB.execute(
+                        `UPDATE Parent SET arn = :arn WHERE id = :id;`,
+                        {
+                            id: parent.id,
+                            arn: normalizedToken,
+                        }
+                    );
+                }
             } catch (error) {
                 console.error('Error during updating device token:', error);
             }
@@ -1775,12 +1780,8 @@ class MobileAuthModuleController implements IController {
                 }
             );
 
-            if (
-                parents.length <= 0 ||
-                normalizedToken == null ||
-                normalizedToken == '[object Object]'
-            ) {
-                // Note: Auth success but user not found in DB or invalid token
+            if (parents.length <= 0) {
+                // Note: Auth success but user not found in DB
                 // In production might want to handle differently
                 throw new ApiError(401, 'User not found in database');
             }
@@ -1788,13 +1789,20 @@ class MobileAuthModuleController implements IController {
             const parent = parents[0];
 
             try {
-                await DB.execute(
-                    `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
-                    {
-                        id: parent.id,
-                        arn: normalizedToken,
-                    }
-                );
+                if (this.isValidDeviceToken(normalizedToken)) {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW(), arn = :arn WHERE id = :id;`,
+                        {
+                            id: parent.id,
+                            arn: normalizedToken,
+                        }
+                    );
+                } else {
+                    await DB.execute(
+                        `UPDATE Parent SET last_login_at = NOW() WHERE id = :id;`,
+                        { id: parent.id }
+                    );
+                }
             } catch (error) {
                 console.error('Error during updating device token:', error);
             }

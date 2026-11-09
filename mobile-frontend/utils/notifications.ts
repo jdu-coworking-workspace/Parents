@@ -1,14 +1,23 @@
-import * as Notifications from 'expo-notifications';
+import type * as ExpoNotifications from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
 import * as Device from 'expo-device';
 import { Platform, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+
+// Since SDK 55, importing expo-notifications in Expo Go on Android throws.
+export const Notifications: typeof ExpoNotifications | null =
+  Platform.OS === 'android' && isRunningInExpoGo()
+    ? null
+    : // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('expo-notifications');
 
 export type PushPermission =
   | 'granted'
   | 'denied'
   | 'undetermined'
   | 'device_unsupported'
+  | 'expo_go_unsupported'
   | 'error';
 
 export interface PushInitResult {
@@ -17,8 +26,16 @@ export interface PushInitResult {
   error?: unknown;
 }
 
+export function isExpoGo(): boolean {
+  return isRunningInExpoGo();
+}
+
 export async function initPushNotifications(): Promise<PushInitResult> {
   try {
+    if (isExpoGo() || !Notifications) {
+      return { status: 'expo_go_unsupported' };
+    }
+
     if (!Device.isDevice) {
       return { status: 'device_unsupported' };
     }
@@ -111,6 +128,8 @@ export async function initPushNotifications(): Promise<PushInitResult> {
 
 // Enhanced notification handler for iOS preview builds
 export function setupNotificationHandler() {
+  if (!Notifications) return;
+
   Notifications.setNotificationHandler({
     handleNotification: async notification => {
       console.log(
@@ -152,6 +171,8 @@ export async function sendLocalNotification(
   data: any = {},
   priority: 'default' | 'high' | 'critical' = 'default'
 ) {
+  if (!Notifications) return;
+
   const channelId =
     priority === 'critical'
       ? 'critical'
@@ -252,10 +273,16 @@ export async function registerForPushNotificationsAsync() {
     return result.token;
   }
 
-  // Handle different error cases like the original function
-  if (result.status === 'device_unsupported') {
-    throw new Error('Must use physical device for push notifications');
-  } else if (result.status === 'denied') {
+  // Push is unavailable in Expo Go and simulators; log in without a token.
+  if (
+    result.status === 'expo_go_unsupported' ||
+    result.status === 'device_unsupported'
+  ) {
+    console.log(`[Push] Skipping push token (${result.status})`);
+    return undefined;
+  }
+
+  if (result.status === 'denied') {
     throw new Error(
       'Permission not granted to get push token for push notification!'
     );
