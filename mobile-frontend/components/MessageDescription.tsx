@@ -1,13 +1,23 @@
 import { useMemo, useState } from 'react';
-import { Image, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Autolink } from 'react-native-autolink';
 import { ThemedText } from '@/components/ThemedText';
+import MessageImageGroupView, {
+  ImageGroupLayout,
+} from '@/components/MessageImageGroupView';
+import { getMessageImageUrl } from '@/utils/image-url';
 
 type MessageDescriptionProps = {
   content: string;
   textColor: string;
   fontSize: number;
-  onImagePress?: (uri: string) => void;
+  onImagePress?: (images: string[], index: number) => void;
 };
 
 type TextPart = {
@@ -21,7 +31,8 @@ type TextPart = {
 
 type DescriptionBlock =
   | { type: 'text'; parts: TextPart[] }
-  | { type: 'image'; src: string };
+  | { type: 'image'; src: string }
+  | { type: 'image-group'; layout: ImageGroupLayout; images: string[] };
 
 function decodeHtml(value: string) {
   return value.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, entity => {
@@ -41,7 +52,9 @@ function extractHref(tag: string) {
   const match = tag.match(
     /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i
   );
-  const href = decodeHtml((match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim());
+  const href = decodeHtml(
+    (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim()
+  );
   if (!href || /^(javascript|data):/i.test(href)) return null;
   return href;
 }
@@ -61,7 +74,59 @@ function openMessageLink(href: string) {
   Linking.openURL(url).catch(() => {});
 }
 
-function parseDescription(content: string): DescriptionBlock[] {
+function extractGroupLayout(divAttributes: string): ImageGroupLayout {
+  const match = divAttributes.match(
+    /\bdata-image-layout\s*=\s*["']([^"']+)["']/i
+  );
+  const layout = (match?.[1] ?? '').toLowerCase();
+  if (layout === 'carousel' || layout === 'group' || layout === 'sequential') {
+    return layout;
+  }
+  if (divAttributes.includes('message-image-group-carousel')) return 'carousel';
+  if (divAttributes.includes('message-image-group-group')) return 'group';
+  return 'sequential';
+}
+
+function extractGroupImages(
+  divAttributes: string,
+  innerHtml: string
+): string[] {
+  // 1. Try parsing JSON array from data-images
+  const dataImagesMatch = divAttributes.match(
+    /\bdata-images\s*=\s*(?:"([^"]*)"|'([^']*)')/i
+  );
+  if (dataImagesMatch) {
+    const raw = (dataImagesMatch[1] ?? dataImagesMatch[2] ?? '')
+      .replace(/&quot;/g, '"')
+      .replace(/&#34;/g, '"')
+      .replace(/&amp;/g, '&');
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter(
+          (item): item is string => typeof item === 'string' && Boolean(item)
+        );
+      }
+    } catch {
+      // Fallback to searching img tags
+    }
+  }
+
+  // 2. Fallback: extract img src from innerHtml
+  const images: string[] = [];
+  const imgRegex = /<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = imgRegex.exec(innerHtml))) {
+    if (match[1]) {
+      images.push(decodeHtml(match[1]));
+    }
+  }
+  return images;
+}
+
+function parseInlineContent(content: string): DescriptionBlock[] {
+  if (!content) return [];
+
   const blocks: DescriptionBlock[] = [];
   const pendingTextParts: TextPart[] = [];
   const tagRegex =
@@ -146,6 +211,46 @@ function parseDescription(content: string): DescriptionBlock[] {
   appendText(content.slice(lastIndex));
   flushTextBlock();
 
+  return blocks;
+}
+
+function parseDescription(content: string): DescriptionBlock[] {
+  if (!content) return [];
+
+  const blocks: DescriptionBlock[] = [];
+  const groupRegex =
+    /<div\b(?=[^>]*\b(?:message-image-group|data-image-layout))([^>]*)>([\s\S]*?)<\/div>/gi;
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = groupRegex.exec(content))) {
+    const beforeText = content.slice(lastIndex, match.index);
+    if (beforeText.length > 0) {
+      blocks.push(...parseInlineContent(beforeText));
+    }
+
+    const divAttributes = match[1] ?? '';
+    const innerHtml = match[2] ?? '';
+    const layout = extractGroupLayout(divAttributes);
+    const images = extractGroupImages(divAttributes, innerHtml);
+
+    if (images.length > 0) {
+      blocks.push({
+        type: 'image-group',
+        layout,
+        images,
+      });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const remaining = content.slice(lastIndex);
+  if (remaining.length > 0 || blocks.length === 0) {
+    blocks.push(...parseInlineContent(remaining));
+  }
+
   return blocks.length > 0
     ? blocks
     : [
@@ -166,17 +271,7 @@ function parseDescription(content: string): DescriptionBlock[] {
 }
 
 function resolveImageUri(src: string) {
-  if (
-    src.startsWith('http://') ||
-    src.startsWith('https://') ||
-    src.startsWith('data:')
-  ) {
-    return src;
-  }
-
-  const baseUrl = process.env.EXPO_PUBLIC_S3_BASE_URL ?? '';
-  const normalizedSrc = src.startsWith('/') ? src.slice(1) : src;
-  return baseUrl ? `${baseUrl}/${normalizedSrc}` : normalizedSrc;
+  return getMessageImageUrl(src);
 }
 
 function hasFormatting(parts: TextPart[]) {
@@ -222,7 +317,9 @@ export default function MessageDescription({
                   style={[
                     part.bold && styles.bold,
                     part.italic && styles.italic,
-                    part.href ? styles.link : part.underline && styles.underline,
+                    part.href
+                      ? styles.link
+                      : part.underline && styles.underline,
                   ]}
                   onPress={
                     part.href ? () => openMessageLink(part.href!) : undefined
@@ -235,6 +332,17 @@ export default function MessageDescription({
           );
         }
 
+        if (block.type === 'image-group') {
+          return (
+            <MessageImageGroupView
+              key={`group-${index}`}
+              images={block.images}
+              layout={block.layout}
+              onImagePress={(imgs, idx) => onImagePress?.(imgs, idx)}
+            />
+          );
+        }
+
         const uri = resolveImageUri(block.src);
         const ratio = imageRatios[uri] ?? 1.5;
 
@@ -242,7 +350,7 @@ export default function MessageDescription({
           <TouchableOpacity
             key={`image-${uri}-${index}`}
             activeOpacity={0.9}
-            onPress={() => onImagePress?.(uri)}
+            onPress={() => onImagePress?.([uri], 0)}
           >
             <Image
               source={{ uri }}
