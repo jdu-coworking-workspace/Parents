@@ -246,7 +246,15 @@
     "linkText": "テキスト",
     "removeLink": "リンクを削除",
     "apply": "適用",
-    "invalidLinkUrl": "有効な http、https、mailto、または tel リンクを入力してください"
+    "invalidLinkUrl": "有効な http、https、mailto、または tel リンクを入力してください",
+    "pollAdd": "アンケートを追加",
+    "pollHint": "受信者は1つの選択肢を選びます。選択肢は2個以上10個以下にしてください。",
+    "pollOptionPlaceholder": "選択肢{number}",
+    "pollAddOption": "選択肢を追加",
+    "pollRemoveOption": "選択肢を削除",
+    "pollMinOptions": "異なる選択肢を2個以上入力してください",
+    "pollDuplicateOptions": "選択肢を重複させないでください",
+    "pollNoSchedule": "アンケート付きメッセージは予約できません"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "予約されたメッセージを見る",

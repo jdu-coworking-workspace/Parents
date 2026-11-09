@@ -249,7 +249,15 @@
     "linkText": "Matn",
     "removeLink": "Havolani olib tashlash",
     "apply": "Qo'llash",
-    "invalidLinkUrl": "To'g'ri http, https, mailto yoki tel havolasini kiriting"
+    "invalidLinkUrl": "To'g'ri http, https, mailto yoki tel havolasini kiriting",
+    "pollAdd": "So'rovnoma qo'shish",
+    "pollHint": "Qabul qiluvchilar bitta variantni tanlaydi. Kamida 2 ta, ko'pi bilan 10 ta variant.",
+    "pollOptionPlaceholder": "{number}-variant",
+    "pollAddOption": "Variant qo'shish",
+    "pollRemoveOption": "Variantni o'chirish",
+    "pollMinOptions": "Kamida 2 ta turli variant kiriting",
+    "pollDuplicateOptions": "Variantlar takrorlanmasligi kerak",
+    "pollNoSchedule": "So'rovnomali xabarni rejalashtirib bo'lmaydi"
   },
   "ThisMessage": {
     "ViewScheduledMessage": "Rejalashtirilgan xabar",
