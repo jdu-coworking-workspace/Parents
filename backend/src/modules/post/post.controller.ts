@@ -31,7 +31,11 @@ import {
 } from '../../utils/csv-upload';
 import { ErrorKeys, createErrorResponse } from '../../utils/error-codes';
 import { collectImageInputs, resolveImageInputs } from './image-utils';
-import { pollService } from '../poll/poll.service'; // [POLL] yangi import
+import { pollService } from '../poll/poll.service';
+import {
+    normalizePostContent,
+    parsePollBody,
+} from '../poll/poll.validation';
 
 export class PostModuleController implements IController {
     public router: Router = Router();
@@ -405,15 +409,9 @@ export class PostModuleController implements IController {
                 groups,
                 image,
                 images,
-                poll, // [POLL]
+                poll,
             } = req.body;
 
-            if (!title || !isValidString(title)) {
-                throw new ApiError(400, 'invalid_or_missing_title');
-            }
-            if (!description || !isValidString(description)) {
-                throw new ApiError(400, 'invalid_or_missing_description');
-            }
             if (!priority || !isValidPriority(priority)) {
                 throw new ApiError(400, 'invalid_or_missing_priority');
             }
@@ -421,40 +419,24 @@ export class PostModuleController implements IController {
                 throw new ApiError(400, 'invalid_or_missing_audience');
             }
 
-            // [POLL] so'rovnoma variantlarini tekshirish
-            let pollOptions: string[] | undefined;
-            if (poll !== undefined && poll !== null) {
-                const options = poll.options;
-                if (
-                    !Array.isArray(options) ||
-                    options.length < 2 ||
-                    options.length > 10 ||
-                    options.some(
-                        (o: unknown) =>
-                            typeof o !== 'string' ||
-                            !isValidString(o) ||
-                            o.trim().length > 255
-                    )
-                ) {
-                    throw new ApiError(400, 'invalid_poll_options');
-                }
-                pollOptions = options.map((o: string) => o.trim());
-                if (new Set(pollOptions).size !== pollOptions.length) {
-                    throw new ApiError(400, 'duplicate_poll_options');
-                }
-            }
+            const pollInput = parsePollBody(poll);
+            const content = normalizePostContent({
+                title,
+                description,
+                allowEmpty: Boolean(pollInput),
+            });
 
             const result = await postService.createPost(
                 {
-                    title,
-                    description,
+                    title: content.title,
+                    description: content.description,
                     priority,
                     audience,
                     students,
                     groups,
                     image,
                     images,
-                    poll: pollOptions ? { options: pollOptions } : undefined, // [POLL]
+                    poll: pollInput ?? undefined,
                 },
                 req.user.id,
                 req.user.school_id
@@ -579,12 +561,6 @@ export class PostModuleController implements IController {
 
             const { title, description, priority, image, images } = req.body;
 
-            if (!title || !isValidString(title)) {
-                throw new ApiError(400, 'invalid_or_missing_title');
-            }
-            if (!description || !isValidString(description)) {
-                throw new ApiError(400, 'invalid_or_missing_description');
-            }
             if (!priority || !isValidPriority(priority)) {
                 throw new ApiError(400, 'invalid_or_missing_priority');
             }

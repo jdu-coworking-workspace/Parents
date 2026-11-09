@@ -1,3 +1,5 @@
+import type { PollResult } from "./poll";
+
 export default interface postView {
   admin: {
     id: number;
@@ -15,4 +17,5 @@ export default interface postView {
     image: string;
     images?: string[];
   };
+  poll?: PollResult | null;
 }

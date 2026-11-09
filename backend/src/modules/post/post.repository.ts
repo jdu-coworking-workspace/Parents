@@ -47,6 +47,8 @@ export interface PostListRow {
     admin_id: number;
     admin_given_name: string;
     admin_family_name: string;
+    poll_id: number | null;
+    poll_question: string | null;
 }
 
 export interface CreatePostData {
@@ -233,7 +235,7 @@ export class PostRepository {
 
         if (filters?.text) {
             filterClauses.push(
-                '(po.title LIKE :text OR po.description LIKE :text)'
+                '(po.title LIKE :text OR po.description LIKE :text OR poll.question LIKE :text)'
             );
             params.text = `%${filters.text}%`;
         }
@@ -266,6 +268,7 @@ export class PostRepository {
 
         const result = await DB.query(
             `SELECT po.id, po.title, po.description, po.priority, po.sent_at, po.edited_at,
+                    poll.id AS poll_id, poll.question AS poll_question,
                     ad.id AS admin_id, ad.given_name AS admin_given_name, ad.family_name AS admin_family_name,
                     COALESCE(ROUND((
                         CASE WHEN po.audience = 'students' THEN
@@ -278,10 +281,11 @@ export class PostRepository {
                     ) * 100, 2), 0) AS read_percent
             FROM Post AS po
             INNER JOIN Admin AS ad ON ad.id = po.admin_id
+            LEFT JOIN Poll AS poll ON poll.post_id = po.id
             LEFT JOIN PostStudent AS ps ON ps.post_id = po.id
             LEFT JOIN PostParent AS pp ON pp.post_student_id = ps.id
             ${whereClause}
-            GROUP BY po.id, ad.id, ad.given_name, ad.family_name
+            GROUP BY po.id, ad.id, ad.given_name, ad.family_name, poll.id, poll.question
             ORDER BY po.sent_at DESC
             LIMIT :limit OFFSET :offset`,
             params
@@ -302,7 +306,7 @@ export class PostRepository {
 
         if (filters?.text) {
             filterClauses.push(
-                '(po.title LIKE :text OR po.description LIKE :text)'
+                '(po.title LIKE :text OR po.description LIKE :text OR poll.question LIKE :text)'
             );
             params.text = `%${filters.text}%`;
         }
@@ -338,6 +342,7 @@ export class PostRepository {
                 SELECT DISTINCT po.id
                 FROM Post AS po
                 INNER JOIN Admin AS ad ON ad.id = po.admin_id
+                LEFT JOIN Poll AS poll ON poll.post_id = po.id
                 LEFT JOIN PostStudent AS ps ON ps.post_id = po.id
                 LEFT JOIN PostParent AS pp ON pp.post_student_id = ps.id
                 ${whereClause}

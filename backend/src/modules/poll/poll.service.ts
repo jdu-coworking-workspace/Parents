@@ -57,6 +57,7 @@ export class PollService {
 
             result.set(postId, {
                 id: optionRows[0].poll_id,
+                question: optionRows[0].question,
                 my_option_id: myOptionId,
                 results_visible: visible,
                 total_votes: visible ? total : null,
