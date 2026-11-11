@@ -20,6 +20,7 @@ import Group from "@/types/group";
 import Student from "@/types/student";
 import { cn } from "@/lib/utils";
 import localImageLoader from "@/lib/localImageLoader";
+import { hasVisibleHtml } from "@/lib/postContent";
 
 type PreviewAudienceTab = "student" | "parent";
 
@@ -155,6 +156,7 @@ interface SendMessageConfirmDialogProps {
   priority: string | undefined;
   audience: "parents" | "students";
   images?: string[];
+  poll?: { question: string; options: string[] } | null;
   scheduleEnabled?: boolean;
   scheduledAt?: Date | null;
   selectedGroups: Group[];
@@ -173,6 +175,7 @@ export default function SendMessageConfirmDialog({
   priority,
   audience,
   images = [],
+  poll = null,
   scheduleEnabled,
   scheduledAt,
   selectedGroups,
@@ -216,18 +219,40 @@ export default function SendMessageConfirmDialog({
                 {title}
               </h3>
             ) : null}
-            <div
-              className={cn(
-                "w-full space-y-3",
-                title ? "mt-5 sm:mt-6" : "mt-4"
-              )}
-            >
-              <PostDescriptionContent
-                description={description}
-                variant="modal"
-                className="min-h-[100px] w-full rounded-xl border border-border/80 bg-muted/30 p-3.5 text-sm text-foreground dark:border-zinc-700/60 dark:bg-zinc-800/40 sm:p-4 sm:text-base leading-relaxed"
-              />
-            </div>
+            {hasVisibleHtml(description) ? (
+              <div
+                className={cn(
+                  "w-full space-y-3",
+                  title ? "mt-5 sm:mt-6" : "mt-4"
+                )}
+              >
+                <PostDescriptionContent
+                  description={description}
+                  variant="modal"
+                  className="min-h-[100px] w-full rounded-xl border border-border/80 bg-muted/30 p-3.5 text-sm text-foreground dark:border-zinc-700/60 dark:bg-zinc-800/40 sm:p-4 sm:text-base leading-relaxed"
+                />
+              </div>
+            ) : null}
+            {poll ? (
+              <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("pollQuestion")}
+                </p>
+                <p className="mt-1 break-words text-base font-semibold">
+                  {poll.question}
+                </p>
+                <ol className="mt-3 space-y-2">
+                  {poll.options.map((option, index) => (
+                    <li
+                      key={`${option}-${index}`}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      {option}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
             {images.length > 0 && (
               <div className="mt-5 border-t border-border pt-4">
                 <div className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

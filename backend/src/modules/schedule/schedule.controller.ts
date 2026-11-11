@@ -62,6 +62,9 @@ export class ScheduleController {
         next: NextFunction
     ) => {
         try {
+            if (req.body?.poll != null) {
+                throw new ApiError(400, 'poll_cannot_be_scheduled');
+            }
             const result = await this.service.createScheduledPost(
                 req.body,
                 req.user.id,

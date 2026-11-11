@@ -1,4 +1,5 @@
 import Admin from "./admin";
+import type { PollSummary } from "./poll";
 
 export default interface Post {
   id: number;
@@ -13,4 +14,5 @@ export default interface Post {
   student_numbers?: string;
   image: string;
   images?: string[];
+  poll?: PollSummary | null;
 }

@@ -52,6 +52,21 @@ import { useListQuery } from "@/lib/useListQuery";
 // Audience tab type: "parents" | "students"
 type AudienceTab = "parents" | "students";
 
+function listPoll(post: object) {
+  if (!("poll" in post)) return null;
+  const poll = (post as { poll?: { question?: string | null } | null }).poll;
+  return poll ?? null;
+}
+
+function postListLabel(post: {
+  title?: string | null;
+  poll?: { question?: string | null } | null;
+}) {
+  const title = post.title?.trim();
+  if (title) return title;
+  return listPoll(post)?.question?.trim() || "";
+}
+
 function getMessagePreview(description?: string | null) {
   if (!description) return "";
 
@@ -244,10 +259,15 @@ export default function Info() {
       header: t("postTitle"),
       cell: ({ row }) => (
         <div
-          title={row.original.title}
-          className="truncate max-w-20 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80 block"
+          title={postListLabel(row.original)}
+          className="flex max-w-20 items-center gap-2 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80"
         >
-          {row.getValue("title")}
+          <span className="truncate">{postListLabel(row.original)}</span>
+          {listPoll(row.original) ? (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+              {t("poll")}
+            </span>
+          ) : null}
         </div>
       ),
     },
@@ -256,12 +276,13 @@ export default function Info() {
       header: t("Description"),
       cell: ({ row }) => {
         const preview = getMessagePreview(row.original.description);
+        const text = preview || (listPoll(row.original) ? t("poll") : "");
         return (
           <div
-            title={preview}
+            title={text}
             className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
           >
-            {preview}
+            {text}
           </div>
         );
       },
@@ -319,10 +340,15 @@ export default function Info() {
       header: t("postTitle"),
       cell: ({ row }) => (
         <div
-          title={row.original.title}
-          className="truncate max-w-20 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80 block"
+          title={postListLabel(row.original)}
+          className="flex max-w-20 items-center gap-2 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80"
         >
-          {row.getValue("title")}
+          <span className="truncate">{postListLabel(row.original)}</span>
+          {listPoll(row.original) ? (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+              {t("poll")}
+            </span>
+          ) : null}
         </div>
       ),
     },
@@ -331,12 +357,13 @@ export default function Info() {
       header: t("Description"),
       cell: ({ row }) => {
         const preview = getMessagePreview(row.original.description);
+        const text = preview || (listPoll(row.original) ? t("poll") : "");
         return (
           <div
-            title={preview}
+            title={text}
             className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
           >
-            {preview}
+            {text}
           </div>
         );
       },
@@ -396,10 +423,15 @@ export default function Info() {
       header: t("postTitle"),
       cell: ({ row }) => (
         <div
-          title={row.original.title}
-          className="truncate max-w-20 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80 block"
+          title={postListLabel(row.original)}
+          className="flex max-w-20 items-center gap-2 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80"
         >
-          {row.getValue("title")}
+          <span className="truncate">{postListLabel(row.original)}</span>
+          {listPoll(row.original) ? (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+              {t("poll")}
+            </span>
+          ) : null}
         </div>
       ),
     },
@@ -408,12 +440,13 @@ export default function Info() {
       header: t("Description"),
       cell: ({ row }) => {
         const preview = getMessagePreview(row.original.description);
+        const text = preview || (listPoll(row.original) ? t("poll") : "");
         return (
           <div
-            title={preview}
+            title={text}
             className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
           >
-            {preview}
+            {text}
           </div>
         );
       },
@@ -473,10 +506,15 @@ export default function Info() {
       header: t("postTitle"),
       cell: ({ row }) => (
         <div
-          title={row.original.title}
-          className="truncate max-w-20 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80 block"
+          title={postListLabel(row.original)}
+          className="flex max-w-20 items-center gap-2 sm:max-w-30 md:max-w-40 lg:max-w-60 xl:max-w-60 2xl:max-w-80"
         >
-          {row.getValue("title")}
+          <span className="truncate">{postListLabel(row.original)}</span>
+          {listPoll(row.original) ? (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+              {t("poll")}
+            </span>
+          ) : null}
         </div>
       ),
     },
@@ -485,12 +523,13 @@ export default function Info() {
       header: t("Description"),
       cell: ({ row }) => {
         const preview = getMessagePreview(row.original.description);
+        const text = preview || (listPoll(row.original) ? t("poll") : "");
         return (
           <div
-            title={preview}
+            title={text}
             className="truncate max-w-32 sm:max-w-40 md:max-w-50 lg:max-w-60 xl:max-w-70 2xl:max-w-2xl block"
           >
-            {preview}
+            {text}
           </div>
         );
       },
@@ -562,7 +601,7 @@ export default function Info() {
                         key={post.id}
                         className="py-1 border-b last:border-b-0 flex justify-between"
                       >
-                        <span>{post.title}</span>
+                        <span>{postListLabel(post)}</span>
                         <Trash2 className="inline-block mr-2 text-red-600" />
                       </div>
                     ));

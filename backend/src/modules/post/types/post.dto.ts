@@ -45,8 +45,14 @@ export interface PollOptionResult {
     percent: number | null;
 }
 
+export interface PollSummary {
+    id: number;
+    question: string;
+}
+
 export interface PollResult {
     id: number;
+    question: string;
     options: PollOptionResult[];
     total_votes: number | null;
     my_option_id: number | null;
@@ -64,7 +70,7 @@ export interface CreatePostRequest {
     groups?: number[];
     image?: string; // base64 or uploaded filename
     images?: string[]; // multiple base64 or uploaded filenames
-    poll?: { options: string[] };
+    poll?: { question: string; options: string[] };
 }
 
 export interface CreatePostResponse {
@@ -99,6 +105,7 @@ export interface PostListItem {
     edited_at: Date | null;
     read_percent: number;
     admin: AdminData;
+    poll: PollSummary | null;
 }
 
 export interface ListPostsResponse {
