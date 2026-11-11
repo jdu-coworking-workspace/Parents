@@ -270,6 +270,18 @@ function parseDescription(content: string): DescriptionBlock[] {
       ];
 }
 
+export function extractMessagePlainText(content: string): string {
+  return parseDescription(content)
+    .filter(
+      (block): block is Extract<DescriptionBlock, { type: 'text' }> =>
+        block.type === 'text'
+    )
+    .map(block => block.parts.map(part => part.value).join(''))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function resolveImageUri(src: string) {
   return getMessageImageUrl(src);
 }

@@ -25,7 +25,9 @@ import { useTheme } from '@rneui/themed';
 import { DateTime } from 'luxon';
 import { useFontSize } from '@/contexts/FontSizeContext';
 import ZoomGallery from '@/components/ZoomGallery';
-import MessageDescription from '@/components/MessageDescription';
+import MessageDescription, {
+  extractMessagePlainText,
+} from '@/components/MessageDescription';
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiError } from '@/services/api-client';
@@ -505,21 +507,7 @@ export default function DetailsScreen() {
 
   const copyToClipboard = async () => {
     if (message?.content) {
-      // Strip HTML tags to copy only the text content (no images)
-      const plainText = message.content
-        // Decode entities before removing tags so encoded markup cannot survive sanitization
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        .replace(/<img\b[^>]*>/gi, '')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+      const plainText = extractMessagePlainText(message.content);
 
       if (!plainText) return;
 
