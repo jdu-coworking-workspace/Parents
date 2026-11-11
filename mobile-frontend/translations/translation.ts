@@ -290,12 +290,9 @@ const translations: Translations = {
     permissionDenied: 'Permission denied to access photo library.',
     downloadError: 'Failed to download image.',
     /*image alerts*/
-    /*message actions & widget*/
+    /*message actions*/
     translate: 'Translate',
-    widgetTitle: 'Messages',
-    widgetEmpty: 'No messages yet',
-    widgetSignIn: 'Sign in to see your messages',
-    /*message actions & widget*/
+    /*message actions*/
   },
   ja: {
     /*sign in page*/
@@ -591,12 +588,9 @@ const translations: Translations = {
     permissionDenied: 'フォトライブラリへのアクセス権限が拒否されました。',
     downloadError: '画像のダウンロードに失敗しました。',
     /*image alerts*/
-    /*message actions & widget*/
+    /*message actions*/
     translate: '翻訳',
-    widgetTitle: 'メッセージ',
-    widgetEmpty: 'メッセージはまだありません',
-    widgetSignIn: 'ログインするとメッセージが表示されます',
-    /*message actions & widget*/
+    /*message actions*/
   },
   uz: {
     /*sign in page*/
@@ -892,12 +886,9 @@ const translations: Translations = {
     permissionDenied: 'Foto kutubxonasiga kirish ruxsati berilmadi.',
     downloadError: 'Rasmni yuklab olishda xatolik.',
     /*image alerts*/
-    /*message actions & widget*/
+    /*message actions*/
     translate: 'Tarjima',
-    widgetTitle: 'Xabarlar',
-    widgetEmpty: "Hozircha xabarlar yo'q",
-    widgetSignIn: "Xabarlarni ko'rish uchun tizimga kiring",
-    /*message actions & widget*/
+    /*message actions*/
   },
   ru: {
     /*sign in page*/
@@ -1196,12 +1187,9 @@ const translations: Translations = {
     permissionDenied: 'Доступ к фотогалерее запрещен.',
     downloadError: 'Ошибка загрузки изображения.',
     /*image alerts*/
-    /*message actions & widget*/
+    /*message actions*/
     translate: 'Перевести',
-    widgetTitle: 'Сообщения',
-    widgetEmpty: 'Сообщений пока нет',
-    widgetSignIn: 'Войдите, чтобы видеть сообщения',
-    /*message actions & widget*/
+    /*message actions*/
   },
 };
 export default translations;

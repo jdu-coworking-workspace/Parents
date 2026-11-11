@@ -179,25 +179,6 @@ module.exports = ({ config }) => {
       ],
       "expo-secure-store",
       "expo-web-browser",
-      [
-        "react-native-android-widget",
-        {
-          widgets: [
-            {
-              name: "RecentMessages",
-              label: "Messages",
-              description: "Latest messages from school",
-              minWidth: "250dp",
-              minHeight: "180dp",
-              targetCellWidth: 4,
-              targetCellHeight: 3,
-              resizeMode: "horizontal|vertical",
-              // Android minimum is 30 minutes
-              updatePeriodMillis: 1800000,
-            },
-          ],
-        },
-      ],
     ],
     experiments: {
       typedRoutes: true,

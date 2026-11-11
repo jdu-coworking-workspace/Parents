@@ -29,7 +29,6 @@ import {
 } from "@/services/push-notifications";
 import { setAuthCallbacks } from "@/services/api-client";
 import type { StudentUser } from "@/types/auth";
-import { clearMessagesWidget } from "@/widgets/widget-sync";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -367,7 +366,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await clearSession();
       await DemoModeService.disableDemoMode();
-      await clearMessagesWidget();
 
       setAccessToken(null);
       setRefreshToken(null);

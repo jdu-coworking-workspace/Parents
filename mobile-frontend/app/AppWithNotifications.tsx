@@ -21,10 +21,6 @@ import {
 } from 'react-native';
 import { I18nContext } from '@/contexts/i18n-context';
 import { useUpdateAlerts } from '@/hooks/useUpdateAlerts';
-import {
-  clearMessagesWidget,
-  refreshMessagesWidgetFromServer,
-} from '@/widgets/widget-sync';
 
 // Helper function to guide users for battery optimization
 const showBatteryOptimizationAlert = async (i18n: any, language: string) => {
@@ -79,8 +75,6 @@ function useNotificationObserver() {
     const receivedSubscription = Notifications.addNotificationReceivedListener(
       async notification => {
         console.log('Notification received in foreground:', notification);
-        // Show the new message on the home screen widget
-        refreshMessagesWidgetFromServer();
 
         if (Platform.OS === 'android') {
           // Custom handling for Android foreground notifications
@@ -118,22 +112,6 @@ const SessionDependentPushTokenHandler: React.FC<{
   }, [session, pushToken]);
 
   return null; // This component only handles side effects
-};
-
-// Keeps the home screen widget in line with the sign-in state
-const WidgetSessionSync: React.FC = () => {
-  const { session, isLoading } = useSession();
-
-  React.useEffect(() => {
-    if (isLoading) return;
-    if (session) {
-      refreshMessagesWidgetFromServer();
-    } else {
-      clearMessagesWidget();
-    }
-  }, [session, isLoading]);
-
-  return null;
 };
 
 const AppWithNotifications: React.FC = () => {
@@ -284,7 +262,6 @@ const AppWithNotifications: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <SessionDependentPushTokenHandler pushToken={pushToken} />
-        <WidgetSessionSync />
         <StudentProvider>
           <FontSizeProvider>
             <Slot />

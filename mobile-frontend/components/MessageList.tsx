@@ -35,7 +35,6 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { useMessageContext } from '@/contexts/message-context';
 import { useStudents } from '@/contexts/student-context';
 import demoModeService from '@/services/demo-mode-service';
-import { syncMessagesWidgetFromDB } from '@/widgets/widget-sync';
 import apiClient, {
   UnauthorizedError,
   ForbiddenError,
@@ -314,7 +313,6 @@ const MessageList = ({
           student.student_number,
           student.id
         );
-        syncMessagesWidgetFromDB(db);
       }
 
       return demoMessages;
@@ -357,7 +355,6 @@ const MessageList = ({
         );
         readButNotSentMessageIDs.current = [];
       }
-      syncMessagesWidgetFromDB(db);
       return adaptedPosts;
     } catch (error) {
       if (error instanceof UnauthorizedError) {

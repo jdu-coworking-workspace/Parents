@@ -31,7 +31,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiError } from '@/services/api-client';
 import { htmlToPlainText } from '@/utils/message-text';
 import { openGoogleTranslate } from '@/utils/translate';
-import { syncMessagesWidgetFromDB } from '@/widgets/widget-sync';
 
 const normalizeMessageImages = (post: any): string[] | null => {
   if (Array.isArray(post.images) && post.images.length > 0) {
@@ -401,8 +400,6 @@ export default function DetailsScreen() {
           for (const unreadMsg of unreadGroupMessages) {
             await markMessageAsRead(unreadMsg.id, fullMessage.student_id);
           }
-          // Refresh unread state on the home screen widget
-          syncMessagesWidgetFromDB(db);
         }
       } catch (error) {
         console.error('Error in fetchMessage:', error);

@@ -37,7 +37,6 @@ import {
   fetchStudentUnreadCount,
 } from "@/services/student-messages";
 import type { Message } from "@/types/message";
-import { syncMessagesWidget } from "@/widgets/widget-sync";
 
 const PAGE_SIZE = 5;
 type MessageFilter =
@@ -189,14 +188,13 @@ export default function StudentMessagesScreen() {
     "any" | Message["priority"]
   >("any");
 
-  const { setUnreadCount, refreshVersion, unreadCount } = useMessageContext();
+  const { setUnreadCount, refreshVersion } = useMessageContext();
 
   const readButNotSentMessageIDs = useRef<number[]>([]);
   const isMountedRef = useRef(true);
   const isFetchingRef = useRef(false);
   const messagesRef = useRef<Message[]>([]);
   const lastHandledRefreshVersion = useRef(refreshVersion);
-  const hasLoadedMessagesRef = useRef(false);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -359,7 +357,6 @@ export default function StudentMessagesScreen() {
         if (loadMore || (!refresh && !silent)) {
           setHasMore(fetched.length >= PAGE_SIZE);
         }
-        hasLoadedMessagesRef.current = true;
         setIsError(false);
       } catch (error) {
         console.error("Error loading student messages:", error);
@@ -436,12 +433,6 @@ export default function StudentMessagesScreen() {
       };
     }, []),
   );
-
-  // Mirror the inbox (incl. read state) onto the Android home screen widget
-  useEffect(() => {
-    if (!hasLoadedMessagesRef.current || !studentId) return;
-    void syncMessagesWidget(messages, Number(studentId), unreadCount);
-  }, [messages, unreadCount, studentId]);
 
   const handleOpenMessage = (message: Message) => {
     if (!message.viewed_at) {

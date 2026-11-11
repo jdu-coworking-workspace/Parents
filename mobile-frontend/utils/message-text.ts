@@ -44,10 +44,3 @@ function decodeEntities(text: string): string {
     entity => ENTITIES[entity]
   );
 }
-
-/**
- * Single-line preview of a message, used where space is tight (e.g. widget).
- */
-export function toPreviewText(html: string | null | undefined): string {
-  return htmlToPlainText(html).replace(/\s+/g, ' ').trim();
-}
