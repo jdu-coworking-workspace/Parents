@@ -507,17 +507,18 @@ export default function DetailsScreen() {
     if (message?.content) {
       // Strip HTML tags to copy only the text content (no images)
       const plainText = message.content
-        .replace(/<img\b[^>]*>/gi, '') // Remove img tags
-        .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to newline
-        .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n') // Block-level closing tags to newline
-        .replace(/<[^>]+>/g, '') // Remove all remaining HTML tags
-        .replace(/&nbsp;/g, ' ') // Decode common entities
+        // Decode entities before removing tags so encoded markup cannot survive sanitization
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
-        .replace(/\n{3,}/g, '\n\n') // Collapse excessive newlines
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<img\b[^>]*>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
 
       if (!plainText) return;
