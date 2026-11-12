@@ -249,6 +249,9 @@ export type TranslationKeys = {
   accessDenied: string;
   notFound: string;
   tooManyAttempts: string;
+
+  // Message actions
+  translate: string;
 };
 
 export type Language = 'en' | 'ja' | 'uz' | 'ru';

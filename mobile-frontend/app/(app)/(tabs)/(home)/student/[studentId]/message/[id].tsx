@@ -31,6 +31,7 @@ import MessageDescription, {
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiError } from '@/services/api-client';
+import { openGoogleTranslate } from '@/utils/translate';
 
 const normalizeMessageImages = (post: any): string[] | null => {
   if (Array.isArray(post.images) && post.images.length > 0) {
@@ -80,15 +81,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 260,
   },
-  copyButton: {
-    marginTop: -15,
-    marginBottom: 20,
-    backgroundColor: '#005678',
-    padding: 10,
-    borderRadius: 5,
+  actionsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    display: 'flex',
-    alignSelf: 'flex-end',
+    gap: 4,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  actionText: {
+    color: '#007AFF',
+    marginLeft: 5,
   },
   imageContainer: {
     marginVertical: 15,
@@ -506,15 +511,24 @@ export default function DetailsScreen() {
       : imagesForZoomGallery;
 
   const copyToClipboard = async () => {
-    if (message?.content) {
-      const plainText = extractMessagePlainText(message.content);
+    if (!message.content) return;
 
-      if (!plainText) return;
+    const plainText = extractMessagePlainText(message.content);
+    if (!plainText) return;
 
-      await Clipboard.setStringAsync(plainText);
+    await Clipboard.setStringAsync(plainText);
 
-      ToastAndroid.show('Text copied to clipboard!', ToastAndroid.SHORT);
-    }
+    ToastAndroid.show('Text copied to clipboard!', ToastAndroid.SHORT);
+  };
+
+  const translateMessage = () => {
+    const text = [
+      message.title,
+      message.content ? extractMessagePlainText(message.content) : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    openGoogleTranslate(text, language);
   };
 
   const sentTimeString = message.sent_time;
@@ -639,13 +653,14 @@ export default function DetailsScreen() {
           />
         </View>
 
-        {/* Date and Copy button on the same level */}
+        {/* Date and Translate/Copy buttons on the same level */}
         <View
           style={[
             styles.dateRow,
             {
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
               marginTop: 10,
             },
           ]}
@@ -659,26 +674,28 @@ export default function DetailsScreen() {
             {formattedTime}
           </ThemedText>
 
-          <Pressable
-            style={[
-              styles.copyButton,
-              { marginTop: 0, marginBottom: 0, backgroundColor: 'transparent' },
-            ]}
-            onPress={copyToClipboard}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={styles.actionsRow}>
+            <Pressable
+              style={styles.actionButton}
+              onPress={translateMessage}
+              accessibilityRole='button'
+            >
+              <Ionicons name='language-outline' size={20} color='#007AFF' />
+              <Text style={[styles.actionText, { fontSize: 14 * multiplier }]}>
+                {i18n[language].translate}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.actionButton}
+              onPress={copyToClipboard}
+              accessibilityRole='button'
+            >
               <Ionicons name='copy-outline' size={20} color='#007AFF' />
-              <Text
-                style={{
-                  color: '#007AFF',
-                  marginLeft: 5,
-                  fontSize: 14 * multiplier,
-                }}
-              >
+              <Text style={[styles.actionText, { fontSize: 14 * multiplier }]}>
                 Copy
               </Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
         </View>
         <ZoomGallery
           visible={zoomVisible}

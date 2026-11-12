@@ -117,6 +117,7 @@ export type TranslationKeys = {
   signIn: string;
   back: string;
   copy: string;
+  translate: string;
   pressBackAgainToExit: string;
   SelectStudent: string;
   noStudentsFound: string;

@@ -294,6 +294,7 @@ const translations = {
     back: "Back",
     copy: "Copy",
     messageCopiedToClipboard: "Message copied to clipboard",
+    translate: "Translate",
   },
   ja: {
     welcome: "お帰りなさい",
@@ -570,6 +571,7 @@ const translations = {
     confirmLogout: "ログアウトを確認",
     logoutMessage: "ログアウトしてもよろしいですか？",
     messageCopiedToClipboard: "メッセージがクリップボードにコピーされました",
+    translate: "翻訳",
     universityContact: "大学の連絡先",
     universityPhone: "大学の電話番号",
     searchMessages: "メッセージを検索",
@@ -858,6 +860,7 @@ const translations = {
     back: "Orqaga",
     copy: "Nusxa",
     messageCopiedToClipboard: "Xabar nusxalandi",
+    translate: "Tarjima",
     universityContact: "Universitet bilan bog'lanish",
     universityPhone: "Universitet telefoni",
     searchMessages: "Xabarlarni qidirish",
@@ -1205,6 +1208,7 @@ const translations = {
     back: "Назад",
     copy: "Копировать",
     messageCopiedToClipboard: "Сообщение скопировано в буфер обмена",
+    translate: "Перевести",
     emailRequired: "Пожалуйста, введите адрес электронной почты.",
     forgotPasswordCodeSent: "Код подтверждения успешно отправлен.",
     forgotPasswordCodeResent:
