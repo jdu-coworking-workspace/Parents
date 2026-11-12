@@ -25,11 +25,12 @@ import { useTheme } from '@rneui/themed';
 import { DateTime } from 'luxon';
 import { useFontSize } from '@/contexts/FontSizeContext';
 import ZoomGallery from '@/components/ZoomGallery';
-import MessageDescription from '@/components/MessageDescription';
+import MessageDescription, {
+  extractMessagePlainText,
+} from '@/components/MessageDescription';
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiError } from '@/services/api-client';
-import { htmlToPlainText } from '@/utils/message-text';
 import { openGoogleTranslate } from '@/utils/translate';
 
 const normalizeMessageImages = (post: any): string[] | null => {
@@ -112,7 +113,10 @@ export default function DetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [inlineZoomImage, setInlineZoomImage] = useState<string | null>(null);
+  const [inlineZoomImages, setInlineZoomImages] = useState<string[] | null>(
+    null
+  );
+  const [inlineZoomIndex, setInlineZoomIndex] = useState(0);
 
   const { id, studentId } = useLocalSearchParams();
   const actualStudentId = studentId ? Number(studentId) : undefined;
@@ -500,13 +504,16 @@ export default function DetailsScreen() {
       ? filename // Demo images are already full URLs
       : `${imageUrl}/${filename}`, // Regular images need S3 base URL
   }));
-  const zoomGalleryImages = inlineZoomImage
-    ? [{ uri: inlineZoomImage }]
-    : imagesForZoomGallery;
+
+  const zoomGalleryImages =
+    inlineZoomImages && inlineZoomImages.length > 0
+      ? inlineZoomImages.map(uri => ({ uri }))
+      : imagesForZoomGallery;
 
   const copyToClipboard = async () => {
-    // Copy only the text content (no images)
-    const plainText = htmlToPlainText(message?.content);
+    if (!message.content) return;
+
+    const plainText = extractMessagePlainText(message.content);
     if (!plainText) return;
 
     await Clipboard.setStringAsync(plainText);
@@ -515,7 +522,10 @@ export default function DetailsScreen() {
   };
 
   const translateMessage = () => {
-    const text = [message.title, htmlToPlainText(message.content)]
+    const text = [
+      message.title,
+      message.content ? extractMessagePlainText(message.content) : '',
+    ]
       .filter(Boolean)
       .join('\n\n');
     openGoogleTranslate(text, language);
@@ -607,7 +617,8 @@ export default function DetailsScreen() {
               <View key={idx} style={styles.imageItem}>
                 <TouchableOpacity
                   onPress={() => {
-                    setInlineZoomImage(null);
+                    setInlineZoomImages(null);
+                    setInlineZoomIndex(0);
                     setCurrentImageIndex(idx);
                     setZoomVisible(true);
                   }}
@@ -634,9 +645,9 @@ export default function DetailsScreen() {
             content={message.content}
             textColor={textColor}
             fontSize={16 * multiplier}
-            onImagePress={uri => {
-              setInlineZoomImage(uri);
-              setCurrentImageIndex(0);
+            onImagePress={(images, index) => {
+              setInlineZoomImages(images);
+              setInlineZoomIndex(index);
               setZoomVisible(true);
             }}
           />
@@ -689,10 +700,11 @@ export default function DetailsScreen() {
         <ZoomGallery
           visible={zoomVisible}
           images={zoomGalleryImages}
-          initialIndex={inlineZoomImage ? 0 : currentImageIndex}
+          initialIndex={inlineZoomImages ? inlineZoomIndex : currentImageIndex}
           onRequestClose={() => {
             setZoomVisible(false);
-            setInlineZoomImage(null);
+            setInlineZoomImages(null);
+            setInlineZoomIndex(0);
           }}
           albumName='Downloads'
         />
