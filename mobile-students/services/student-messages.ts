@@ -1,5 +1,6 @@
 import api from '@/services/api-client';
 import DemoModeService from '@/services/demo-mode-service';
+import type { Poll } from '@/components/PollView';
 import type {
   GetMessageResponse,
   ListMessagesRequest,
@@ -97,4 +98,24 @@ export async function fetchStudentUnreadCount(): Promise<number> {
   }
 
   return 0;
+}
+
+export async function voteStudentPoll(
+  postId: number,
+  optionId: number
+): Promise<Poll | null> {
+  const response = await api.post<{ poll: Poll | null }>(
+    '/student/poll/vote',
+    { post_id: postId, option_id: optionId }
+  );
+  return response.data?.poll ?? null;
+}
+
+export async function removeStudentPollVote(
+  postId: number
+): Promise<Poll | null> {
+  const response = await api.delete<{ poll: Poll | null }>(
+    `/student/poll/vote/${postId}`
+  );
+  return response.data?.poll ?? null;
 }
