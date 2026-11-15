@@ -109,6 +109,18 @@ function getMessagePreview(content: string) {
     .trim();
 }
 
+function getCardCopy(message: Message) {
+  const title = message.title?.trim() ?? "";
+  const preview = getMessagePreview(message.content || "");
+  const question = message.poll?.question?.trim() ?? "";
+
+  return {
+    title: title || question,
+    preview: preview || (title ? question : ""),
+    isPoll: message.poll != null,
+  };
+}
+
 function getMessageDateTime(sentTime: string) {
   if (sentTime.includes("T")) {
     return DateTime.fromISO(sentTime, { zone: "utc" }).toLocal();
@@ -466,7 +478,7 @@ export default function StudentMessagesScreen() {
     const filtered = messages.filter((message) => {
       const matchesSearch =
         !query ||
-        `${message.title} ${getMessagePreview(message.content)}`
+        `${message.title} ${getMessagePreview(message.content || "")} ${message.poll?.question ?? ""}`
           .toLocaleLowerCase()
           .includes(query);
       const matchesStatus =
@@ -535,6 +547,9 @@ export default function StudentMessagesScreen() {
   const selectedMessage = messages.find(
     (message) => message.id === selectedMessageId,
   );
+  const selectedCardCopy = selectedMessage
+    ? getCardCopy(selectedMessage)
+    : null;
 
   const handleCopyLink = async () => {
     if (selectedMessageId === null) return;
@@ -803,7 +818,7 @@ export default function StudentMessagesScreen() {
       >
         {displayMessages.map((message, index) => {
           const isRead = !!message.viewed_at;
-          const messagePreview = getMessagePreview(message.content);
+          const cardCopy = getCardCopy(message);
           const localDateTime = getMessageDateTime(message.sent_time);
 
           const isPinned = pinnedMessageIds.includes(message.id);
@@ -866,11 +881,11 @@ export default function StudentMessagesScreen() {
                   />
                 ) : null}
                 <ThemedText
-                  numberOfLines={1}
+                  numberOfLines={cardCopy.preview ? 1 : 2}
                   ellipsizeMode="tail"
                   style={[styles.title, isRead && styles.readOpacity]}
                 >
-                  {message.title}
+                  {cardCopy.title}
                 </ThemedText>
                 <View style={styles.headerRight}>
                   <ThemedText
@@ -903,21 +918,32 @@ export default function StudentMessagesScreen() {
                 </View>
               </View>
 
-              {message.group_name ? (
+              {cardCopy.isPoll || message.group_name ? (
                 <View style={styles.groupRow}>
-                  <ThemedText style={styles.groupBadge}>
-                    {message.group_name}
-                  </ThemedText>
+                  {cardCopy.isPoll ? (
+                    <ThemedText
+                      style={[styles.pollTag, isRead && styles.readOpacity]}
+                    >
+                      {t("poll")}
+                    </ThemedText>
+                  ) : null}
+                  {message.group_name ? (
+                    <ThemedText style={styles.groupBadge}>
+                      {message.group_name}
+                    </ThemedText>
+                  ) : null}
                 </View>
               ) : null}
 
-              <ThemedText
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                style={[styles.preview, isRead && styles.readOpacity]}
-              >
-                {messagePreview}
-              </ThemedText>
+              {cardCopy.preview ? (
+                <ThemedText
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                  style={[styles.preview, isRead && styles.readOpacity]}
+                >
+                  {cardCopy.preview}
+                </ThemedText>
+              ) : null}
 
               <View style={styles.bottomRow}>
                 <View style={styles.dateAndStatus}>
@@ -1203,8 +1229,8 @@ export default function StudentMessagesScreen() {
               ]}
             >
               <View style={styles.titleRow}>
-                <ThemedText numberOfLines={1} style={styles.title}>
-                  {selectedMessage.title}
+                <ThemedText numberOfLines={2} style={styles.title}>
+                  {selectedCardCopy?.title}
                 </ThemedText>
                 <ThemedText
                   style={getImportanceBadgeStyle(
@@ -1215,9 +1241,14 @@ export default function StudentMessagesScreen() {
                   {getImportanceLabel(selectedMessage.priority, t)}
                 </ThemedText>
               </View>
-              <ThemedText numberOfLines={2} style={styles.preview}>
-                {getMessagePreview(selectedMessage.content)}
-              </ThemedText>
+              {selectedCardCopy?.isPoll ? (
+                <ThemedText style={styles.pollTag}>{t("poll")}</ThemedText>
+              ) : null}
+              {selectedCardCopy?.preview ? (
+                <ThemedText numberOfLines={2} style={styles.preview}>
+                  {selectedCardCopy.preview}
+                </ThemedText>
+              ) : null}
             </View>
           ) : null}
           <Pressable
@@ -1710,6 +1741,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
     color: "white",
     padding: 5,
+    borderRadius: 5,
+    fontSize: 12,
+    overflow: "hidden",
+  },
+  pollTag: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.primary,
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 5,
     fontSize: 12,
     overflow: "hidden",

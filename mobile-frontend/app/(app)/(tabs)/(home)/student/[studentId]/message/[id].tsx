@@ -362,6 +362,7 @@ export default function DetailsScreen() {
               sent_time: messageData.sent_time,
               viewed_at: messageData.viewed_at,
               read_status: (messageData.viewed_at ? 1 : 0) as 0 | 1,
+              poll: messageData.poll ?? null,
             };
 
             await saveMessageToDB(
