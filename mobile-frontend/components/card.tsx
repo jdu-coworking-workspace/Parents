@@ -61,6 +61,18 @@ function getMessagePreview(content: string) {
     .trim();
 }
 
+function getCardCopy(message: Message) {
+  const title = message.title?.trim() ?? '';
+  const preview = getMessagePreview(message.content || '');
+  const question = message.poll?.question?.trim() ?? '';
+
+  return {
+    title: title || question,
+    preview: preview || (title ? question : ''),
+    isPoll: message.poll != null,
+  };
+}
+
 const Card = ({
   messageGroup,
   studentId,
@@ -75,7 +87,10 @@ const Card = ({
   // const isRead = message.read_status === 1 || !!message.viewed_at // Derive directly from prop
   const textColor = useThemeColor({}, 'text');
   const firstMessage = messageGroup[0];
-  const messagePreview = getMessagePreview(firstMessage.content);
+  const cardCopy = getCardCopy({
+    ...firstMessage,
+    poll: messageGroup.find(message => message.poll)?.poll ?? firstMessage.poll,
+  });
   const groupNames = [
     ...new Set(messageGroup.map(m => m.group_name).filter(Boolean)),
   ];
@@ -179,7 +194,7 @@ const Card = ({
             <View style={styles.MessageTitleContainer}>
               <ThemedText
                 type='default'
-                numberOfLines={1}
+                numberOfLines={cardCopy.preview ? 1 : 2}
                 style={cn(
                   isRead
                     ? { fontWeight: 'bold', opacity: 0.6 }
@@ -187,7 +202,7 @@ const Card = ({
                   { color: textColor }
                 )}
               >
-                {firstMessage.title}
+                {cardCopy.title}
               </ThemedText>
             </View>
           </ThemedView>
@@ -205,23 +220,33 @@ const Card = ({
           </ThemedView>
         </View>
         <View style={styles.dateRow}>
+          {cardCopy.isPoll ? (
+            <ThemedText
+              type='smaller'
+              style={[styles.pollTag, { opacity: isRead ? 0.6 : 1 }]}
+            >
+              {i18n[language].poll}
+            </ThemedText>
+          ) : null}
           {groupNames.map((groupName, index) => (
             <ThemedText key={index} type='smaller' style={styles.groupStyle}>
               {groupName}
             </ThemedText>
           ))}
         </View>
-        <View style={styles.descriptionRow}>
-          <Autolink
-            email
-            hashtag='instagram'
-            mention='instagram'
-            text={messagePreview}
-            numberOfLines={2}
-            style={autolinkStyles}
-            textProps={{ style: autolinkStyles }}
-          />
-        </View>
+        {cardCopy.preview ? (
+          <View style={styles.descriptionRow}>
+            <Autolink
+              email
+              hashtag='instagram'
+              mention='instagram'
+              text={cardCopy.preview}
+              numberOfLines={2}
+              style={autolinkStyles}
+              textProps={{ style: autolinkStyles }}
+            />
+          </View>
+        ) : null}
         <View style={styles.bottomRow}>
           <View style={styles.dateAndStatus}>
             <ThemedText
@@ -350,5 +375,14 @@ const styles = StyleSheet.create({
     color: 'white',
     padding: 5,
     borderRadius: 5,
+  },
+  pollTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary,
+    color: 'white',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 5,
+    overflow: 'hidden',
   },
 });

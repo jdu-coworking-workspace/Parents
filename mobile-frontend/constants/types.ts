@@ -9,6 +9,9 @@ interface Message {
   sent_time: string;
   viewed_at: string | null;
   read_status: 0 | 1;
+  poll?: {
+    question?: string | null;
+  } | null;
 }
 
 interface DatabaseMessage extends Message {

@@ -101,6 +101,7 @@ export type TranslationKeys = {
   critical: string;
   important: string;
   ordinary: string;
+  poll: string;
   group: string;
   continueReading: string;
   loadMoreMessages: string;

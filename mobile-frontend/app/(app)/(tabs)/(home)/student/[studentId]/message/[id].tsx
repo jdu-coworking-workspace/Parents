@@ -32,6 +32,7 @@ import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiError } from '@/services/api-client';
 import { openGoogleTranslate } from '@/utils/translate';
+import PollView, { Poll } from '@/components/PollView';
 
 const normalizeMessageImages = (post: any): string[] | null => {
   if (Array.isArray(post.images) && post.images.length > 0) {
@@ -117,6 +118,8 @@ export default function DetailsScreen() {
     null
   );
   const [inlineZoomIndex, setInlineZoomIndex] = useState(0);
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [pollPostId, setPollPostId] = useState<number | null>(null);
 
   const { id, studentId } = useLocalSearchParams();
   const actualStudentId = studentId ? Number(studentId) : undefined;
@@ -359,6 +362,7 @@ export default function DetailsScreen() {
               sent_time: messageData.sent_time,
               viewed_at: messageData.viewed_at,
               read_status: (messageData.viewed_at ? 1 : 0) as 0 | 1,
+              poll: messageData.poll ?? null,
             };
 
             await saveMessageToDB(
@@ -452,6 +456,26 @@ export default function DetailsScreen() {
     return () => clearTimeout(timer);
   }, [actualStudentId, isDemoMode, queryClient]);
 
+  // So'rovnomani serverdan jonli olish (faqat online, demo bo'lmasa)
+  useEffect(() => {
+    if (!id || isDemoMode || !isOnline || !session) return;
+    let cancelled = false;
+
+    apiClient
+      .get<{ post: any }>(`/post/${id}`)
+      .then(res => {
+        if (cancelled) return;
+        const p = res.data.post;
+        setPollPostId(p?.post_id ?? null);
+        setPoll(p?.poll ?? null);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isDemoMode, isOnline, session]);
+
   if (loading)
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -491,6 +515,23 @@ export default function DetailsScreen() {
       low: i18n[language].ordinary,
     };
     return mapping[priority] || 'unknown';
+  };
+
+  const handleVote = async (optionId: number) => {
+    if (!pollPostId) return;
+    const res = await apiClient.post<{ poll: Poll }>('/poll/vote', {
+      post_id: pollPostId,
+      option_id: optionId,
+    });
+    setPoll(res.data.poll);
+  };
+
+  const handleRemoveVote = async () => {
+    if (!pollPostId) return;
+    const res = await apiClient.delete<{ poll: Poll }>(
+      `/poll/vote/${pollPostId}`
+    );
+    setPoll(res.data.poll);
   };
 
   const imageArray = Array.isArray(message.images)
@@ -652,6 +693,17 @@ export default function DetailsScreen() {
             }}
           />
         </View>
+
+        {poll ? (
+          <PollView
+            poll={poll}
+            language={language}
+            isDark={theme.mode === 'dark'}
+            textColor={textColor}
+            onVote={handleVote}
+            onRemoveVote={handleRemoveVote}
+          />
+        ) : null}
 
         {/* Date and Translate/Copy buttons on the same level */}
         <View
