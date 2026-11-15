@@ -1,8 +1,7 @@
 import React, { useEffect, useContext } from 'react';
 import MessageList from '@/components/MessageList';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useStudents } from '@/contexts/student-context';
-import { useFocusEffect } from '@react-navigation/native';
 import { I18nContext } from '@/contexts/i18n-context';
 
 const StudentMessagesScreen = () => {

@@ -109,6 +109,24 @@ export type TranslationKeys = {
   noMessagesDescription: string;
   errorLoadingMessages: string;
   tryAgain: string;
+  searchMessages: string;
+  filters: string;
+  allMessages: string;
+  readMessages: string;
+  unreadMessages: string;
+  favoriteMessages: string;
+  pinnedMessages: string;
+  sortByDate: string;
+  resetFilters: string;
+  applyFilters: string;
+  copyLink: string;
+  pinMessage: string;
+  markUnread: string;
+  universityPhone: string;
+  universityContact: string;
+  noMatchingMessages: string;
+  messageStatus: string;
+  anyImportance: string;
 
   // 404 error page
   pageNotFound: string;

@@ -263,6 +263,29 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.infoCard}>
             <ThemedText style={styles.sectionTitle}>
+              {i18n[language].universityContact}
+            </ThemedText>
+            <Pressable
+              style={styles.row}
+              onPress={() =>
+                Alert.alert(i18n[language].universityPhone, '+998 95 111 11 11')
+              }
+            >
+              <View style={[styles.rowIcon, { backgroundColor: '#059669' }]}>
+                <Ionicons color='#fff' name='call-outline' size={20} />
+              </View>
+              <View>
+                <ThemedText style={styles.profileInitial}>
+                  {i18n[language].universityPhone}
+                </ThemedText>
+                <ThemedText style={styles.profileText}>
+                  +998 95 111 11 11
+                </ThemedText>
+              </View>
+            </Pressable>
+          </View>
+          <View style={styles.infoCard}>
+            <ThemedText style={styles.sectionTitle}>
               {i18n[language].preferences}
             </ThemedText>
             <Pressable onPress={handlePresentModal} style={styles.row}>

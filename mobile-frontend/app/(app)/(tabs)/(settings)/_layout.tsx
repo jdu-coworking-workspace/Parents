@@ -10,9 +10,11 @@ const Layout = () => {
   const { theme } = useTheme();
 
   return (
-    <Stack>
+    <Stack
+      initialRouteName='index'
+    >
       <Stack.Screen
-        name='settings'
+        name='index'
         options={{
           title: i18n[language].settings,
           headerStyle: {
@@ -31,6 +33,22 @@ const Layout = () => {
         name='change-psswd'
         options={{
           headerTitle: i18n[language].changePassword,
+          headerTitleAlign: 'center',
+          headerStyle: {
+            backgroundColor: headerBg(theme.mode!),
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: Platform.OS === 'android' ? 16 : 17,
+          },
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name='faq'
+        options={{
+          headerTitle: i18n[language].faq,
           headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: headerBg(theme.mode!),

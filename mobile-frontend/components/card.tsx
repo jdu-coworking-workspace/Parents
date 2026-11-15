@@ -19,14 +19,14 @@ import { ThemedView } from '@/components/ThemedView';
 import { DateTime } from 'luxon';
 import { useFontSize } from '@/contexts/FontSizeContext';
 import { useTheme } from '@rneui/themed';
-import { Colors, colors } from '@/constants/Colors';
+import { Colors } from '@/constants/Colors';
 
 function getMessagePreview(content: string) {
   const tagRegex =
     /<img\b[^>]*\bsrc=["'][^"']*["'][^>]*>|<\/?[a-z][a-z0-9]*\b[^>]*>/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
-  let text = ''; 
+  let text = '';
 
   while ((match = tagRegex.exec(content))) {
     text += content.slice(lastIndex, match.index);
@@ -64,9 +64,17 @@ function getMessagePreview(content: string) {
 const Card = ({
   messageGroup,
   studentId,
+  isPinned = false,
+  isFavorite = false,
+  onLongPress,
+  onFavoriteToggle,
 }: {
   messageGroup: Message[];
   studentId: number;
+  isPinned?: boolean;
+  isFavorite?: boolean;
+  onLongPress?: () => void;
+  onFavoriteToggle?: () => void;
 }) => {
   const router = useRouter();
   const { language, i18n } = useContext(I18nContext);
@@ -76,9 +84,6 @@ const Card = ({
   const textColor = useThemeColor({}, 'text');
   const firstMessage = messageGroup[0];
   const messagePreview = getMessagePreview(firstMessage.content);
-  const groupNames = [
-    ...new Set(messageGroup.map(m => m.group_name).filter(Boolean)),
-  ];
   const isRead = messageGroup.every(m => m.read_status === 1 || !!m.viewed_at);
 
   const handlePress = async () => {
@@ -148,49 +153,53 @@ const Card = ({
   const iconSize = Math.round(baseIconSize * Math.max(1, multiplier));
 
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable
+      onPress={handlePress}
+      onLongPress={onLongPress}
+      delayLongPress={400}
+    >
       <View
         style={[
           styles.container,
           {
-            backgroundColor: theme.mode === 'dark' ? '#1C1C1E' : '#FFFFFF',
-            borderColor: !isRead
+            backgroundColor: isPinned
               ? theme.mode === 'dark'
-                ? Colors.dark.tint
-                : Colors.light.tint
+                ? '#173B70'
+                : '#EAF2FF'
               : theme.mode === 'dark'
-                ? '#2C2C2E'
-                : '#E5E5EA',
-            borderWidth: !isRead ? 1.5 : 1,
+                ? '#1C1C1E'
+                : '#FFFFFF',
+            borderColor: isPinned
+              ? '#0A84FF'
+              : !isRead
+                ? theme.mode === 'dark'
+                  ? Colors.dark.tint
+                  : Colors.light.tint
+                : theme.mode === 'dark'
+                  ? '#2C2C2E'
+                  : '#E5E5EA',
+            borderWidth: isPinned || !isRead ? 1.5 : 1,
           },
         ]}
       >
         <View style={styles.titleRow}>
-          <ThemedView
-            style={{
-              flexDirection: 'row',
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'transparent',
-              marginRight: 10,
-            }}
+          {isPinned ? (
+            <Ionicons
+              name='pin'
+              size={19}
+              color='#2563C5'
+              style={styles.pinnedTitleIcon}
+            />
+          ) : null}
+          <ThemedText
+            type='default'
+            numberOfLines={1}
+            style={cn(styles.title, isRead && { opacity: 0.6 }, {
+              color: textColor,
+            })}
           >
-            <View style={styles.MessageTitleContainer}>
-              <ThemedText
-                type='default'
-                numberOfLines={1}
-                style={cn(
-                  isRead
-                    ? { fontWeight: 'bold', opacity: 0.6 }
-                    : { marginRight: 20, fontWeight: 'bold' },
-                  { color: textColor }
-                )}
-              >
-                {firstMessage.title}
-              </ThemedText>
-            </View>
-          </ThemedView>
+            {firstMessage.title}
+          </ThemedText>
           <ThemedView
             style={{
               flexDirection: 'row',
@@ -202,14 +211,19 @@ const Card = ({
             <ThemedText style={getImportanceBadgeStyle(firstMessage.priority)}>
               {getImportanceLabel(firstMessage.priority)}
             </ThemedText>
+            <TouchableOpacity
+              onPress={onFavoriteToggle}
+              hitSlop={8}
+              accessibilityRole='button'
+              style={styles.favoriteButton}
+            >
+              <Ionicons
+                name={isFavorite ? 'star' : 'star-outline'}
+                size={22}
+                color={isFavorite ? '#F59E0B' : '#8E8E93'}
+              />
+            </TouchableOpacity>
           </ThemedView>
-        </View>
-        <View style={styles.dateRow}>
-          {groupNames.map((groupName, index) => (
-            <ThemedText key={index} type='smaller' style={styles.groupStyle}>
-              {groupName}
-            </ThemedText>
-          ))}
         </View>
         <View style={styles.descriptionRow}>
           <Autolink
@@ -305,14 +319,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 5,
-    marginRight: 15,
+    marginRight: 0,
     width: '100%',
   },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-    gap: 10,
+  title: {
+    flex: 1,
+    marginRight: 12,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  pinnedTitleIcon: {
+    marginRight: 8,
+  },
+  favoriteButton: {
+    marginRight: 8,
   },
   dateText: {
     fontWeight: '300',
@@ -325,7 +345,7 @@ const styles = StyleSheet.create({
   descriptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 5,
+    marginTop: 10,
   },
   readMoreButton: {
     display: 'flex',
@@ -344,11 +364,5 @@ const styles = StyleSheet.create({
   },
   readMoreText: {
     fontWeight: '600',
-  },
-  groupStyle: {
-    backgroundColor: colors.success,
-    color: 'white',
-    padding: 5,
-    borderRadius: 5,
   },
 });

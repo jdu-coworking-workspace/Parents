@@ -13,10 +13,16 @@ import {
   View,
   ActivityIndicator,
   Image,
+  Modal,
+  Pressable,
+  TextInput,
+  TouchableOpacity,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DateTime } from 'luxon';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { Message, Student } from '@/constants/types';
 import { colors } from '@/constants/Colors';
 import { useNetwork } from '@/contexts/network-context';
@@ -121,9 +127,339 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: 'center',
     marginBottom: 20,
+  },
+  toolbar: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    gap: 10,
+  },
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 40,
+  },
+  searchBox: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 42,
+    fontSize: 16,
+  },
+  filterButton: {
+    width: 48,
+    height: 44,
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#3B81F6',
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  filterCountBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#2563C5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  quickFilters: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  quickFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.62)',
+  },
+  filterSheet: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 30,
+  },
+  actionSheet: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 30,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 18,
+    backgroundColor: '#C7C7CC',
+  },
+  sheetTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChoiceRow: {
+    gap: 8,
+    paddingBottom: 6,
+  },
+  filterChoice: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+  },
+  activeFilterChoice: {
+    backgroundColor: '#2F5BD3',
+    borderColor: '#2F5BD3',
+  },
+  filterGroupTitle: {
+    marginTop: 6,
+    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    opacity: 0.7,
+  },
+  filterOptions: {
+    gap: 0,
+  },
+  filterOption: {
+    minHeight: 54,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  activeFilterOption: {
+    backgroundColor: '#EAF2FF',
+  },
+  filterOptionLabel: {
+    flex: 1,
+    fontSize: 16,
+  },
+  filterOptionCheck: {
+    marginLeft: 'auto',
+  },
+  option: {
+    borderWidth: 1,
+    borderColor: '#0A84FF',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  activeOption: {
+    backgroundColor: '#0A84FF',
+  },
+  dateOption: {
+    borderWidth: 1,
+    borderColor: '#0A84FF',
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  calendar: {
+    borderTopWidth: 1,
+    borderTopColor: '#D1D1D6',
+    paddingTop: 12,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    marginBottom: 12,
+  },
+  calendarTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 4,
+  },
+  calendarWeekDay: {
+    width: '14.28%',
+    textAlign: 'center',
+    fontSize: 12,
+    opacity: 0.55,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: '14.28%',
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+  },
+  selectedCalendarDay: {
+    backgroundColor: '#0A84FF',
+  },
+  calendarDayText: {
+    fontSize: 14,
+  },
+  selectedCalendarDayText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  sheetActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  resetButton: {
+    flex: 1,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: '#0A84FF',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: '#0A84FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  action: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#888',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 54,
+    gap: 14,
+  },
+  actionIcon: {
+    width: 24,
+  },
+  actionLabel: {
+    fontSize: 16,
+  },
+  selectedPreview: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 245,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
+  },
+  previewTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  previewTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  previewPriority: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  previewText: {
+    marginTop: 6,
+    fontSize: 16,
+  },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  sectionHeadingText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0A84FF',
+  },
+  allHeading: {
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  emptySearchState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 10,
+  },
+  emptySearchTitle: {
+    fontSize: 16,
+    opacity: 0.7,
   },
 });
 
@@ -266,8 +602,89 @@ const MessageList = ({
   const wasOnlineRef = useRef(isOnline);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMoreOffline, setIsLoadingMoreOffline] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'read' | 'unread'>(
+    'all'
+  );
+  const [dateFilter, setDateFilter] = useState<string | null>(null);
+  const [sortByDateActive, setSortByDateActive] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(
+    DateTime.local().startOf('month')
+  );
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [pinnedOnly, setPinnedOnly] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [pinnedIds, setPinnedIds] = useState<number[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Message[] | null>(null);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const loadedPreferencesKeyRef = useRef<string | null>(null);
   const readButNotSentMessageIDs = useRef<number[]>([]);
   const refetchRef = useRef<() => Promise<any>>(() => Promise.resolve());
+
+  const [accountId, setAccountId] = useState<string>('anonymous');
+  const preferencesKey = `parent-message-preferences:${accountId}:${studentId}`;
+
+  useEffect(() => {
+    db.getFirstAsync<{ id: number }>('SELECT id FROM user')
+      .then(user => {
+        if (user?.id) setAccountId(String(user.id));
+      })
+      .catch(error =>
+        console.error('Error loading account preferences key:', error)
+      );
+  }, [db, session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadedPreferencesKeyRef.current = null;
+    AsyncStorage.getItem(preferencesKey)
+      .then(value => {
+        if (cancelled || !value) return;
+        const parsed = JSON.parse(value);
+        setPinnedIds(
+          Array.isArray(parsed.pinnedIds)
+            ? parsed.pinnedIds.filter(
+                (id: unknown): id is number => typeof id === 'number'
+              )
+            : []
+        );
+        setFavoriteIds(
+          Array.isArray(parsed.favoriteIds)
+            ? parsed.favoriteIds.filter(
+                (id: unknown): id is number => typeof id === 'number'
+              )
+            : []
+        );
+      })
+      .catch(error =>
+        console.error('Error loading message preferences:', error)
+      )
+      .finally(() => {
+        if (!cancelled) {
+          loadedPreferencesKeyRef.current = preferencesKey;
+          setPreferencesLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [preferencesKey]);
+
+  useEffect(() => {
+    if (
+      !preferencesLoaded ||
+      loadedPreferencesKeyRef.current !== preferencesKey
+    ) {
+      return;
+    }
+    AsyncStorage.setItem(
+      preferencesKey,
+      JSON.stringify({ pinnedIds, favoriteIds })
+    ).catch(error => console.error('Error saving message preferences:', error));
+  }, [preferencesKey, preferencesLoaded, pinnedIds, favoriteIds]);
 
   // Fetch student details based on studentId
   useEffect(() => {
@@ -607,6 +1024,123 @@ const MessageList = ({
     return groupMessages([]);
   }, [isDemoMode, isOnline, data, localMessages]);
 
+  const visibleMessageGroups = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const matchesDate = (sentTime: string) => {
+      if (!dateFilter) return true;
+      const parsed = sentTime.includes('T')
+        ? DateTime.fromISO(sentTime, { zone: 'utc' })
+        : DateTime.fromFormat(sentTime, 'yyyy-MM-dd HH:mm', { zone: 'utc' });
+      return parsed.toLocal().toFormat('yyyy-MM-dd') === dateFilter;
+    };
+
+    return messageGroups
+      .filter(group => {
+        const firstMessage = group.messages[0];
+        const isRead = group.messages.every(
+          message => message.read_status === 1 || !!message.viewed_at
+        );
+        const searchableText =
+          `${firstMessage.title} ${firstMessage.content} ${group.messages
+            .map(message => message.group_name || '')
+            .join(' ')}`
+            .replace(/<[^>]+>/g, ' ')
+            .toLocaleLowerCase();
+
+        return (
+          (!query || searchableText.includes(query)) &&
+          (statusFilter === 'all' ||
+            (statusFilter === 'read' && isRead) ||
+            (statusFilter === 'unread' && !isRead)) &&
+          (!dateFilter || matchesDate(firstMessage.sent_time)) &&
+          (!priorityFilter || firstMessage.priority === priorityFilter) &&
+          (!favoriteOnly || favoriteIds.includes(firstMessage.id)) &&
+          (!pinnedOnly || pinnedIds.includes(firstMessage.id))
+        );
+      })
+      .sort((a, b) => {
+        const pinnedDifference =
+          Number(pinnedIds.includes(b.messages[0].id)) -
+          Number(pinnedIds.includes(a.messages[0].id));
+        if (pinnedDifference !== 0) return pinnedDifference;
+        if (sortByDateActive) {
+          const getMillis = (sentTime: string) =>
+            (sentTime.includes('T')
+              ? DateTime.fromISO(sentTime, { zone: 'utc' })
+              : DateTime.fromFormat(sentTime, 'yyyy-MM-dd HH:mm', {
+                  zone: 'utc',
+                })
+            ).toMillis();
+          return (
+            getMillis(b.messages[0].sent_time) -
+            getMillis(a.messages[0].sent_time)
+          );
+        }
+        return 0;
+      });
+  }, [
+    messageGroups,
+    searchQuery,
+    statusFilter,
+    dateFilter,
+    sortByDateActive,
+    priorityFilter,
+    favoriteOnly,
+    pinnedOnly,
+    favoriteIds,
+    pinnedIds,
+  ]);
+
+  const pinnedVisibleGroups = useMemo(
+    () =>
+      visibleMessageGroups.filter(group =>
+        pinnedIds.includes(group.messages[0].id)
+      ),
+    [visibleMessageGroups, pinnedIds]
+  );
+  const allVisibleGroups = useMemo(
+    () =>
+      visibleMessageGroups.filter(
+        group => !pinnedIds.includes(group.messages[0].id)
+      ),
+    [visibleMessageGroups, pinnedIds]
+  );
+
+  const togglePinned = useCallback((messageId: number) => {
+    setPinnedIds(current =>
+      current.includes(messageId)
+        ? current.filter(id => id !== messageId)
+        : [messageId, ...current]
+    );
+  }, []);
+
+  const toggleFavorite = useCallback((messageId: number) => {
+    setFavoriteIds(current =>
+      current.includes(messageId)
+        ? current.filter(id => id !== messageId)
+        : [...current, messageId]
+    );
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setStatusFilter('all');
+    setDateFilter(null);
+    setSortByDateActive(false);
+    setDatePickerVisible(false);
+    setPriorityFilter(null);
+    setFavoriteOnly(false);
+    setPinnedOnly(false);
+    setIsFilterOpen(false);
+  }, []);
+
+  const activeFilterCount =
+    Number(statusFilter !== 'all') +
+    Number(Boolean(dateFilter)) +
+    Number(sortByDateActive) +
+    Number(Boolean(priorityFilter)) +
+    Number(favoriteOnly) +
+    Number(pinnedOnly);
+
   // Check if we have any cached data available (either from React Query or local DB)
   const hasCachedData =
     (data?.pages.flat().length ?? 0) > 0 || localMessages.length > 0;
@@ -678,49 +1212,577 @@ const MessageList = ({
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.mode === 'dark' ? '#000000' : '#FFFFFF' }}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      contentContainerStyle={[styles.messageListContainer, { paddingTop: 16 }]}
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.mode === 'dark' ? '#000000' : '#FFFFFF' },
+      ]}
     >
-      <View>
-        {messageGroups.map(group => (
-          <React.Fragment key={group.key}>
-            <Card messageGroup={group.messages} studentId={student?.id || 0} />
-          </React.Fragment>
-        ))}
-
-        {/* Load more button */}
-        {(hasNextPage ||
-          (!isDemoMode && !isOnline && localMessages.length >= 10)) && (
-          <Button
-            title={i18n[language].loadMoreMessages}
-            onPress={handleLoadMore}
-            buttonStyle={[
-              styles.loadMoreButton,
-              { backgroundColor: '#005678' },
+      <View style={styles.toolbar}>
+        <View style={styles.searchFilterRow}>
+          <View
+            style={[
+              styles.searchBox,
+              {
+                borderWidth: 1.5,
+                borderColor: '#3B81F6',
+                backgroundColor: theme.mode === 'dark' ? '#1C1C1E' : '#F2F2F7',
+              },
             ]}
-            disabledStyle={[
-              styles.loadMoreButton,
-              { backgroundColor: '#003d56' },
-            ]}
-            disabled={
-              isDemoMode || isOnline
-                ? !hasNextPage || isFetchingNextPage
-                : isLoadingMoreOffline
-            }
-            loading={
-              isDemoMode || isOnline ? isFetchingNextPage : isLoadingMoreOffline
-            }
-            loadingProps={{
-              color: theme.mode === 'dark' ? '#4a90a4' : '#ffffff',
-            }}
-          />
-        )}
+          >
+            <Ionicons name='search-outline' size={19} color='#3B81F6' />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={i18n[language].searchMessages}
+              placeholderTextColor={theme.mode === 'dark' ? '#A1A1AA' : '#777'}
+              style={[styles.searchInput, { color: textColor }]}
+            />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name='close-circle' size={18} color='#8E8E93' />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <View style={styles.filterControls}>
+            <TouchableOpacity
+              onPress={() => setIsFilterOpen(true)}
+              style={[
+                styles.filterButton,
+                {
+                  backgroundColor:
+                    activeFilterCount > 0 ? '#3B81F6' : 'transparent',
+                },
+              ]}
+            >
+              <Ionicons
+                name='options-outline'
+                size={20}
+                color={activeFilterCount > 0 ? '#FFFFFF' : '#2563C5'}
+              />
+              {activeFilterCount > 0 ? (
+                <View style={styles.filterCountBadge}>
+                  <ThemedText style={styles.filterCountText}>
+                    {activeFilterCount}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.quickFilters}
+        >
+          {[
+            ['all', i18n[language].allMessages],
+            ['favorite', i18n[language].favoriteMessages],
+            ['pinned', i18n[language].pinnedMessages],
+            ['important', i18n[language].important],
+          ].map(([value, label]) => {
+            const active =
+              value === 'all'
+                ? statusFilter === 'all' &&
+                  !favoriteOnly &&
+                  !pinnedOnly &&
+                  !dateFilter &&
+                  !sortByDateActive &&
+                  !priorityFilter
+                : value === 'favorite'
+                  ? favoriteOnly
+                  : value === 'pinned'
+                    ? pinnedOnly
+                    : value === 'important'
+                      ? priorityFilter === 'high'
+                      : statusFilter === value;
+            return (
+              <TouchableOpacity
+                key={value}
+                onPress={() => {
+                  if (value === 'all') resetFilters();
+                  else if (value === 'favorite')
+                    setFavoriteOnly(value => !value);
+                  else if (value === 'pinned') setPinnedOnly(value => !value);
+                  else if (value === 'important') {
+                    setPriorityFilter(current =>
+                      current === 'high' ? null : 'high'
+                    );
+                  } else setStatusFilter(value as 'read' | 'unread');
+                }}
+                style={[
+                  styles.quickFilter,
+                  {
+                    borderColor: active ? '#2F5BD3' : '#D1D5DB',
+                    backgroundColor: active ? '#2F5BD3' : 'transparent',
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={{
+                    color: active
+                      ? '#FFFFFF'
+                      : theme.mode === 'dark'
+                        ? '#F3F4F6'
+                        : '#1F2937',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}
+                >
+                  {label}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
-    </ScrollView>
+      <ScrollView
+        style={{ flex: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={styles.messageListContainer}
+      >
+        <View>
+          {pinnedVisibleGroups.length > 0 &&
+          !searchQuery &&
+          !dateFilter &&
+          !sortByDateActive &&
+          statusFilter === 'all' &&
+          !favoriteOnly &&
+          !pinnedOnly &&
+          !priorityFilter ? (
+            <View style={styles.sectionHeading}>
+              <Ionicons name='pin' size={18} color='#0A84FF' />
+              <ThemedText style={styles.sectionHeadingText}>
+                {i18n[language].pinnedMessages}
+              </ThemedText>
+            </View>
+          ) : null}
+          {pinnedVisibleGroups.map(group => (
+            <React.Fragment key={group.key}>
+              <Card
+                messageGroup={group.messages}
+                studentId={student?.id || 0}
+                isPinned={pinnedIds.includes(group.messages[0].id)}
+                isFavorite={favoriteIds.includes(group.messages[0].id)}
+                onLongPress={() => setSelectedGroup(group.messages)}
+                onFavoriteToggle={() => toggleFavorite(group.messages[0].id)}
+              />
+            </React.Fragment>
+          ))}
+          {pinnedVisibleGroups.length > 0 &&
+          allVisibleGroups.length > 0 &&
+          !searchQuery &&
+          !dateFilter &&
+          !sortByDateActive &&
+          statusFilter === 'all' &&
+          !favoriteOnly &&
+          !pinnedOnly &&
+          !priorityFilter ? (
+            <ThemedText style={styles.allHeading}>
+              {i18n[language].allMessages}
+            </ThemedText>
+          ) : null}
+          {allVisibleGroups.map(group => (
+            <React.Fragment key={group.key}>
+              <Card
+                messageGroup={group.messages}
+                studentId={student?.id || 0}
+                isPinned={pinnedIds.includes(group.messages[0].id)}
+                isFavorite={favoriteIds.includes(group.messages[0].id)}
+                onLongPress={() => setSelectedGroup(group.messages)}
+                onFavoriteToggle={() => toggleFavorite(group.messages[0].id)}
+              />
+            </React.Fragment>
+          ))}
+          {visibleMessageGroups.length === 0 ? (
+            <View style={styles.emptySearchState}>
+              <Ionicons name='search-outline' size={40} color='#8E8E93' />
+              <ThemedText style={styles.emptySearchTitle}>
+                {i18n[language].noMatchingMessages}
+              </ThemedText>
+            </View>
+          ) : null}
+
+          {/* Load more button */}
+          {(hasNextPage ||
+            (!isDemoMode && !isOnline && localMessages.length >= 10)) && (
+            <Button
+              title={i18n[language].loadMoreMessages}
+              onPress={handleLoadMore}
+              buttonStyle={[
+                styles.loadMoreButton,
+                { backgroundColor: '#005678' },
+              ]}
+              disabledStyle={[
+                styles.loadMoreButton,
+                { backgroundColor: '#003d56' },
+              ]}
+              disabled={
+                isDemoMode || isOnline
+                  ? !hasNextPage || isFetchingNextPage
+                  : isLoadingMoreOffline
+              }
+              loading={
+                isDemoMode || isOnline
+                  ? isFetchingNextPage
+                  : isLoadingMoreOffline
+              }
+              loadingProps={{
+                color: theme.mode === 'dark' ? '#4a90a4' : '#ffffff',
+              }}
+            />
+          )}
+        </View>
+      </ScrollView>
+      <Modal
+        visible={isFilterOpen}
+        transparent
+        animationType='fade'
+        statusBarTranslucent
+        onRequestClose={() => setIsFilterOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setIsFilterOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.filterSheet,
+              {
+                backgroundColor: theme.mode === 'dark' ? '#1C1C1E' : '#FFFFFF',
+              },
+            ]}
+            onPress={event => event.stopPropagation()}
+          >
+            <View style={styles.sheetHandle} />
+            <ThemedText style={styles.sheetTitle}>
+              {i18n[language].filters}
+            </ThemedText>
+            <ThemedText style={styles.filterGroupTitle}>
+              {i18n[language].important}
+            </ThemedText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterChoiceRow}
+            >
+              {(['any', 'high', 'medium', 'low'] as const).map(value => (
+                <TouchableOpacity
+                  key={value}
+                  onPress={() =>
+                    setPriorityFilter(current =>
+                      value === 'any' || current === value ? null : value
+                    )
+                  }
+                  style={[
+                    styles.filterChoice,
+                    ((value === 'any' && !priorityFilter) ||
+                      priorityFilter === value) &&
+                      styles.activeFilterChoice,
+                  ]}
+                >
+                  <ThemedText
+                    style={{
+                      color:
+                        (value === 'any' && !priorityFilter) ||
+                        priorityFilter === value
+                          ? '#FFFFFF'
+                          : textColor,
+                    }}
+                  >
+                    {value === 'any'
+                      ? i18n[language].anyImportance
+                      : value === 'high'
+                        ? i18n[language].critical
+                        : value === 'medium'
+                          ? i18n[language].important
+                          : i18n[language].ordinary}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <ThemedText style={styles.filterGroupTitle}>
+              {i18n[language].messageStatus}
+            </ThemedText>
+            <View style={styles.filterOptions}>
+              {(
+                [
+                  ['read', i18n[language].readMessages, 'mail-open-outline'],
+                  [
+                    'unread',
+                    i18n[language].unreadMessages,
+                    'mail-unread-outline',
+                  ],
+                  ['favorite', i18n[language].favoriteMessages, 'star-outline'],
+                  ['date', i18n[language].sortByDate, 'calendar-outline'],
+                ] as const
+              ).map(([value, label, icon]) => (
+                <TouchableOpacity
+                  key={value}
+                  onPress={() => {
+                    if (value === 'read' || value === 'unread') {
+                      setStatusFilter(current =>
+                        current === value ? 'all' : value
+                      );
+                    } else if (value === 'favorite') {
+                      setFavoriteOnly(current => !current);
+                    } else {
+                      if (sortByDateActive) {
+                        setSortByDateActive(false);
+                        setDateFilter(null);
+                        setDatePickerVisible(false);
+                      } else {
+                        setSortByDateActive(true);
+                        setDatePickerVisible(true);
+                        setCalendarMonth(DateTime.local().startOf('month'));
+                      }
+                    }
+                  }}
+                  style={[
+                    styles.filterOption,
+                    ((value === 'read' || value === 'unread') &&
+                      statusFilter === value) ||
+                    (value === 'favorite' && favoriteOnly) ||
+                    (value === 'date' && sortByDateActive)
+                      ? styles.activeFilterOption
+                      : null,
+                  ]}
+                >
+                  <Ionicons
+                    name={icon}
+                    size={22}
+                    color={
+                      ((value === 'read' || value === 'unread') &&
+                        statusFilter === value) ||
+                      (value === 'favorite' && favoriteOnly) ||
+                      (value === 'date' && sortByDateActive)
+                        ? '#0A84FF'
+                        : textColor
+                    }
+                  />
+                  <ThemedText style={styles.filterOptionLabel}>
+                    {label}
+                  </ThemedText>
+                  {((value === 'read' || value === 'unread') &&
+                    statusFilter === value) ||
+                  (value === 'favorite' && favoriteOnly) ||
+                  (value === 'date' && sortByDateActive) ? (
+                    <Ionicons
+                      name='checkmark'
+                      size={21}
+                      color='#0A84FF'
+                      style={styles.filterOptionCheck}
+                    />
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </View>
+            {datePickerVisible ? (
+              <View style={styles.calendar}>
+                <View style={styles.calendarHeader}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setCalendarMonth(month => month.minus({ months: 1 }))
+                    }
+                  >
+                    <Ionicons name='chevron-back' size={20} color='#0A84FF' />
+                  </TouchableOpacity>
+                  <ThemedText style={styles.calendarTitle}>
+                    {calendarMonth.toFormat('LLLL yyyy')}
+                  </ThemedText>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setCalendarMonth(month => month.plus({ months: 1 }))
+                    }
+                  >
+                    <Ionicons
+                      name='chevron-forward'
+                      size={20}
+                      color='#0A84FF'
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.calendarWeekRow}>
+                  {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
+                    <ThemedText key={day} style={styles.calendarWeekDay}>
+                      {day}
+                    </ThemedText>
+                  ))}
+                </View>
+                <View style={styles.calendarGrid}>
+                  {Array.from(
+                    { length: calendarMonth.weekday - 1 },
+                    (_, index) => (
+                      <View key={`empty-${index}`} style={styles.calendarDay} />
+                    )
+                  )}
+                  {Array.from(
+                    { length: calendarMonth.daysInMonth },
+                    (_, index) => {
+                      const date = calendarMonth
+                        .set({ day: index + 1 })
+                        .toFormat('yyyy-MM-dd');
+                      const selected = date === dateFilter;
+                      return (
+                        <TouchableOpacity
+                          key={date}
+                          style={[
+                            styles.calendarDay,
+                            selected && styles.selectedCalendarDay,
+                          ]}
+                          onPress={() => setDateFilter(date)}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.calendarDayText,
+                              selected && styles.selectedCalendarDayText,
+                            ]}
+                          >
+                            {index + 1}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    }
+                  )}
+                </View>
+              </View>
+            ) : null}
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={resetFilters}
+              >
+                <ThemedText>{i18n[language].resetFilters}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={() => setIsFilterOpen(false)}
+              >
+                <ThemedText style={{ color: '#FFFFFF' }}>
+                  {i18n[language].applyFilters}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={selectedGroup !== null}
+        transparent
+        animationType='fade'
+        statusBarTranslucent
+        onRequestClose={() => setSelectedGroup(null)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setSelectedGroup(null)}
+        >
+          {selectedGroup?.[0] ? (
+            <View
+              style={[
+                styles.selectedPreview,
+                {
+                  backgroundColor:
+                    theme.mode === 'dark' ? '#1C1C1E' : '#FFFFFF',
+                },
+              ]}
+            >
+              <View style={styles.previewTitleRow}>
+                <ThemedText numberOfLines={1} style={styles.previewTitle}>
+                  {selectedGroup[0].title}
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.previewPriority,
+                    {
+                      backgroundColor:
+                        selectedGroup[0].priority === 'high'
+                          ? '#FF5B63'
+                          : selectedGroup[0].priority === 'medium'
+                            ? '#FFB84D'
+                            : '#62B866',
+                    },
+                  ]}
+                >
+                  {selectedGroup[0].priority === 'high'
+                    ? i18n[language].critical
+                    : selectedGroup[0].priority === 'medium'
+                      ? i18n[language].important
+                      : i18n[language].ordinary}
+                </ThemedText>
+              </View>
+              <ThemedText numberOfLines={2} style={styles.previewText}>
+                {selectedGroup[0].content.replace(/<[^>]+>/g, ' ')}
+              </ThemedText>
+            </View>
+          ) : null}
+          <Pressable
+            style={[
+              styles.actionSheet,
+              {
+                backgroundColor: theme.mode === 'dark' ? '#1C1C1E' : '#FFFFFF',
+              },
+            ]}
+            onPress={event => event.stopPropagation()}
+          >
+            <View style={styles.sheetHandle} />
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() => {
+                setSelectedGroup(null);
+              }}
+            >
+              <Ionicons
+                name='link-outline'
+                size={22}
+                color='#0A84FF'
+                style={styles.actionIcon}
+              />
+              <ThemedText style={styles.actionLabel}>
+                {i18n[language].copyLink}
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() => {
+                if (selectedGroup?.[0]) togglePinned(selectedGroup[0].id);
+                setSelectedGroup(null);
+              }}
+            >
+              <Ionicons
+                name={
+                  selectedGroup?.[0] && pinnedIds.includes(selectedGroup[0].id)
+                    ? 'pin'
+                    : 'pin-outline'
+                }
+                size={22}
+                color='#0A84FF'
+                style={styles.actionIcon}
+              />
+              <ThemedText style={styles.actionLabel}>
+                {i18n[language].pinMessage}
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() => setSelectedGroup(null)}
+            >
+              <Ionicons
+                name='mail-unread-outline'
+                size={22}
+                color='#0A84FF'
+                style={styles.actionIcon}
+              />
+              <ThemedText style={styles.actionLabel}>
+                {i18n[language].markUnread}
+              </ThemedText>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
   );
 };
 

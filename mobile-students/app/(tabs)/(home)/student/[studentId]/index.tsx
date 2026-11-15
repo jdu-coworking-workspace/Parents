@@ -20,7 +20,6 @@ import {
   View,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DateTime } from "luxon";
@@ -40,12 +39,7 @@ import type { Message } from "@/types/message";
 
 const PAGE_SIZE = 5;
 type MessageFilter =
-  | "read"
-  | "unread"
-  | "date"
-  | "favorite"
-  | "pinned"
-  | "important";
+  "read" | "unread" | "date" | "favorite" | "pinned" | "important";
 const MESSAGE_PREFERENCES_KEY = "student-message-preferences";
 
 function mergeIncomingMessages(
@@ -176,7 +170,9 @@ export default function StudentMessagesScreen() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filters, setFilters] = useState<MessageFilter[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [calendarMonth, setCalendarMonth] = useState(DateTime.local().startOf("month"));
+  const [calendarMonth, setCalendarMonth] = useState(
+    DateTime.local().startOf("month"),
+  );
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<number | null>(
     null,
@@ -200,9 +196,7 @@ export default function StudentMessagesScreen() {
     messagesRef.current = messages;
   }, [messages]);
 
-  const preferencesKey = user
-    ? `${MESSAGE_PREFERENCES_KEY}:${user.id}`
-    : null;
+  const preferencesKey = user ? `${MESSAGE_PREFERENCES_KEY}:${user.id}` : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -263,12 +257,7 @@ export default function StudentMessagesScreen() {
     ).catch((error) => {
       console.error("Error saving message preferences:", error);
     });
-  }, [
-    favoriteMessageIds,
-    pinnedMessageIds,
-    preferencesKey,
-    preferencesLoaded,
-  ]);
+  }, [favoriteMessageIds, pinnedMessageIds, preferencesKey, preferencesLoaded]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -536,14 +525,6 @@ export default function StudentMessagesScreen() {
     (message) => message.id === selectedMessageId,
   );
 
-  const handleCopyLink = async () => {
-    if (selectedMessageId === null) return;
-    await Clipboard.setStringAsync(
-      `https://students.appuri.jp/messages/${selectedMessageId}`,
-    );
-    setSelectedMessageId(null);
-  };
-
   const handleTogglePin = () => {
     if (selectedMessageId === null) return;
     setPinnedMessageIds((prev) =>
@@ -560,18 +541,6 @@ export default function StudentMessagesScreen() {
         ? prev.filter((id) => id !== messageId)
         : [...prev, messageId],
     );
-  };
-
-  const handleMarkUnread = () => {
-    if (selectedMessageId === null) return;
-    const selectedId = selectedMessageId;
-    setMessages((prev) =>
-      prev.map((item) =>
-        item.id === selectedId ? { ...item, viewed_at: null } : item,
-      ),
-    );
-    setUnreadCount((prev) => prev + 1);
-    setSelectedMessageId(null);
   };
 
   const resetFilters = () => {
@@ -694,7 +663,10 @@ export default function StudentMessagesScreen() {
                 }
                 setFilters([value]);
               }}
-              style={[styles.quickFilterChip, active && styles.activeQuickFilterChip]}
+              style={[
+                styles.quickFilterChip,
+                active && styles.activeQuickFilterChip,
+              ]}
             >
               <ThemedText
                 style={[
@@ -808,7 +780,9 @@ export default function StudentMessagesScreen() {
 
           const isPinned = pinnedMessageIds.includes(message.id);
           const showPinnedHeading =
-            filters.length === 0 && index === 0 && pinnedVisibleMessages.length > 0;
+            filters.length === 0 &&
+            index === 0 &&
+            pinnedVisibleMessages.length > 0;
           const showAllHeading =
             filters.length === 0 &&
             index === pinnedVisibleMessages.length &&
@@ -830,139 +804,139 @@ export default function StudentMessagesScreen() {
                 </ThemedText>
               ) : null}
               <Pressable
-              key={message.id}
-              onPress={() => handleOpenMessage(message)}
-              onLongPress={() => setSelectedMessageId(message.id)}
-              delayLongPress={350}
-              style={[
-                styles.card,
-                pinnedMessageIds.includes(message.id) && styles.pinnedCard,
-                {
-                  backgroundColor: isPinned
-                    ? colorScheme === "dark"
-                      ? "#173B70"
-                      : "#EAF2FF"
-                    : colorScheme === "dark"
-                      ? "#1C1C1E"
-                      : "#FFFFFF",
-                  borderColor: pinnedMessageIds.includes(message.id)
-                    ? "#3B81F6"
-                    : !isRead
-                      ? BrandColors[colorScheme]
+                key={message.id}
+                onPress={() => handleOpenMessage(message)}
+                onLongPress={() => setSelectedMessageId(message.id)}
+                delayLongPress={350}
+                style={[
+                  styles.card,
+                  pinnedMessageIds.includes(message.id) && styles.pinnedCard,
+                  {
+                    backgroundColor: isPinned
+                      ? colorScheme === "dark"
+                        ? "#173B70"
+                        : "#EAF2FF"
                       : colorScheme === "dark"
-                        ? "#2C2C2E"
-                        : "#E5E5EA",
-                  borderWidth: !isRead ? 1.5 : 1,
-                },
-              ]}
-            >
-              <View style={styles.titleRow}>
-                {isPinned ? (
-                  <Ionicons
-                    name="pin"
-                    size={19}
-                    color="#2563C5"
-                    style={styles.pinnedTitleIcon}
-                  />
-                ) : null}
-                <ThemedText
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={[styles.title, isRead && styles.readOpacity]}
-                >
-                  {message.title}
-                </ThemedText>
-                <View style={styles.headerRight}>
-                  <ThemedText
-                    style={getImportanceBadgeStyle(message.priority, isRead)}
-                  >
-                    {getImportanceLabel(message.priority, t)}
-                  </ThemedText>
-                  <Pressable
-                    hitSlop={8}
-                    onPress={(event) => {
-                      event.stopPropagation();
-                      handleToggleFavorite(message.id);
-                    }}
-                    style={styles.favoriteButton}
-                  >
+                        ? "#1C1C1E"
+                        : "#FFFFFF",
+                    borderColor: pinnedMessageIds.includes(message.id)
+                      ? "#3B81F6"
+                      : !isRead
+                        ? BrandColors[colorScheme]
+                        : colorScheme === "dark"
+                          ? "#2C2C2E"
+                          : "#E5E5EA",
+                    borderWidth: !isRead ? 1.5 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.titleRow}>
+                  {isPinned ? (
                     <Ionicons
-                      name={
-                        favoriteMessageIds.includes(message.id)
-                          ? "star"
-                          : "star-outline"
-                      }
+                      name="pin"
                       size={19}
-                      color={
-                        favoriteMessageIds.includes(message.id)
-                          ? "#F59E0B"
-                          : "#8E8E93"
-                      }
+                      color="#2563C5"
+                      style={styles.pinnedTitleIcon}
+                    />
+                  ) : null}
+                  <ThemedText
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[styles.title, isRead && styles.readOpacity]}
+                  >
+                    {message.title}
+                  </ThemedText>
+                  <View style={styles.headerRight}>
+                    <ThemedText
+                      style={getImportanceBadgeStyle(message.priority, isRead)}
+                    >
+                      {getImportanceLabel(message.priority, t)}
+                    </ThemedText>
+                    <Pressable
+                      hitSlop={8}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        handleToggleFavorite(message.id);
+                      }}
+                      style={styles.favoriteButton}
+                    >
+                      <Ionicons
+                        name={
+                          favoriteMessageIds.includes(message.id)
+                            ? "star"
+                            : "star-outline"
+                        }
+                        size={19}
+                        color={
+                          favoriteMessageIds.includes(message.id)
+                            ? "#F59E0B"
+                            : "#8E8E93"
+                        }
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+
+                {message.group_name ? (
+                  <View style={styles.groupRow}>
+                    <ThemedText style={styles.groupBadge}>
+                      {message.group_name}
+                    </ThemedText>
+                  </View>
+                ) : null}
+
+                <ThemedText
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                  style={[styles.preview, isRead && styles.readOpacity]}
+                >
+                  {messagePreview}
+                </ThemedText>
+
+                <View style={styles.bottomRow}>
+                  <View style={styles.dateAndStatus}>
+                    <ThemedText
+                      style={[
+                        styles.date,
+                        {
+                          color: colorScheme === "dark" ? "#8E8E93" : "#666666",
+                        },
+                        isRead && styles.readOpacity,
+                      ]}
+                    >
+                      {localDateTime.toFormat("dd.MM.yyyy   HH:mm")}
+                    </ThemedText>
+
+                    <Ionicons
+                      name={isRead ? "checkmark-done" : "checkmark"}
+                      size={16}
+                      color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
+                      style={{ opacity: isRead ? 1 : 0.8 }}
+                    />
+                  </View>
+
+                  <Pressable
+                    style={styles.readMoreButton}
+                    onPress={() => handleOpenMessage(message)}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.readMoreText,
+                        {
+                          color: colorScheme === "dark" ? "#0A84FF" : "#2089dc",
+                        },
+                      ]}
+                    >
+                      {t("continueReading")}
+                    </ThemedText>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
+                      style={{ marginLeft: 4 }}
                     />
                   </Pressable>
                 </View>
-              </View>
-
-              {message.group_name ? (
-                <View style={styles.groupRow}>
-                  <ThemedText style={styles.groupBadge}>
-                    {message.group_name}
-                  </ThemedText>
-                </View>
-              ) : null}
-
-              <ThemedText
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                style={[styles.preview, isRead && styles.readOpacity]}
-              >
-                {messagePreview}
-              </ThemedText>
-
-              <View style={styles.bottomRow}>
-                <View style={styles.dateAndStatus}>
-                  <ThemedText
-                    style={[
-                      styles.date,
-                      {
-                        color: colorScheme === "dark" ? "#8E8E93" : "#666666",
-                      },
-                      isRead && styles.readOpacity,
-                    ]}
-                  >
-                    {localDateTime.toFormat("dd.MM.yyyy   HH:mm")}
-                  </ThemedText>
-
-                  <Ionicons
-                    name={isRead ? "checkmark-done" : "checkmark"}
-                    size={16}
-                    color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
-                    style={{ opacity: isRead ? 1 : 0.8 }}
-                  />
-                </View>
-
-                <Pressable
-                  style={styles.readMoreButton}
-                  onPress={() => handleOpenMessage(message)}
-                >
-                  <ThemedText
-                    style={[
-                      styles.readMoreText,
-                      {
-                        color: colorScheme === "dark" ? "#0A84FF" : "#2089dc",
-                      },
-                    ]}
-                  >
-                    {t("continueReading")}
-                  </ThemedText>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colorScheme === "dark" ? "#0A84FF" : "#2089dc"}
-                    style={{ marginLeft: 4 }}
-                  />
-                </Pressable>
-              </View>
               </Pressable>
             </Fragment>
           );
@@ -1082,7 +1056,8 @@ export default function StudentMessagesScreen() {
                   if (value === "date" && filters.includes("date")) {
                     setSelectedDate(null);
                   }
-                  if (value === "date") setCalendarMonth(DateTime.local().startOf("month"));
+                  if (value === "date")
+                    setCalendarMonth(DateTime.local().startOf("month"));
                 }}
               >
                 <Ionicons
@@ -1113,19 +1088,31 @@ export default function StudentMessagesScreen() {
               <View style={styles.calendar}>
                 <View style={styles.calendarHeader}>
                   <Pressable
-                    onPress={() => setCalendarMonth((month) => month.minus({ months: 1 }))}
+                    onPress={() =>
+                      setCalendarMonth((month) => month.minus({ months: 1 }))
+                    }
                     hitSlop={8}
                   >
-                    <Ionicons name="chevron-back" size={21} color={BrandColors[colorScheme]} />
+                    <Ionicons
+                      name="chevron-back"
+                      size={21}
+                      color={BrandColors[colorScheme]}
+                    />
                   </Pressable>
                   <ThemedText style={styles.calendarTitle}>
                     {calendarMonth.toFormat("LLLL yyyy")}
                   </ThemedText>
                   <Pressable
-                    onPress={() => setCalendarMonth((month) => month.plus({ months: 1 }))}
+                    onPress={() =>
+                      setCalendarMonth((month) => month.plus({ months: 1 }))
+                    }
                     hitSlop={8}
                   >
-                    <Ionicons name="chevron-forward" size={21} color={BrandColors[colorScheme]} />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={21}
+                      color={BrandColors[colorScheme]}
+                    />
                   </Pressable>
                 </View>
                 <View style={styles.calendarWeekRow}>
@@ -1138,33 +1125,47 @@ export default function StudentMessagesScreen() {
                 <View style={styles.calendarGrid}>
                   {Array.from(
                     { length: calendarMonth.weekday - 1 },
-                    (_, index) => <View key={`empty-${index}`} style={styles.calendarDay} />,
+                    (_, index) => (
+                      <View key={`empty-${index}`} style={styles.calendarDay} />
+                    ),
                   )}
-                  {Array.from({ length: calendarMonth.daysInMonth }, (_, index) => {
-                    const day = index + 1;
-                    const date = calendarMonth.set({ day }).toISODate();
-                    const isSelected = date === selectedDate;
-                    return (
-                      <Pressable
-                        key={date}
-                        style={[styles.calendarDay, isSelected && styles.calendarDaySelected]}
-                        onPress={() => {
-                          setSelectedDate(date);
-                        }}
-                      >
-                        <ThemedText
-                          style={[styles.calendarDayText, isSelected && styles.calendarDayTextSelected]}
+                  {Array.from(
+                    { length: calendarMonth.daysInMonth },
+                    (_, index) => {
+                      const day = index + 1;
+                      const date = calendarMonth.set({ day }).toISODate();
+                      const isSelected = date === selectedDate;
+                      return (
+                        <Pressable
+                          key={date}
+                          style={[
+                            styles.calendarDay,
+                            isSelected && styles.calendarDaySelected,
+                          ]}
+                          onPress={() => {
+                            setSelectedDate(date);
+                          }}
                         >
-                          {day}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
+                          <ThemedText
+                            style={[
+                              styles.calendarDayText,
+                              isSelected && styles.calendarDayTextSelected,
+                            ]}
+                          >
+                            {day}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    },
+                  )}
                 </View>
               </View>
             ) : null}
             <View style={styles.filterActions}>
-              <Pressable style={styles.resetFilterButton} onPress={resetFilters}>
+              <Pressable
+                style={styles.resetFilterButton}
+                onPress={resetFilters}
+              >
                 <ThemedText style={styles.resetFilterText}>
                   {t("resetFilters")}
                 </ThemedText>
@@ -1228,17 +1229,41 @@ export default function StudentMessagesScreen() {
             onPress={(event) => event.stopPropagation()}
           >
             <View style={styles.actionSheetHandle} />
-            <Pressable style={styles.actionRow} onPress={() => void handleCopyLink()}>
-              <Ionicons name="link-outline" size={22} color={BrandColors[colorScheme]} />
-              <ThemedText style={styles.actionLabel}>{t("copyLink")}</ThemedText>
+            <Pressable
+              style={styles.actionRow}
+              onPress={() => setSelectedMessageId(null)}
+            >
+              <Ionicons
+                name="link-outline"
+                size={22}
+                color={BrandColors[colorScheme]}
+              />
+              <ThemedText style={styles.actionLabel}>
+                {t("copyLink")}
+              </ThemedText>
             </Pressable>
             <Pressable style={styles.actionRow} onPress={handleTogglePin}>
-              <Ionicons name="pin-outline" size={22} color={BrandColors[colorScheme]} />
-              <ThemedText style={styles.actionLabel}>{t("pinMessage")}</ThemedText>
+              <Ionicons
+                name="pin-outline"
+                size={22}
+                color={BrandColors[colorScheme]}
+              />
+              <ThemedText style={styles.actionLabel}>
+                {t("pinMessage")}
+              </ThemedText>
             </Pressable>
-            <Pressable style={styles.actionRow} onPress={handleMarkUnread}>
-              <Ionicons name="mail-unread-outline" size={22} color={BrandColors[colorScheme]} />
-              <ThemedText style={styles.actionLabel}>{t("markUnread")}</ThemedText>
+            <Pressable
+              style={styles.actionRow}
+              onPress={() => setSelectedMessageId(null)}
+            >
+              <Ionicons
+                name="mail-unread-outline"
+                size={22}
+                color={BrandColors[colorScheme]}
+              />
+              <ThemedText style={styles.actionLabel}>
+                {t("markUnread")}
+              </ThemedText>
             </Pressable>
           </Pressable>
         </Pressable>
