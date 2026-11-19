@@ -128,8 +128,8 @@ function normalizePath(
   if (!pathname || pathname === '/' || pathname === '/home') {
     return '/';
   }
-  if (pathname === '/settings') {
-    return '/settings';
+  if (pathname === '/settings' || pathname === '/(tabs)/(settings)') {
+    return '/(tabs)/(settings)';
   }
   const messageMatch = pathname.match(/^\/student\/(\d+)\/message\/(\d+)$/);
   if (messageMatch) {
