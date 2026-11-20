@@ -6,7 +6,7 @@ import { useTheme } from '@rneui/themed';
 import { headerBg } from '@/constants/Colors';
 
 export const unstable_settings = {
-  anchor: 'settings',
+  anchor: 'index',
 };
 
 const Layout = () => {
@@ -16,7 +16,7 @@ const Layout = () => {
   return (
     <Stack>
       <Stack.Screen
-        name='settings'
+        name='index'
         options={{
           title: i18n[language].settings,
           headerStyle: {
