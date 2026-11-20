@@ -31,7 +31,12 @@ import MessageDescription, {
 import demoModeService from '@/services/demo-mode-service';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient, { ApiError } from '@/services/api-client';
-import { openGoogleTranslate } from '@/utils/translate';
+import {
+  openGoogleTranslate,
+  translateMessageInApp,
+  SHOW_ORIGINAL_LABEL,
+  TranslatedMessage,
+} from '@/utils/translate';
 import PollView, { Poll } from '@/components/PollView';
 
 const normalizeMessageImages = (post: any): string[] | null => {
@@ -118,12 +123,23 @@ export default function DetailsScreen() {
     null
   );
   const [inlineZoomIndex, setInlineZoomIndex] = useState(0);
+  // In-app translation state
+  const [translation, setTranslation] = useState<{
+    key: string;
+    data: TranslatedMessage;
+  } | null>(null);
+  const [translating, setTranslating] = useState(false);
   const [poll, setPoll] = useState<Poll | null>(null);
   const [pollPostId, setPollPostId] = useState<number | null>(null);
 
   const { id, studentId } = useLocalSearchParams();
   const actualStudentId = studentId ? Number(studentId) : undefined;
   const { language, i18n } = useContext(I18nContext);
+
+  // A translation only applies to the message + language it was made for
+  const translationKey = `${id}:${language}`;
+  const translated =
+    translation?.key === translationKey ? translation.data : null;
   const { session, isDemoMode } = useSession();
   const { isOnline } = useNetwork();
   const db = useSQLiteContext();
@@ -562,7 +578,7 @@ export default function DetailsScreen() {
     ToastAndroid.show('Text copied to clipboard!', ToastAndroid.SHORT);
   };
 
-  const translateMessage = () => {
+  const openInGoogleTranslate = () => {
     const text = [
       message.title,
       message.content ? extractMessagePlainText(message.content) : '',
@@ -570,6 +586,35 @@ export default function DetailsScreen() {
       .filter(Boolean)
       .join('\n\n');
     openGoogleTranslate(text, language);
+  };
+
+  // Translate inside the app via backend → Azure AI Translator.
+  // Falls back to Google Translate if Azure is not configured or fails.
+  const translateMessage = async () => {
+    if (translated) {
+      setTranslation(null); // toggle back to the original
+      return;
+    }
+    if (translating) return;
+
+    setTranslating(true);
+    try {
+      const result = await translateMessageInApp(
+        message.title,
+        message.content ?? '',
+        language
+      );
+      if (result) {
+        setTranslation({ key: translationKey, data: result });
+      } else {
+        openInGoogleTranslate();
+      }
+    } catch (e) {
+      console.error('In-app translation failed, falling back:', e);
+      openInGoogleTranslate();
+    } finally {
+      setTranslating(false);
+    }
   };
 
   const sentTimeString = message.sent_time;
@@ -619,7 +664,7 @@ export default function DetailsScreen() {
               },
             ]}
           >
-            {message.title}
+            {translated?.title ?? message.title}
           </ThemedText>
           <View
             style={{
@@ -683,7 +728,7 @@ export default function DetailsScreen() {
 
         <View style={styles.descriptionRow}>
           <MessageDescription
-            content={message.content}
+            content={translated?.content ?? message.content}
             textColor={textColor}
             fontSize={16 * multiplier}
             onImagePress={(images, index) => {
@@ -730,11 +775,19 @@ export default function DetailsScreen() {
             <Pressable
               style={styles.actionButton}
               onPress={translateMessage}
+              onLongPress={openInGoogleTranslate}
+              disabled={translating}
               accessibilityRole='button'
             >
-              <Ionicons name='language-outline' size={20} color='#007AFF' />
+              {translating ? (
+                <ActivityIndicator size='small' color='#007AFF' />
+              ) : (
+                <Ionicons name='language-outline' size={20} color='#007AFF' />
+              )}
               <Text style={[styles.actionText, { fontSize: 14 * multiplier }]}>
-                {i18n[language].translate}
+                {translated
+                  ? SHOW_ORIGINAL_LABEL[language]
+                  : i18n[language].translate}
               </Text>
             </Pressable>
             <Pressable
