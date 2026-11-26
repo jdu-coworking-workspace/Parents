@@ -33,7 +33,13 @@ import type { Message } from "@/types/message";
 import { useFontSize } from "@/contexts/font-size-context";
 import { getMessageImageUrls } from "@/utils/image-url";
 import { htmlToPlainText } from "@/utils/message-text";
-import { openGoogleTranslate } from "@/utils/translate";
+import {
+  openGoogleTranslate,
+  translateMessageInApp,
+  SHOW_ORIGINAL_LABEL,
+  type TranslatedMessage,
+} from "@/utils/translate";
+import { useAuth } from "@/contexts/auth-context";
 
 export type TranslationKeys = {
   critical: string;
@@ -71,6 +77,7 @@ export default function MessageDetailScreen() {
   const isDark = colorScheme === "dark";
   const pageBackgroundColor = isDark ? "#111215" : "#fff";
   const { t, language } = useContext(I18nContext);
+  const { isDemoMode } = useAuth();
   const { multiplier } = useFontSize();
 
   const { id } = useLocalSearchParams<{
@@ -90,6 +97,15 @@ export default function MessageDetailScreen() {
   const [imageAspectRatios, setImageAspectRatios] = useState<
     Record<string, number>
   >({});
+  const [translation, setTranslation] = useState<{
+    key: string;
+    data: TranslatedMessage;
+  } | null>(null);
+  const [translating, setTranslating] = useState(false);
+
+  const translationKey = `${messageId}:${language}`;
+  const translated =
+    translation?.key === translationKey ? translation.data : null;
 
   const screenWidth = Dimensions.get("window").width;
   const imageContainerWidth = screenWidth - 32; // scrollContent paddingHorizontal: 16 * 2
@@ -179,12 +195,44 @@ export default function MessageDetailScreen() {
     showCopiedToast(t("messageCopiedToClipboard" as keyof typeof t | any));
   };
 
-  const handleTranslate = () => {
+  const openInGoogleTranslate = () => {
     if (!message) return;
     const text = [message.title, htmlToPlainText(message.content)]
       .filter(Boolean)
       .join("\n\n");
     void openGoogleTranslate(text, language);
+  };
+
+  const handleTranslate = async () => {
+    if (!message) return;
+    if (translated) {
+      setTranslation(null);
+      return;
+    }
+    if (translating) return;
+    if (isDemoMode) {
+      openInGoogleTranslate();
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      const result = await translateMessageInApp(
+        message.title,
+        message.content ?? "",
+        language,
+      );
+      if (result) {
+        setTranslation({ key: translationKey, data: result });
+      } else {
+        openInGoogleTranslate();
+      }
+    } catch (error) {
+      console.error("In-app translation failed, falling back:", error);
+      openInGoogleTranslate();
+    } finally {
+      setTranslating(false);
+    }
   };
 
   if (isLoading) {
@@ -276,7 +324,7 @@ export default function MessageDetailScreen() {
                 },
               ]}
             >
-              {message.title}
+              {translated?.title ?? message.title}
             </ThemedText>
             <View
               style={[
@@ -344,7 +392,7 @@ export default function MessageDetailScreen() {
 
           <View style={styles.preview}>
             <MessageDescription
-              content={message.content}
+              content={translated?.content ?? message.content}
               textColor={isDark ? "#E5E7EB" : "#1F2937"}
               fontSize={16 * multiplier}
               onImagePress={(images, index) => {
@@ -375,12 +423,22 @@ export default function MessageDetailScreen() {
 
             <View style={styles.actionsRow}>
               <Pressable
-                onPress={handleTranslate}
+                onPress={() => void handleTranslate()}
+                onLongPress={openInGoogleTranslate}
+                disabled={translating}
                 style={styles.copyButton}
                 accessibilityRole="button"
               >
-                <Ionicons name="language-outline" size={20} color="#0A84FF" />
-                <ThemedText style={styles.copyText}>{t("translate")}</ThemedText>
+                {translating ? (
+                  <ActivityIndicator size="small" color="#0A84FF" />
+                ) : (
+                  <Ionicons name="language-outline" size={20} color="#0A84FF" />
+                )}
+                <ThemedText style={styles.copyText}>
+                  {translated
+                    ? SHOW_ORIGINAL_LABEL[language]
+                    : t("translate")}
+                </ThemedText>
               </Pressable>
               <Pressable
                 onPress={handleCopy}
