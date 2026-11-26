@@ -15,6 +15,10 @@ jest.mock('../src/middlewares/mobileAuth', () => {
             req.user = { id: 1, school_id: 1 };
             next();
         },
+        verifyStudentToken: (req: any, _res: any, next: any) => {
+            req.user = { id: 2, school_id: 1 };
+            next();
+        },
     };
 });
 
@@ -92,6 +96,17 @@ describe('POST /mobile/translate (Azure experiment)', () => {
             { Text: 'こんにちは' },
             { Text: '<p>明日は休校です</p>' },
         ]);
+    });
+
+    test('student route uses the same translator', async () => {
+        fetchMock.mockResolvedValueOnce(azureOk([{ text: 'Salom' }]));
+
+        const res = await request(app)
+            .post('/mobile/student/translate')
+            .send({ texts: ['こんにちは'], to: 'uz' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.translations[0].text).toBe('Salom');
     });
 
     test('maps Azure errors to 502', async () => {

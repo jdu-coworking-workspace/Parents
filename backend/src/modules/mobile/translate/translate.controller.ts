@@ -1,11 +1,15 @@
-// In-app message translation for the parent app via Azure AI Translator.
-// The Azure key stays on the backend; the mobile app only calls this endpoint.
+// In-app message translation for the parent and student apps via Azure AI Translator.
+// The Azure key stays on the backend; the mobile apps only call this endpoint.
 
 import { NextFunction, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
 
 import { IController } from '../../../utils/icontroller';
-import { ExtendedRequest, verifyToken } from '../../../middlewares/mobileAuth';
+import {
+    ExtendedRequest,
+    verifyStudentToken,
+    verifyToken,
+} from '../../../middlewares/mobileAuth';
 import {
     SUPPORTED_TARGETS,
     TargetLanguage,
@@ -37,6 +41,12 @@ export class MobileTranslateModuleController implements IController {
             '/translate',
             this.translateLimiter,
             verifyToken,
+            this.translate
+        );
+        this.router.post(
+            '/student/translate',
+            this.translateLimiter,
+            verifyStudentToken,
             this.translate
         );
     }
